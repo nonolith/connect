@@ -9,8 +9,9 @@ using namespace std;
 #define CEE_PID 0xffff
 
 #define EP_BULK_IN 0x81
-#define N_TRANSFERS 8
-#define TRANSFER_SIZE 2048
+#define EP_BULK_OUT 0x02
+#define N_TRANSFERS 32
+#define TRANSFER_SIZE 64
 
 long millis(){
 	struct timeb tp;
@@ -19,6 +20,7 @@ long millis(){
 }
 
 void in_transfer_callback(libusb_transfer *t);
+void out_transfer_callback(libusb_transfer *t);
 
 class CEE_device{
 	public: 
@@ -54,29 +56,53 @@ class CEE_device{
 			unsigned char *buf = (unsigned char *) malloc(TRANSFER_SIZE);
 			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, TRANSFER_SIZE, in_transfer_callback, this, 50);
 			libusb_submit_transfer(in_transfers[i]);
+			
+			out_transfers[i] = libusb_alloc_transfer(0);
+			buf = (unsigned char *) malloc(TRANSFER_SIZE);
+			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, TRANSFER_SIZE, out_transfer_callback, this, 50);
+			libusb_submit_transfer(out_transfers[i]);
 		}
 	}
 	
 	void stop_streaming(){
 		if (!streaming) return;
 		for (int i=0; i<N_TRANSFERS; i++){
-			// zero user_data tells the callback to free on complete. this obj may be dead by then
 			if (in_transfers[i]->user_data){
+				// zero user_data tells the callback to free on complete. this obj may be dead by then
 				in_transfers[i]->user_data=0;
 				libusb_cancel_transfer(in_transfers[i]);
+			}
+			
+			if (out_transfers[i]->user_data){
+				// zero user_data tells the callback to free on complete. this obj may be dead by then
+				out_transfers[i]->user_data=0;
+				libusb_cancel_transfer(out_transfers[i]);
 			}
 		}
 		streaming = 0;
 	}
 	
 	void in_transfer_complete(libusb_transfer *t){
-		if (t -> status == LIBUSB_TRANSFER_COMPLETED){
-			libusb_submit_transfer(t); 
+		if (t->status == LIBUSB_TRANSFER_COMPLETED){
+			libusb_submit_transfer(t);
 			cout <<  millis() << " " << t << " complete " << t->actual_length << endl;
 		}else{
 			cerr << "Transfer error" << endl;
-			t -> user_data = 0;
-			free(t -> buf);
+			t->user_data = 0;
+			free(t->buffer);
+			libusb_free_transfer(t);
+			stop_streaming();
+		}
+	}
+	
+	void out_transfer_complete(libusb_transfer *t){
+		if (t->status == LIBUSB_TRANSFER_COMPLETED){
+			libusb_submit_transfer(t);
+			cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
+		}else{
+			cerr << "Transfer error" << endl;
+			t->user_data = 0;
+			free(t->buffer);
 			libusb_free_transfer(t);
 			stop_streaming();
 		}
@@ -85,12 +111,22 @@ class CEE_device{
 	libusb_device_handle *handle;
 	unsigned char serial[32];
 	libusb_transfer* in_transfers[N_TRANSFERS];
+	libusb_transfer* out_transfers[N_TRANSFERS];
 	int streaming;
 };
 
 void in_transfer_callback(libusb_transfer *t){
-	if (t -> user_data){
+	if (t->user_data){
 		((CEE_device *)(t->user_data))->in_transfer_complete(t);
+	}else{ // user_data was zeroed out when device was deleted
+		free(t->buffer);
+		libusb_free_transfer(t);
+	}
+}
+
+void out_transfer_callback(libusb_transfer *t){
+	if (t->user_data){
+		((CEE_device *)(t->user_data))->out_transfer_complete(t);
 	}else{ // user_data was zeroed out when device was deleted
 		free(t->buffer);
 		libusb_free_transfer(t);
