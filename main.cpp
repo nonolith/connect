@@ -1,4 +1,5 @@
 // USB data streaming
+// http://nonolithlabs.com/cee
 // (C) 2011 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
 // Released under the terms of the GNU GPLv3+
 
