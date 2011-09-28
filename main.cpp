@@ -55,28 +55,39 @@ class CEE_device{
 			in_transfers[i] = libusb_alloc_transfer(0);
 			unsigned char *buf = (unsigned char *) malloc(TRANSFER_SIZE);
 			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, TRANSFER_SIZE, in_transfer_callback, this, 50);
+			in_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(in_transfers[i]);
 			
 			out_transfers[i] = libusb_alloc_transfer(0);
 			buf = (unsigned char *) malloc(TRANSFER_SIZE);
 			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, TRANSFER_SIZE, out_transfer_callback, this, 50);
+			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(out_transfers[i]);
 		}
 	}
 	
 	void stop_streaming(){
+		int r;
 		if (!streaming) return;
 		for (int i=0; i<N_TRANSFERS; i++){
-			if (in_transfers[i]->user_data){
+			if (in_transfers[i]){
 				// zero user_data tells the callback to free on complete. this obj may be dead by then
 				in_transfers[i]->user_data=0;
-				libusb_cancel_transfer(in_transfers[i]);
+				r = libusb_cancel_transfer(in_transfers[i]);
+				if (r != 0){
+					libusb_free_transfer(in_transfers[i]);
+				}
+				in_transfers[i] = 0;
 			}
 			
-			if (out_transfers[i]->user_data){
+			if (out_transfers[i]){
 				// zero user_data tells the callback to free on complete. this obj may be dead by then
 				out_transfers[i]->user_data=0;
-				libusb_cancel_transfer(out_transfers[i]);
+				r = libusb_cancel_transfer(out_transfers[i]);
+				if (r != 0){
+					libusb_free_transfer(out_transfers[i]);
+				}
+				out_transfers[i] = 0;
 			}
 		}
 		streaming = 0;
@@ -87,10 +98,7 @@ class CEE_device{
 			libusb_submit_transfer(t);
 			cout <<  millis() << " " << t << " complete " << t->actual_length << endl;
 		}else{
-			cerr << "Transfer error" << endl;
-			t->user_data = 0;
-			free(t->buffer);
-			libusb_free_transfer(t);
+			cerr << "ITransfer error "<< t->status << " " << t << endl;
 			stop_streaming();
 		}
 	}
@@ -100,10 +108,7 @@ class CEE_device{
 			libusb_submit_transfer(t);
 			cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
 		}else{
-			cerr << "Transfer error" << endl;
-			t->user_data = 0;
-			free(t->buffer);
-			libusb_free_transfer(t);
+			cerr << "OTransfer error "<< t->status << " " << t << endl;
 			stop_streaming();
 		}
 	}
@@ -119,7 +124,6 @@ void in_transfer_callback(libusb_transfer *t){
 	if (t->user_data){
 		((CEE_device *)(t->user_data))->in_transfer_complete(t);
 	}else{ // user_data was zeroed out when device was deleted
-		free(t->buffer);
 		libusb_free_transfer(t);
 	}
 }
@@ -128,7 +132,6 @@ void out_transfer_callback(libusb_transfer *t){
 	if (t->user_data){
 		((CEE_device *)(t->user_data))->out_transfer_complete(t);
 	}else{ // user_data was zeroed out when device was deleted
-		free(t->buffer);
 		libusb_free_transfer(t);
 	}
 }
