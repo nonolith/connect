@@ -1,5 +1,10 @@
+// USB data streaming
+// (C) 2011 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
+// Released under the terms of the GNU GPLv3+
+
 #include <iostream>
 #include <vector>
+#include <fstream>
 #include <libusb-1.0/libusb.h>
 #include <sys/timeb.h>
 using namespace std;
@@ -21,6 +26,62 @@ long millis(){
 
 void in_transfer_callback(libusb_transfer *t);
 void out_transfer_callback(libusb_transfer *t);
+
+
+class BufferManager{
+	public:
+	BufferManager(): elem_size(1), count(0), buffer(0), write_end_index(0), write_start_index(0){}
+	
+	void init(unsigned _elem_size, unsigned _count){
+		if (buffer) free(buffer);
+		elem_size = _elem_size;
+		count = _count;
+		buffer = (unsigned char*) malloc(elem_size*count);
+	}
+	
+	~BufferManager(){
+		if (buffer) free(buffer);
+	}
+	
+	unsigned startIndex(){return 0;}
+	unsigned endIndex(){return count-1;}
+	
+	unsigned char* getPtr(unsigned index){
+		return buffer + elem_size*index;
+	}
+	
+	unsigned char* getWriteChunk(unsigned elems){
+		auto ptr = getPtr(write_end_index);
+		write_end_index += elems;
+		//assert(write_end_index < count);
+		return ptr;
+	}
+	
+	void doneWriteChunk(unsigned char* ptr, unsigned elems){
+		if (ptr != getPtr(write_start_index)){
+			cerr << "buffer fill skipped a piece "<< (unsigned *) ptr <<" "<< write_start_index <<" "<< (unsigned *) buffer << endl;
+		}
+		write_start_index += elems;
+	}
+	
+	void dumpToFile(const char* fname){
+		 fstream f(fname, ios::out | ios::binary);
+		 f.write((char*)buffer, elem_size*count);
+		 f.close();
+	}
+	
+	
+	bool canStartWrite(){return write_end_index < count;}
+	bool fullyBuffered(){return write_start_index == count;}
+		
+	unsigned elem_size, count;
+	unsigned char *buffer;
+	unsigned write_end_index; // index where newly queued writes will be places
+	unsigned write_start_index; // index that has started writing that has not yet completed
+	// data between write_start_index and write_end_index is in an undefined state
+	// data below write_start index is valid
+};
+
 
 class CEE_device{
 	public: 
@@ -51,29 +112,34 @@ class CEE_device{
 	void start_streaming(){
 		if (streaming) return;
 		streaming = 1;
+		
+		in_buffer.init(6, 100*1000*60);
+		
 		for (int i=0; i<N_TRANSFERS; i++){
 			in_transfers[i] = libusb_alloc_transfer(0);
-			unsigned char *buf = (unsigned char *) malloc(TRANSFER_SIZE);
-			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, TRANSFER_SIZE, in_transfer_callback, this, 50);
-			in_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
+			auto buf = in_buffer.getWriteChunk(10);
+			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 50);
 			libusb_submit_transfer(in_transfers[i]);
 			
 			out_transfers[i] = libusb_alloc_transfer(0);
 			buf = (unsigned char *) malloc(TRANSFER_SIZE);
-			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, TRANSFER_SIZE, out_transfer_callback, this, 50);
+			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 30, out_transfer_callback, this, 50);
 			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(out_transfers[i]);
 		}
 	}
 	
 	void stop_streaming(){
-		int r;
 		if (!streaming) return;
 		for (int i=0; i<N_TRANSFERS; i++){
 			if (in_transfers[i]){
 				// zero user_data tells the callback to free on complete. this obj may be dead by then
 				in_transfers[i]->user_data=0;
-				r = libusb_cancel_transfer(in_transfers[i]);
+				
+				int r=-1;
+				if (in_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
+					r = libusb_cancel_transfer(in_transfers[i]);
+				}
 				if (r != 0){
 					libusb_free_transfer(in_transfers[i]);
 				}
@@ -83,9 +149,12 @@ class CEE_device{
 			if (out_transfers[i]){
 				// zero user_data tells the callback to free on complete. this obj may be dead by then
 				out_transfers[i]->user_data=0;
-				r = libusb_cancel_transfer(out_transfers[i]);
+				int r=-1;
+				if (out_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
+					r = libusb_cancel_transfer(out_transfers[i]);
+				}
 				if (r != 0){
-					libusb_free_transfer(out_transfers[i]);
+					libusb_free_transfer(in_transfers[i]);
 				}
 				out_transfers[i] = 0;
 			}
@@ -95,18 +164,30 @@ class CEE_device{
 	
 	void in_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
-			libusb_submit_transfer(t);
-			cout <<  millis() << " " << t << " complete " << t->actual_length << endl;
+			in_buffer.doneWriteChunk(t->buffer, 10);
+			//cout <<  millis() << " " << t << " complete " << t->actual_length << endl;
 		}else{
 			cerr << "ITransfer error "<< t->status << " " << t << endl;
-			stop_streaming();
+		}
+		
+		if (in_buffer.canStartWrite()){
+			t->buffer = in_buffer.getWriteChunk(10);
+			libusb_submit_transfer(t);
+		}else{
+			// don't submit more transfers, but wait for all the transfers to complete
+			t->status = LIBUSB_TRANSFER_CANCELLED;
+			if (in_buffer.fullyBuffered()){
+				stop_streaming();
+				cout << "Done." << endl;
+				in_buffer.dumpToFile("inData.bin");
+			}
 		}
 	}
 	
 	void out_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
 			libusb_submit_transfer(t);
-			cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
+			//cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
 		}else{
 			cerr << "OTransfer error "<< t->status << " " << t << endl;
 			stop_streaming();
@@ -118,6 +199,7 @@ class CEE_device{
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
 	int streaming;
+	BufferManager in_buffer;
 };
 
 void in_transfer_callback(libusb_transfer *t){
