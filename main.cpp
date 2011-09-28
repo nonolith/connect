@@ -29,45 +29,49 @@ void in_transfer_callback(libusb_transfer *t);
 void out_transfer_callback(libusb_transfer *t);
 
 
-class BufferManager{
+struct IN_sample{
+	unsigned a_v:12;
+	unsigned a_i:12;
+	unsigned b_v:12;
+	unsigned b_i:12;
+} __attribute__((packed));
+
+struct IN_packet{
+	char header[4];
+	IN_sample data[10];	
+} __attribute__((packed));
+
+class PacketBuffer{
 	public:
-	BufferManager(): elem_size(1), count(0), buffer(0), write_end_index(0), write_start_index(0){}
+	PacketBuffer(): count(0), buffer(0), write_end_index(0), write_start_index(0){}
 	
-	void init(unsigned _elem_size, unsigned _count){
+	void init(unsigned _elem_size, unsigned packet_count){
 		if (buffer) free(buffer);
-		elem_size = _elem_size;
-		count = _count;
-		buffer = (unsigned char*) malloc(elem_size*count);
+		count = packet_count;
+		buffer = (IN_packet*) malloc(sizeof(IN_packet)*count);
 	}
 	
-	~BufferManager(){
+	~PacketBuffer(){
 		if (buffer) free(buffer);
 	}
 	
 	unsigned startIndex(){return 0;}
 	unsigned endIndex(){return count-1;}
 	
-	unsigned char* getPtr(unsigned index){
-		return buffer + elem_size*index;
+	unsigned char* writePacketStart(){
+		return (unsigned char*) &buffer[write_end_index++];
 	}
 	
-	unsigned char* getWriteChunk(unsigned elems){
-		auto ptr = getPtr(write_end_index);
-		write_end_index += elems;
-		//assert(write_end_index < count);
-		return ptr;
-	}
-	
-	void doneWriteChunk(unsigned char* ptr, unsigned elems){
-		if (ptr != getPtr(write_start_index)){
+	void writePacketDone(unsigned char* ptr){
+		if (ptr != (unsigned char*) &buffer[write_start_index]){
 			cerr << "buffer fill skipped a piece "<< (unsigned *) ptr <<" "<< write_start_index <<" "<< (unsigned *) buffer << endl;
 		}
-		write_start_index += elems;
+		write_start_index += 1;
 	}
 	
 	void dumpToFile(const char* fname){
 		 fstream f(fname, ios::out | ios::binary);
-		 f.write((char*)buffer, elem_size*count);
+		 f.write((char*)buffer, sizeof(IN_packet)*count);
 		 f.close();
 	}
 	
@@ -75,9 +79,9 @@ class BufferManager{
 	bool canStartWrite(){return write_end_index < count;}
 	bool fullyBuffered(){return write_start_index == count;}
 		
-	unsigned elem_size, count;
-	unsigned char *buffer;
-	unsigned write_end_index; // index where newly queued writes will be places
+	unsigned count;
+	IN_packet *buffer;
+	unsigned write_end_index; // index where newly queued writes will be placed
 	unsigned write_start_index; // index that has started writing that has not yet completed
 	// data between write_start_index and write_end_index is in an undefined state
 	// data below write_start index is valid
@@ -114,11 +118,11 @@ class CEE_device{
 		if (streaming) return;
 		streaming = 1;
 		
-		in_buffer.init(6, 100*1000*60);
+		in_buffer.init(6, 10*1000*60);
 		
 		for (int i=0; i<N_TRANSFERS; i++){
 			in_transfers[i] = libusb_alloc_transfer(0);
-			auto buf = in_buffer.getWriteChunk(10);
+			auto buf = in_buffer.writePacketStart();
 			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 50);
 			libusb_submit_transfer(in_transfers[i]);
 			
@@ -165,14 +169,14 @@ class CEE_device{
 	
 	void in_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
-			in_buffer.doneWriteChunk(t->buffer, 10);
+			in_buffer.writePacketDone(t->buffer);
 			//cout <<  millis() << " " << t << " complete " << t->actual_length << endl;
 		}else{
 			cerr << "ITransfer error "<< t->status << " " << t << endl;
 		}
 		
 		if (in_buffer.canStartWrite()){
-			t->buffer = in_buffer.getWriteChunk(10);
+			t->buffer = in_buffer.writePacketStart();
 			libusb_submit_transfer(t);
 		}else{
 			// don't submit more transfers, but wait for all the transfers to complete
@@ -200,7 +204,7 @@ class CEE_device{
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
 	int streaming;
-	BufferManager in_buffer;
+	PacketBuffer in_buffer;
 };
 
 void in_transfer_callback(libusb_transfer *t){
