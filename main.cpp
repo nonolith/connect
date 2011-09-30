@@ -16,7 +16,7 @@ using namespace std;
 
 #define EP_BULK_IN 0x81
 #define EP_BULK_OUT 0x02
-#define N_TRANSFERS 32
+#define N_TRANSFERS 128
 #define TRANSFER_SIZE 64
 
 long millis(){
@@ -28,7 +28,6 @@ long millis(){
 void in_transfer_callback(libusb_transfer *t);
 void out_transfer_callback(libusb_transfer *t);
 
-
 struct IN_sample{
 	unsigned a_v:12;
 	unsigned a_i:12;
@@ -37,15 +36,29 @@ struct IN_sample{
 } __attribute__((packed));
 
 struct IN_packet{
-	char header[4];
+	unsigned char seqno;
+	unsigned char flags;
+	unsigned char reserved[2];
 	IN_sample data[10];	
+} __attribute__((packed));
+
+
+struct OUT_sample{
+	unsigned a:12;
+	unsigned b:12;
+} __attribute__((packed));
+
+struct OUT_packet{
+	unsigned char seqno;
+	unsigned char flags;
+	OUT_sample data[10];
 } __attribute__((packed));
 
 class PacketBuffer{
 	public:
 	PacketBuffer(): count(0), buffer(0), write_end_index(0), write_start_index(0){}
 	
-	void init(unsigned _elem_size, unsigned packet_count){
+	void init(unsigned packet_count){
 		if (buffer) free(buffer);
 		count = packet_count;
 		buffer = (IN_packet*) malloc(sizeof(IN_packet)*count);
@@ -118,7 +131,7 @@ class CEE_device{
 		if (streaming) return;
 		streaming = 1;
 		
-		in_buffer.init(6, 10*1000*60);
+		in_buffer.init(10*1000*5);
 		
 		for (int i=0; i<N_TRANSFERS; i++){
 			in_transfers[i] = libusb_alloc_transfer(0);
@@ -128,7 +141,7 @@ class CEE_device{
 			
 			out_transfers[i] = libusb_alloc_transfer(0);
 			buf = (unsigned char *) malloc(TRANSFER_SIZE);
-			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 30, out_transfer_callback, this, 50);
+			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 50);
 			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(out_transfers[i]);
 		}
