@@ -30,10 +30,10 @@ void in_transfer_callback(libusb_transfer *t);
 void out_transfer_callback(libusb_transfer *t);
 
 struct IN_sample{
-	unsigned a_v:12;
-	unsigned a_i:12;
-	unsigned b_v:12;
-	unsigned b_i:12;
+	signed int a_v:12;
+	signed int a_i:12;
+	signed int b_v:12;
+	signed int b_i:12;
 } __attribute__((packed));
 
 
