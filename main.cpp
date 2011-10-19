@@ -35,11 +35,13 @@ struct IN_sample{
 	unsigned b_i:12;
 } __attribute__((packed));
 
+
+#define IN_SAMPLES_PER_PACKET 10
 struct IN_packet{
 	unsigned char seqno;
 	unsigned char flags;
 	unsigned char reserved[2];
-	IN_sample data[10];	
+	IN_sample data[IN_SAMPLES_PER_PACKET];	
 } __attribute__((packed));
 
 
@@ -86,6 +88,17 @@ class PacketBuffer{
 		 fstream f(fname, ios::out | ios::binary);
 		 f.write((char*)buffer, sizeof(IN_packet)*count);
 		 f.close();
+	}
+
+	void dumpCSV(const char* fname){
+		fstream f(fname, ios::out);
+		for (unsigned i=0; i<count; i++){
+			for (unsigned j=0; j<IN_SAMPLES_PER_PACKET; j++){
+				IN_sample* s = &(buffer[i].data[j]);
+				f << s->a_v << "," << s->a_i << "," << s->b_v << "," << s->b_i << "\n";
+			}
+		}
+		f.close();
 	}
 	
 	
@@ -198,6 +211,7 @@ class CEE_device{
 				stop_streaming();
 				cout << "Done." << endl;
 				in_buffer.dumpToFile("inData.bin");
+				in_buffer.dumpCSV("inData.csv");
 			}
 		}
 	}
