@@ -3,6 +3,7 @@
 // (C) 2011 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
 // Released under the terms of the GNU GPLv3+
 
+#include <stdlib.h>
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -148,7 +149,7 @@ class CEE_device{
 		
 		for (int i=0; i<N_TRANSFERS; i++){
 			in_transfers[i] = libusb_alloc_transfer(0);
-			auto buf = in_buffer.writePacketStart();
+			unsigned char* buf = in_buffer.writePacketStart();
 			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 50);
 			libusb_submit_transfer(in_transfers[i]);
 			
@@ -291,13 +292,13 @@ int main(){
 
 	cout << devices.size() << " devices found" << endl;
 	
-	for (auto it=devices.begin() ; it < devices.end(); it++ ){
+	for (vector <CEE_device*>::iterator it=devices.begin() ; it < devices.end(); it++ ){
 		(*it) -> start_streaming();
 	}
 	
 	while(1) libusb_handle_events(NULL);
 	
-	for (auto it=devices.begin() ; it < devices.end(); it++ ){
+	for (vector <CEE_device*>::iterator it=devices.begin() ; it < devices.end(); it++ ){
 		delete *it;
 	}
 
