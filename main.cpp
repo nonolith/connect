@@ -1,6 +1,7 @@
 // USB data streaming
 // http://nonolithlabs.com/cee
 // (C) 2011 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
+// (C) 2011 Ian Daniher / Nonolith Labs <ian@nonolithlabs.com>
 // Released under the terms of the GNU GPLv3+
 
 #include <stdlib.h>
@@ -155,6 +156,18 @@ class CEE_device{
 			
 			out_transfers[i] = libusb_alloc_transfer(0);
 			buf = (unsigned char *) malloc(TRANSFER_SIZE);
+			OUT_packet* packet = (OUT_packet *) buf;
+			for (int j=0; j<10; j++){
+				OUT_sample* data = &(packet->data[j]);
+				if (j < 5){
+					data->a = 1 << 12;
+					data->b = 0 << 12;
+				}
+				else{
+					data->a = 0 << 12;
+					data->b = 1 << 12;
+				}
+			}
 			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 50);
 			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(out_transfers[i]);
@@ -220,7 +233,7 @@ class CEE_device{
 	void out_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
 			libusb_submit_transfer(t);
-			//cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
+			cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
 		}else{
 			cerr << "OTransfer error "<< t->status << " " << t << endl;
 			stop_streaming();
@@ -286,7 +299,7 @@ int main(){
 		return 1;
 	}
 	
-	libusb_set_debug(NULL, 3);
+	libusb_set_debug(NULL, 1);
 
 	scan_bus();
 
