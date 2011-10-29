@@ -1,7 +1,6 @@
 // USB data streaming
 // http://nonolithlabs.com/cee
 // (C) 2011 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
-// (C) 2011 Ian Daniher / Nonolith Labs <ian@nonolithlabs.com>
 // Released under the terms of the GNU GPLv3+
 
 #include <stdlib.h>
@@ -47,6 +46,7 @@ struct IN_packet{
 } __attribute__((packed));
 
 
+#define OUT_SAMPLES_PER_PACKET 10
 struct OUT_sample{
 	unsigned a:12;
 	unsigned b:12;
@@ -55,30 +55,78 @@ struct OUT_sample{
 struct OUT_packet{
 	unsigned char seqno;
 	unsigned char flags;
-	OUT_sample data[10];
+	OUT_sample data[OUT_SAMPLES_PER_PACKET];
 } __attribute__((packed));
 
-class PacketBuffer{
+
+/// Buffer collecting and storing incoming packets
+class InputPacketBuffer{
 	public:
-	PacketBuffer(): count(0), buffer(0), write_end_index(0), write_start_index(0){}
+	InputPacketBuffer(): packet_count(0), buffer(0), write_end_index(0), write_start_index(0){}
 	
-	void init(unsigned packet_count){
-		if (buffer) free(buffer);
-		count = packet_count;
-		buffer = (IN_packet*) malloc(sizeof(IN_packet)*count);
-	}
-	
-	~PacketBuffer(){
+	~InputPacketBuffer(){
 		if (buffer) free(buffer);
 	}
 	
-	unsigned startIndex(){return 0;}
-	unsigned endIndex(){return count-1;}
+	/// Initialize the packet buffer to hold pcount packets (pcount*IN_SAMPLES_PER_PACKET samples)
+	void init(unsigned pcount){
+		if (buffer) free(buffer);
+		packet_count = pcount;
+		buffer = (IN_packet*) malloc(sizeof(IN_packet)*pcount);
+	}
 	
+	/// Write the raw binary buffer contents (including packet headers) to the specified file
+	void dumpToFile(const char* fname){
+		 fstream f(fname, ios::out | ios::binary);
+		 f.write((char*)buffer, sizeof(IN_packet)*packet_count);
+		 f.close();
+	}
+	
+	/// Write the raw samples to a file as CSV (lines: a_v,a_i,b_v,b_i)
+	void dumpCSV(const char* fname){
+		fstream f(fname, ios::out);
+		for (unsigned i=0; i<current_length(); i++){
+			const IN_sample* s = &at(i);
+			f << s->a_v << "," << s->a_i << "," << s->b_v << "," << s->b_i << "\n";
+		}
+		f.close();
+	}
+	
+	
+	
+	//// Sample-level interface
+	
+	/// Number of samples the buffer will contain when filled
+	inline unsigned full_length(){
+		return packet_count*IN_SAMPLES_PER_PACKET;
+	}
+	
+	/// Number of samples currently available
+	inline unsigned current_length(){
+		return write_start_index*IN_SAMPLES_PER_PACKET;
+	}
+	
+	/// Get a sample at the specified index
+	inline const IN_sample& at(unsigned i){
+		i = i%full_length();
+		return buffer[i/IN_SAMPLES_PER_PACKET].data[i%IN_SAMPLES_PER_PACKET];
+	}
+	
+	/// Syntactic sugar for at()
+	inline const IN_sample operator[](unsigned index){
+		return at(index);
+	}
+	
+	
+	
+	//// Interface for the USB code:
+	
+	/// Get the address at which to write a newly-queued packet
 	unsigned char* writePacketStart(){
 		return (unsigned char*) &buffer[write_end_index++];
 	}
 	
+	/// Tell the buffer that a packet at ptr has been written
 	void writePacketDone(unsigned char* ptr){
 		if (ptr != (unsigned char*) &buffer[write_start_index]){
 			cerr << "buffer fill skipped a piece "<< (unsigned *) ptr <<" "<< write_start_index <<" "<< (unsigned *) buffer << endl;
@@ -86,33 +134,64 @@ class PacketBuffer{
 		write_start_index += 1;
 	}
 	
-	void dumpToFile(const char* fname){
-		 fstream f(fname, ios::out | ios::binary);
-		 f.write((char*)buffer, sizeof(IN_packet)*count);
-		 f.close();
-	}
-
-	void dumpCSV(const char* fname){
-		fstream f(fname, ios::out);
-		for (unsigned i=0; i<count; i++){
-			for (unsigned j=0; j<IN_SAMPLES_PER_PACKET; j++){
-				IN_sample* s = &(buffer[i].data[j]);
-				f << s->a_v << "," << s->a_i << "," << s->b_v << "," << s->b_i << "\n";
-			}
-		}
-		f.close();
-	}
+	/// Return true if there is space in the buffer to start another write
+	bool canStartWrite(){return write_end_index < packet_count;}
 	
+	/// Return true if the buffer is full, and all packets have been received
+	bool fullyBuffered(){return write_start_index == packet_count;}
 	
-	bool canStartWrite(){return write_end_index < count;}
-	bool fullyBuffered(){return write_start_index == count;}
-		
-	unsigned count;
+	unsigned packet_count;
 	IN_packet *buffer;
 	unsigned write_end_index; // index where newly queued writes will be placed
 	unsigned write_start_index; // index that has started writing that has not yet completed
 	// data between write_start_index and write_end_index is in an undefined state
 	// data below write_start index is valid
+};
+
+/// Stream source of output packets
+class OutputPacketSource{
+	public:
+	
+	/// Get the next packet to send to the device
+	virtual unsigned char* readPacketStart() = 0;
+	
+	/// Notify that the passed packet has been sent and is no longer in use
+	virtual void readPacketDone(unsigned char* packet){};
+};
+
+/// OutputPacketSource for periodic waveforms by repeating a buffer
+class OutputPacketSource_buffer: public OutputPacketSource{
+	public:
+	OutputPacketSource_buffer(): buffer(0), packet_count(0), index(0){}
+	
+	virtual unsigned char* readPacketStart(){
+		OUT_packet* p = &buffer[index];
+		index = (index+1)%packet_count;
+		return (unsigned char*) p;
+	}
+	
+	OUT_packet* buffer;
+	unsigned packet_count;
+	unsigned index;
+};
+
+
+/// OutputPacketSource that sends the same sample repeatedly
+class OutputPacketSource_constant: public OutputPacketSource{
+	public:
+	OutputPacketSource_constant(unsigned a, unsigned b, unsigned char flags){
+		for (int i=0; i<OUT_SAMPLES_PER_PACKET; i++){
+			packet.data[i].a=a;
+			packet.data[i].b=b;
+		}
+		packet.flags = flags;
+	}
+	
+	virtual unsigned char* readPacketStart(){
+		return (unsigned char*) &packet;
+	}
+	
+	OUT_packet packet;
 };
 
 
@@ -142,11 +221,16 @@ class CEE_device{
 		libusb_close(handle);
 	}
 	
-	void start_streaming(){
-		if (streaming) return;
-		streaming = 1;
+	/// Start streaming for the specified number of samples
+	InputPacketBuffer* start_streaming(unsigned samples, OutputPacketSource* source){
+		if (streaming){
+			stop_streaming();
+		}
 		
-		in_buffer.init(10*1000*5);
+		streaming = 1;
+		output_source = source;
+		
+		in_buffer.init(samples/IN_SAMPLES_PER_PACKET);
 		
 		for (int i=0; i<N_TRANSFERS; i++){
 			in_transfers[i] = libusb_alloc_transfer(0);
@@ -155,23 +239,13 @@ class CEE_device{
 			libusb_submit_transfer(in_transfers[i]);
 			
 			out_transfers[i] = libusb_alloc_transfer(0);
-			buf = (unsigned char *) malloc(TRANSFER_SIZE);
-			OUT_packet* packet = (OUT_packet *) buf;
-			for (int j=0; j<10; j++){
-				OUT_sample* data = &(packet->data[j]);
-				if (j < 5){
-					data->a = 1 << 12;
-					data->b = 0 << 12;
-				}
-				else{
-					data->a = 0 << 12;
-					data->b = 1 << 12;
-				}
-			}
+			buf = output_source->readPacketStart();
 			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 50);
-			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
+			//out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(out_transfers[i]);
 		}
+		
+		return &in_buffer;
 	}
 	
 	void stop_streaming(){
@@ -232,8 +306,10 @@ class CEE_device{
 	
 	void out_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
+			output_source->readPacketDone(t->buffer);
+			t->buffer = output_source->readPacketStart();
 			libusb_submit_transfer(t);
-			cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
+			//cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
 		}else{
 			cerr << "OTransfer error "<< t->status << " " << t << endl;
 			stop_streaming();
@@ -245,7 +321,8 @@ class CEE_device{
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
 	int streaming;
-	PacketBuffer in_buffer;
+	InputPacketBuffer in_buffer;
+	OutputPacketSource* output_source;
 };
 
 void in_transfer_callback(libusb_transfer *t){
@@ -299,14 +376,15 @@ int main(){
 		return 1;
 	}
 	
-	libusb_set_debug(NULL, 1);
+	libusb_set_debug(NULL, 3);
 
 	scan_bus();
 
 	cout << devices.size() << " devices found" << endl;
 	
-	for (vector <CEE_device*>::iterator it=devices.begin() ; it < devices.end(); it++ ){
-		(*it) -> start_streaming();
+	OutputPacketSource_constant source(0, 0, 0);
+	if (devices.size()){
+		devices.front()->start_streaming(100*1000*5, &source);
 	}
 	
 	while(1) libusb_handle_events(NULL);
