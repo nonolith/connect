@@ -11,20 +11,18 @@ for i, arr, in enumerate(data):
 	subplot(4, 1, i+1)
 	plot(arr)
 
-figure(10)
+if False:
+	figure(10)
 
-ttotal = 5
+	x = array(xrange(0, 100000))/5
 
-x = array(xrange(0, 100000))/5
+	semilogx(x, abs(fft(data[1][1000:]))[0:100000])
+	semilogx(x, abs(fft(data[1][1000:]))[0:100000])
+	semilogx(x, abs(fft(data[2][1000:]))[0:100000])
+	semilogx(x, abs(fft(data[3][1000:]))[0:100000])
 
-
-semilogx(x, abs(fft(data[1][1000:]))[0:100000])
-semilogx(x, abs(fft(data[1][1000:]))[0:100000])
-semilogx(x, abs(fft(data[2][1000:]))[0:100000])
-semilogx(x, abs(fft(data[3][1000:]))[0:100000])
-
-ylim(0, 6e7)
-legend(['a_v', 'a_i', 'b_v', 'b_i'])
+	ylim(0, 6e7)
+	legend(['a_v', 'a_i', 'b_v', 'b_i'])
 
 show()
 	
