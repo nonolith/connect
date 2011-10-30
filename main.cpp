@@ -211,7 +211,7 @@ class CEE_device{
 		}
 	
 		libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, serial, 32);
-		cout << "Found a CEE: "<< serial << endl;
+		cerr << "Found a CEE: "<< serial << endl;
 		
 		streaming = 0;
 	}
@@ -235,13 +235,13 @@ class CEE_device{
 		for (int i=0; i<N_TRANSFERS; i++){
 			in_transfers[i] = libusb_alloc_transfer(0);
 			unsigned char* buf = in_buffer.writePacketStart();
-			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 50);
+			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 500);
 			libusb_submit_transfer(in_transfers[i]);
 			
 			out_transfers[i] = libusb_alloc_transfer(0);
-			buf = output_source->readPacketStart();
-			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 50);
-			//out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
+			buf = (unsigned char *) malloc(sizeof(OUT_packet));
+			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 500);
+			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 			libusb_submit_transfer(out_transfers[i]);
 		}
 		
@@ -284,7 +284,8 @@ class CEE_device{
 	void in_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
 			in_buffer.writePacketDone(t->buffer);
-			//cout <<  millis() << " " << t << " complete " << t->actual_length << endl;
+			cout.write((const char*) t->buffer, sizeof(IN_packet));
+			//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
 		}else{
 			cerr << "ITransfer error "<< t->status << " " << t << endl;
 		}
@@ -297,7 +298,7 @@ class CEE_device{
 			t->status = LIBUSB_TRANSFER_CANCELLED;
 			if (in_buffer.fullyBuffered()){
 				stop_streaming();
-				cout << "Done." << endl;
+				cerr << "Done." << endl;
 				in_buffer.dumpToFile("inData.bin");
 				in_buffer.dumpCSV("inData.csv");
 			}
@@ -307,9 +308,10 @@ class CEE_device{
 	void out_transfer_complete(libusb_transfer *t){
 		if (t->status == LIBUSB_TRANSFER_COMPLETED){
 			output_source->readPacketDone(t->buffer);
-			t->buffer = output_source->readPacketStart();
+			//t->buffer = output_source->readPacketStart();
+			cin.read((char*)t->buffer, sizeof(OUT_packet));
 			libusb_submit_transfer(t);
-			//cout <<  millis() << " " << t << " sent " << t->actual_length << endl;
+			//cerr <<  millis() << " " << t << " sent " << t->actual_length << endl;
 		}else{
 			cerr << "OTransfer error "<< t->status << " " << t << endl;
 			stop_streaming();
@@ -380,11 +382,11 @@ int main(){
 
 	scan_bus();
 
-	cout << devices.size() << " devices found" << endl;
+	cerr << devices.size() << " devices found" << endl;
 	
 	OutputPacketSource_constant source(0, 0, 0);
 	if (devices.size()){
-		devices.front()->start_streaming(100*1000*5, &source);
+		devices.front()->start_streaming(100*1000, &source);
 	}
 	
 	while(1) libusb_handle_events(NULL);
