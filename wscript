@@ -27,7 +27,7 @@ def build(bld):
     bld.program(features='cxx cxxprogram', 
                 source='main.cpp',
                 target='app',
-                cxxflags=['-Wall', '-g', '-std=gnu++0x'],
+                cxxflags=['-Wall', '-g'],
                 use=['libusb', 'websocketpp']
     )
 
