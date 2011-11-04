@@ -51,8 +51,7 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 
 void data_server_handler::on_open(websocketpp::session_ptr client){}
 	
-void data_server_handler::on_close(
-	websocketpp::session_ptr client,uint16_t status,const std::string &reason){}
+void data_server_handler::on_close(websocketpp::session_ptr client){}
 
 void data_server_handler::on_message(websocketpp::session_ptr client,const std::string &msg){}
 
