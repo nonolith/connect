@@ -11,10 +11,6 @@
 #include <sys/timeb.h>
 using namespace std;
 
-
-#define CEE_VID 0x9999
-#define CEE_PID 0xffff
-
 #define EP_BULK_IN 0x81
 #define EP_BULK_OUT 0x02
 #define N_TRANSFERS 128
@@ -341,61 +337,4 @@ void out_transfer_callback(libusb_transfer *t){
 	}else{ // user_data was zeroed out when device was deleted
 		libusb_free_transfer(t);
 	}
-}
-
-vector <CEE_device*> devices;
-
-void scan_bus(){
-	libusb_device **devs;
-	
-	ssize_t cnt = libusb_get_device_list(NULL, &devs);
-	if (cnt < 0){
-		cerr << "Error in get_device_list" << endl;
-	}
-	
-	for (ssize_t i=0; i<cnt; i++){
-		libusb_device_descriptor desc;
-		int r = libusb_get_device_descriptor(devs[i], &desc);
-		if (r<0){
-			cerr << "Error in get_device_descriptor" << endl;
-			continue;
-		}
-		if (desc.idVendor == CEE_VID && desc.idProduct == CEE_PID){
-			devices.push_back(new CEE_device(devs[i], desc));
-		}
-	}
-	
-	libusb_free_device_list(devs, 1);
-}
-
-
-int main(){
-	int r;
-	
-	r = libusb_init(NULL);
-	if (r < 0){
-		cerr << "Could not init libusb" << endl;
-		return 1;
-	}
-	
-	libusb_set_debug(NULL, 3);
-
-	scan_bus();
-
-	cerr << devices.size() << " devices found" << endl;
-	
-	OutputPacketSource_constant source(0, 0, 0);
-	if (devices.size()){
-		devices.front()->start_streaming(100*1000, &source);
-	}
-	
-	while(1) libusb_handle_events(NULL);
-	
-	for (vector <CEE_device*>::iterator it=devices.begin() ; it < devices.end(); it++ ){
-		delete *it;
-	}
-
-	
-	libusb_exit(NULL);
-	return 0;
 }

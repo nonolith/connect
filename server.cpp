@@ -1,38 +1,45 @@
+#include <iostream>
 #include "websocketpp.hpp"
 #include <boost/asio.hpp>
-#include <iostream>
+#include <boost/bind.hpp>
 
+#include "dataserver.hpp"
 #include "websocket_handler.hpp"
 
 using boost::asio::ip::tcp;
+const unsigned short port = 9003;
+const boost::posix_time::seconds rescan_interval = boost::posix_time::seconds(1); 
 
-int main(){
-	std::string host = "localhost";
-	unsigned short port = 9003;
-	std::string full_host;
-	
+void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
+
+int main(){	
 	data_server_handler_ptr handler(new data_server_handler());
 	
 	try {
-		boost::asio::io_service io_service;
+		usb_init();
+
+		boost::asio::io_service io;
 		tcp::endpoint endpoint(tcp::v6(), port);
-		
-		websocketpp::server_ptr server(
-			new websocketpp::server(io_service, endpoint, handler)
-		);
+		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
 		
 		server->set_max_message_size(0xFFFF); // 64KiB
-		
 		server->start_accept();
+
+		boost::asio::deadline_timer rescan_timer(io, rescan_interval);
+        rescan_timer.async_wait(boost::bind(&on_rescan_timer,boost::asio::placeholders::error, &rescan_timer));
 		
-		std::cout << "Starting chat server on " << full_host << std::endl;
-		
-		io_service.run();
+		io.run();
 	} catch (std::exception& e) {
 		std::cerr << "Exception: " << e.what() << std::endl;
 	}
 	
 	return 0;
+}
+
+void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t){
+	t->expires_at(t->expires_at() + rescan_interval);
+	t->async_wait(boost::bind(on_rescan_timer,boost::asio::placeholders::error, t));
+	usb_scan_devices();
 }
 
 void data_server_handler::on_client_connect(websocketpp::session_ptr client){

@@ -5,7 +5,7 @@ def configure(cnf):
     cnf.load('compiler_cxx')
     cnf.check(features='cxx cxxprogram', lib=['usb-1.0'], uselib_store='libusb')
 
-    cnf.check(features='cxx cxxprogram', lib=['boost_system','boost_date_time','boost_regex'], uselib_store='boost')
+    cnf.check(features='cxx cxxprogram', lib=['boost_system','boost_date_time','boost_regex', 'boost_thread'], uselib_store='boost')
 
 
 def build(bld):
@@ -23,17 +23,9 @@ def build(bld):
     websocketpp.name='websocketpp'
     websocketpp.use = ['boost']
 
-
-    bld.program(features='cxx cxxprogram', 
-                source='main.cpp',
-                target='app',
-                cxxflags=['-Wall', '-g'],
-                use=['libusb', 'websocketpp']
-    )
-
     bld.program(features='cxx cxxprogram',
-                source='websocket_test.cpp',
-                target='websocket_test',
+                source=['server.cpp','usb.cpp'],
+                target='server',
                 cxxflags=['-Wall', '-g', '-std=gnu++0x', '-I../websocketpp/src'],
-                use=['websocketpp']
+                use=['websocketpp', 'libusb']
     )
