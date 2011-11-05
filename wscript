@@ -24,7 +24,11 @@ def build(bld):
     websocketpp.use = ['boost']
 
     bld.program(features='cxx cxxprogram',
-                source=['server.cpp','usb.cpp'],
+                source=[
+                    'server.cpp',
+                    'usb.cpp',
+                    'cee/cee.cpp',
+                ],
                 target='server',
                 cxxflags=['-Wall', '-g', '-std=gnu++0x', '-I../websocketpp/src'],
                 use=['websocketpp', 'libusb']

@@ -11,10 +11,10 @@
 #include <sys/timeb.h>
 using namespace std;
 
+#include "cee.hpp"
+
 #define EP_BULK_IN 0x81
 #define EP_BULK_OUT 0x02
-#define N_TRANSFERS 128
-#define TRANSFER_SIZE 64
 
 long millis(){
 	struct timeb tp;
@@ -24,126 +24,31 @@ long millis(){
 
 void in_transfer_callback(libusb_transfer *t);
 void out_transfer_callback(libusb_transfer *t);
+	
+/// Initialize the packet buffer to hold pcount packets (pcount*IN_SAMPLES_PER_PACKET samples)
+void InputPacketBuffer::init(unsigned pcount){
+	if (buffer) free(buffer);
+	packet_count = pcount;
+	buffer = (IN_packet*) malloc(sizeof(IN_packet)*pcount);
+}
 
-struct IN_sample{
-	signed int a_v:12;
-	signed int a_i:12;
-	signed int b_v:12;
-	signed int b_i:12;
-} __attribute__((packed));
+/// Write the raw binary buffer contents (including packet headers) to the specified file
+void InputPacketBuffer::dumpToFile(const char* fname){
+	 fstream f(fname, ios::out | ios::binary);
+	 f.write((char*)buffer, sizeof(IN_packet)*packet_count);
+	 f.close();
+}
 
-
-#define IN_SAMPLES_PER_PACKET 10
-struct IN_packet{
-	unsigned char seqno;
-	unsigned char flags;
-	unsigned char reserved[2];
-	IN_sample data[IN_SAMPLES_PER_PACKET];	
-} __attribute__((packed));
-
-
-#define OUT_SAMPLES_PER_PACKET 10
-struct OUT_sample{
-	unsigned a:12;
-	unsigned b:12;
-} __attribute__((packed));
-
-struct OUT_packet{
-	unsigned char seqno;
-	unsigned char flags;
-	OUT_sample data[OUT_SAMPLES_PER_PACKET];
-} __attribute__((packed));
-
-
-/// Buffer collecting and storing incoming packets
-class InputPacketBuffer{
-	public:
-	InputPacketBuffer(): packet_count(0), buffer(0), write_end_index(0), write_start_index(0){}
-	
-	~InputPacketBuffer(){
-		if (buffer) free(buffer);
+/// Write the raw samples to a file as CSV (lines: a_v,a_i,b_v,b_i)
+void InputPacketBuffer::dumpCSV(const char* fname){
+	fstream f(fname, ios::out);
+	for (unsigned i=0; i<current_length(); i++){
+		const IN_sample* s = &at(i);
+		f << s->a_v << "," << s->a_i << "," << s->b_v << "," << s->b_i << "\n";
 	}
+	f.close();
+}
 	
-	/// Initialize the packet buffer to hold pcount packets (pcount*IN_SAMPLES_PER_PACKET samples)
-	void init(unsigned pcount){
-		if (buffer) free(buffer);
-		packet_count = pcount;
-		buffer = (IN_packet*) malloc(sizeof(IN_packet)*pcount);
-	}
-	
-	/// Write the raw binary buffer contents (including packet headers) to the specified file
-	void dumpToFile(const char* fname){
-		 fstream f(fname, ios::out | ios::binary);
-		 f.write((char*)buffer, sizeof(IN_packet)*packet_count);
-		 f.close();
-	}
-	
-	/// Write the raw samples to a file as CSV (lines: a_v,a_i,b_v,b_i)
-	void dumpCSV(const char* fname){
-		fstream f(fname, ios::out);
-		for (unsigned i=0; i<current_length(); i++){
-			const IN_sample* s = &at(i);
-			f << s->a_v << "," << s->a_i << "," << s->b_v << "," << s->b_i << "\n";
-		}
-		f.close();
-	}
-	
-	
-	
-	//// Sample-level interface
-	
-	/// Number of samples the buffer will contain when filled
-	inline unsigned full_length(){
-		return packet_count*IN_SAMPLES_PER_PACKET;
-	}
-	
-	/// Number of samples currently available
-	inline unsigned current_length(){
-		return write_start_index*IN_SAMPLES_PER_PACKET;
-	}
-	
-	/// Get a sample at the specified index
-	inline const IN_sample& at(unsigned i){
-		i = i%full_length();
-		return buffer[i/IN_SAMPLES_PER_PACKET].data[i%IN_SAMPLES_PER_PACKET];
-	}
-	
-	/// Syntactic sugar for at()
-	inline const IN_sample operator[](unsigned index){
-		return at(index);
-	}
-	
-	
-	
-	//// Interface for the USB code:
-	
-	/// Get the address at which to write a newly-queued packet
-	unsigned char* writePacketStart(){
-		return (unsigned char*) &buffer[write_end_index++];
-	}
-	
-	/// Tell the buffer that a packet at ptr has been written
-	void writePacketDone(unsigned char* ptr){
-		if (ptr != (unsigned char*) &buffer[write_start_index]){
-			cerr << "buffer fill skipped a piece "<< (unsigned *) ptr <<" "<< write_start_index <<" "<< (unsigned *) buffer << endl;
-		}
-		write_start_index += 1;
-	}
-	
-	/// Return true if there is space in the buffer to start another write
-	bool canStartWrite(){return write_end_index < packet_count;}
-	
-	/// Return true if the buffer is full, and all packets have been received
-	bool fullyBuffered(){return write_start_index == packet_count;}
-	
-	unsigned packet_count;
-	IN_packet *buffer;
-	unsigned write_end_index; // index where newly queued writes will be placed
-	unsigned write_start_index; // index that has started writing that has not yet completed
-	// data between write_start_index and write_end_index is in an undefined state
-	// data below write_start index is valid
-};
-
 /// Stream source of output packets
 class OutputPacketSource{
 	public:
@@ -191,137 +96,127 @@ class OutputPacketSource_constant: public OutputPacketSource{
 };
 
 
-class CEE_device{
-	public: 
-	CEE_device(libusb_device *dev, libusb_device_descriptor &desc){
-		int r = libusb_open(dev, &handle);
-		if (r != 0){
-			cerr << "Could not open device"<<endl;
-			return;
-		}
-		
-		r = libusb_claim_interface(handle, 0);
-		if (r != 0){
-			cerr << "Could not claim interface"<<endl;
-			return;
-		}
-	
-		libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, serial, 32);
-		cerr << "Found a CEE: "<< serial << endl;
-		
-		streaming = 0;
+CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc){
+	int r = libusb_open(dev, &handle);
+	if (r != 0){
+		cerr << "Could not open device"<<endl;
+		return;
 	}
 	
-	~CEE_device(){
-		stop_streaming();
-		libusb_close(handle);
-	}
-	
-	/// Start streaming for the specified number of samples
-	InputPacketBuffer* start_streaming(unsigned samples, OutputPacketSource* source){
-		if (streaming){
-			stop_streaming();
-		}
-		
-		streaming = 1;
-		output_source = source;
-		
-		in_buffer.init(samples/IN_SAMPLES_PER_PACKET);
-		
-		for (int i=0; i<N_TRANSFERS; i++){
-			in_transfers[i] = libusb_alloc_transfer(0);
-			unsigned char* buf = in_buffer.writePacketStart();
-			libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 500);
-			libusb_submit_transfer(in_transfers[i]);
-			
-			out_transfers[i] = libusb_alloc_transfer(0);
-			buf = (unsigned char *) malloc(sizeof(OUT_packet));
-			libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 500);
-			out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
-			libusb_submit_transfer(out_transfers[i]);
-		}
-		
-		return &in_buffer;
-	}
-	
-	void stop_streaming(){
-		if (!streaming) return;
-		for (int i=0; i<N_TRANSFERS; i++){
-			if (in_transfers[i]){
-				// zero user_data tells the callback to free on complete. this obj may be dead by then
-				in_transfers[i]->user_data=0;
-				
-				int r=-1;
-				if (in_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
-					r = libusb_cancel_transfer(in_transfers[i]);
-				}
-				if (r != 0){
-					libusb_free_transfer(in_transfers[i]);
-				}
-				in_transfers[i] = 0;
-			}
-			
-			if (out_transfers[i]){
-				// zero user_data tells the callback to free on complete. this obj may be dead by then
-				out_transfers[i]->user_data=0;
-				int r=-1;
-				if (out_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
-					r = libusb_cancel_transfer(out_transfers[i]);
-				}
-				if (r != 0){
-					libusb_free_transfer(in_transfers[i]);
-				}
-				out_transfers[i] = 0;
-			}
-		}
-		streaming = 0;
-	}
-	
-	void in_transfer_complete(libusb_transfer *t){
-		if (t->status == LIBUSB_TRANSFER_COMPLETED){
-			in_buffer.writePacketDone(t->buffer);
-			cout.write((const char*) t->buffer, sizeof(IN_packet));
-			//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
-		}else{
-			cerr << "ITransfer error "<< t->status << " " << t << endl;
-		}
-		
-		if (in_buffer.canStartWrite()){
-			t->buffer = in_buffer.writePacketStart();
-			libusb_submit_transfer(t);
-		}else{
-			// don't submit more transfers, but wait for all the transfers to complete
-			t->status = LIBUSB_TRANSFER_CANCELLED;
-			if (in_buffer.fullyBuffered()){
-				stop_streaming();
-				cerr << "Done." << endl;
-				in_buffer.dumpToFile("inData.bin");
-				in_buffer.dumpCSV("inData.csv");
-			}
-		}
-	}
-	
-	void out_transfer_complete(libusb_transfer *t){
-		if (t->status == LIBUSB_TRANSFER_COMPLETED){
-			output_source->readPacketDone(t->buffer);
-			//t->buffer = output_source->readPacketStart();
-			cin.read((char*)t->buffer, sizeof(OUT_packet));
-			libusb_submit_transfer(t);
-			//cerr <<  millis() << " " << t << " sent " << t->actual_length << endl;
-		}else{
-			cerr << "OTransfer error "<< t->status << " " << t << endl;
-			stop_streaming();
-		}
+	r = libusb_claim_interface(handle, 0);
+	if (r != 0){
+		cerr << "Could not claim interface"<<endl;
+		return;
 	}
 
-	libusb_device_handle *handle;
-	unsigned char serial[32];
-	libusb_transfer* in_transfers[N_TRANSFERS];
-	libusb_transfer* out_transfers[N_TRANSFERS];
-	int streaming;
-	InputPacketBuffer in_buffer;
-	OutputPacketSource* output_source;
-};
+	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, serial, 32);
+	cerr << "Found a CEE: "<< serial << endl;
+	
+	streaming = 0;
+}
+
+CEE_device::~CEE_device(){
+	stop_streaming();
+	libusb_close(handle);
+}
+
+/// Start streaming for the specified number of samples
+InputPacketBuffer* CEE_device::start_streaming(unsigned samples, OutputPacketSource* source){
+	if (streaming){
+		stop_streaming();
+	}
+	
+	streaming = 1;
+	output_source = source;
+	
+	in_buffer.init(samples/IN_SAMPLES_PER_PACKET);
+	
+	for (int i=0; i<N_TRANSFERS; i++){
+		in_transfers[i] = libusb_alloc_transfer(0);
+		unsigned char* buf = in_buffer.writePacketStart();
+		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 500);
+		libusb_submit_transfer(in_transfers[i]);
+		
+		out_transfers[i] = libusb_alloc_transfer(0);
+		buf = (unsigned char *) malloc(sizeof(OUT_packet));
+		libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 500);
+		out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
+		libusb_submit_transfer(out_transfers[i]);
+	}
+	
+	return &in_buffer;
+}
+
+void CEE_device::stop_streaming(){
+	if (!streaming) return;
+	for (int i=0; i<N_TRANSFERS; i++){
+		if (in_transfers[i]){
+			// zero user_data tells the callback to free on complete. this obj may be dead by then
+			in_transfers[i]->user_data=0;
+			
+			int r=-1;
+			if (in_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
+				r = libusb_cancel_transfer(in_transfers[i]);
+			}
+			if (r != 0){
+				libusb_free_transfer(in_transfers[i]);
+			}
+			in_transfers[i] = 0;
+		}
+		
+		if (out_transfers[i]){
+			// zero user_data tells the callback to free on complete. this obj may be dead by then
+			out_transfers[i]->user_data=0;
+			int r=-1;
+			if (out_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
+				r = libusb_cancel_transfer(out_transfers[i]);
+			}
+			if (r != 0){
+				libusb_free_transfer(in_transfers[i]);
+			}
+			out_transfers[i] = 0;
+		}
+	}
+	streaming = 0;
+}
+
+void CEE_device::in_transfer_complete(libusb_transfer *t){
+	if (t->status == LIBUSB_TRANSFER_COMPLETED){
+		in_buffer.writePacketDone(t->buffer);
+		cout.write((const char*) t->buffer, sizeof(IN_packet));
+		//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
+	}else{
+		cerr << "ITransfer error "<< t->status << " " << t << endl;
+	}
+	
+	if (in_buffer.canStartWrite()){
+		t->buffer = in_buffer.writePacketStart();
+		libusb_submit_transfer(t);
+	}else{
+		// don't submit more transfers, but wait for all the transfers to complete
+		t->status = LIBUSB_TRANSFER_CANCELLED;
+		if (in_buffer.fullyBuffered()){
+			stop_streaming();
+			cerr << "Done." << endl;
+			in_buffer.dumpToFile("inData.bin");
+			in_buffer.dumpCSV("inData.csv");
+		}
+	}
+}
+
+void CEE_device::out_transfer_complete(libusb_transfer *t){
+	if (t->status == LIBUSB_TRANSFER_COMPLETED){
+		output_source->readPacketDone(t->buffer);
+		//t->buffer = output_source->readPacketStart();
+		cin.read((char*)t->buffer, sizeof(OUT_packet));
+		libusb_submit_transfer(t);
+		//cerr <<  millis() << " " << t << " sent " << t->actual_length << endl;
+	}else{
+		cerr << "OTransfer error "<< t->status << " " << t << endl;
+		stop_streaming();
+	}
+}
+
 
 void in_transfer_callback(libusb_transfer *t){
 	if (t->user_data){
