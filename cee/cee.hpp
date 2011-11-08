@@ -118,13 +118,15 @@ class CEE_device: public Device{
 	
 	/// Cancel streaming
 	virtual void stop_streaming();
+
+	virtual const string serialno(){return serial;};
 	
 	/// Called in USB event thread
 	void in_transfer_complete(libusb_transfer *t);
 	void out_transfer_complete(libusb_transfer *t);
 
 	libusb_device_handle *handle;
-	unsigned char serial[32];
+	char serial[32];
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
 	int streaming;

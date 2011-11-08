@@ -22,6 +22,28 @@ def build(bld):
     websocketpp.target='websocketpp'
     websocketpp.name='websocketpp'
     websocketpp.use = ['boost']
+    
+    libjson = bld.new_task_gen(features='cxx cxxstlib')
+    libjson.source = ['libjson/Source/'+i for i in [
+    	'internalJSONNode.cpp',
+		'JSONAllocator.cpp',
+		'JSON_Base64.cpp',
+		'JSONChildren.cpp',
+		'JSONDebug.cpp',
+		'JSONIterators.cpp',
+		'JSONMemory.cpp',
+		'JSONNode.cpp',
+		'JSONNode_Mutex.cpp',
+		'JSONPreparse.cpp',
+		'JSONStream.cpp',
+		'JSONValidator.cpp',
+		'JSONWorker.cpp',
+		'JSONWriter.cpp',
+		'libjson.cpp', 
+    ]]
+    libjson.cxxflags = "-c -O3 -ffast-math -fexpensive-optimizations -combine -DNDEBUG".split()
+    libjson.target = "libjson"
+    libjson.name = "libjson"
 
     bld.program(features='cxx cxxprogram',
                 source=[
@@ -32,5 +54,5 @@ def build(bld):
                 ],
                 target='server',
                 cxxflags=['-Wall', '-g', '-std=gnu++0x', '-I../websocketpp/src'],
-                use=['websocketpp', 'libusb']
+                use=['websocketpp', 'libusb', 'libjson']
     )

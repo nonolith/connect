@@ -109,7 +109,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc){
 		return;
 	}
 
-	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, serial, 32);
+	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char *) serial, 32);
 	cerr << "Found a CEE: "<< serial << endl;
 	
 	streaming = 0;

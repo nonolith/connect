@@ -1,5 +1,8 @@
 #pragma once
 #include <vector>
+#include <string>
+using std::string;
+
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
@@ -12,6 +15,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 		
 		/// Cancel streaming
 		virtual void stop_streaming() = 0;
+
+		virtual const string serialno() = 0;
 };
 
 typedef boost::shared_ptr<Device> device_ptr;
