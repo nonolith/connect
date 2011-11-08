@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <set>
 #include <string>
 using std::string;
 
@@ -28,4 +28,4 @@ void usb_init();
 void usb_scan_devices();
 void usb_thread_main();
 
-extern std::vector <device_ptr> devices;
+extern std::set<device_ptr> devices;

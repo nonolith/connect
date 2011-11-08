@@ -17,7 +17,7 @@ JSONNode deviceToJSON(device_ptr d){
 void devicesRequest(websocketpp::session_ptr client){
 	JSONNode n(JSON_ARRAY);
 
-	for (std::vector<device_ptr>::iterator it = devices.begin(); it != devices.end(); ++it){
+	for (std::set<device_ptr>::iterator it = devices.begin(); it != devices.end(); ++it){
 		n.push_back(deviceToJSON(*it));
 	}
 
