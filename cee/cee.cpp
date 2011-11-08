@@ -121,13 +121,12 @@ CEE_device::~CEE_device(){
 }
 
 /// Start streaming for the specified number of samples
-InputPacketBuffer* CEE_device::start_streaming(unsigned samples, OutputPacketSource* source){
+void CEE_device::start_streaming(unsigned samples){
 	if (streaming){
 		stop_streaming();
 	}
 	
 	streaming = 1;
-	output_source = source;
 	
 	in_buffer.init(samples/IN_SAMPLES_PER_PACKET);
 	
@@ -143,8 +142,6 @@ InputPacketBuffer* CEE_device::start_streaming(unsigned samples, OutputPacketSou
 		out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(out_transfers[i]);
 	}
-	
-	return &in_buffer;
 }
 
 void CEE_device::stop_streaming(){

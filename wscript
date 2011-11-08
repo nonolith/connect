@@ -27,6 +27,7 @@ def build(bld):
                 source=[
                     'server.cpp',
                     'usb.cpp',
+                    'json_service.cpp',
                     'cee/cee.cpp',
                 ],
                 target='server',

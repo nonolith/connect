@@ -9,7 +9,7 @@
 
 using namespace std;
 
-vector <CEE_device *> devices;
+std::vector <device_ptr> devices;
 set <libusb_device *> active_libusb_devices;
 
 boost::thread* usb_thread;
@@ -36,9 +36,7 @@ void usb_fini(){
 	// TODO: kill the USB thread somehow
 	usb_thread->join(); //currently blocks forever
 
-	for (vector <CEE_device*>::iterator it=devices.begin() ; it < devices.end(); it++ ){
-		delete *it;
-	}
+	devices.empty();
 	
 	libusb_exit(NULL);
 }
@@ -63,11 +61,9 @@ void usb_scan_devices(){
 			continue;
 		}
 		if (desc.idVendor == CEE_VID && desc.idProduct == CEE_PID){
-			devices.push_back(new CEE_device(devs[i], desc));
+			devices.push_back(device_ptr(new CEE_device(devs[i], desc)));
 
 			cerr << "Found a device" << std::endl;
-
-			libusb_ref_device(devs[i]);
 
 			// Add the device to the active list so we don't re-add it
 			// This is safe because the CEE_device holds a reference. Because known

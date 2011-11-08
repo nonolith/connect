@@ -1,3 +1,6 @@
+#pragma once
+
+#include "../dataserver.hpp"
 
 struct IN_sample{
 	signed int a_v:12;
@@ -105,16 +108,16 @@ class InputPacketBuffer{
 	// data below write_start index is valid
 };
 
-class CEE_device{
+class CEE_device: public Device{
 	public: 
 	CEE_device(libusb_device *dev, libusb_device_descriptor &desc);
-	~CEE_device();
+	virtual ~CEE_device();
 	
 	/// Start streaming for the specified number of samples
-	InputPacketBuffer* start_streaming(unsigned samples, OutputPacketSource* source);
+	virtual void start_streaming(unsigned samples);
 	
 	/// Cancel streaming
-	void stop_streaming();
+	virtual void stop_streaming();
 	
 	/// Called in USB event thread
 	void in_transfer_complete(libusb_transfer *t);

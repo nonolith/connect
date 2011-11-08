@@ -2,6 +2,7 @@
 #include "websocketpp.hpp"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "dataserver.hpp"
 #include "websocket_handler.hpp"
@@ -42,16 +43,23 @@ void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadli
 	usb_scan_devices();
 }
 
+void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session_ptr client);
+
 void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 	const std::string resource = client->get_resource();
 
+	std::vector<std::string> pathparts;
+	boost::split(pathparts, resource, boost::is_any_of("/"));
+
 	if (resource == "/"){
-		client->set_header("Location", "/hello");
+		client->set_header("Location", "/json/v0/devices");
 		client->start_http(301);
-	}else if (resource == "/hello"){
-		client->start_http(200, "<h1>Hello World!</h1>"+resource);
-	}else if (resource == "/ws/v0"){
+	}else if (pathparts[1] == "json"){
+		handleJSONRequest(pathparts, client);
+	}else if (pathparts[1] == "ws"){
 		client->start_websocket();
+	}else if (pathparts[1] == "tcp"){
+		//TODO: start TCP	
 	}else{
 		client->start_http(404, "Not found");
 	}
