@@ -119,7 +119,10 @@ class CEE_device: public Device{
 	/// Cancel streaming
 	virtual void stop_streaming();
 
-	virtual const string serialno(){return serial;};
+	virtual const string model(){return "com.nonolithlabs.cee";}
+	virtual const string hwversion(){return "unknown";}
+	virtual const string fwversion(){return "unknown";}
+	virtual const string serialno(){return serial;}
 	
 	/// Called in USB event thread
 	void in_transfer_complete(libusb_transfer *t);

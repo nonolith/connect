@@ -16,7 +16,10 @@ class Device: public boost::enable_shared_from_this<Device> {
 		/// Cancel streaming
 		virtual void stop_streaming() = 0;
 
-		virtual const string serialno() = 0;
+		virtual const string serialno(){return "0";}
+		virtual const string model() = 0;
+		virtual const string hwversion(){return "unknown";}
+		virtual const string fwversion(){return "unknown";}
 };
 
 typedef boost::shared_ptr<Device> device_ptr;

@@ -7,6 +7,9 @@
 
 JSONNode deviceToJSON(device_ptr d){
 	JSONNode n(JSON_NODE);
+	n.push_back(JSONNode("model", d->model()));
+	n.push_back(JSONNode("hwversion", d->hwversion()));
+	n.push_back(JSONNode("fwversion", d->fwversion()));
 	n.push_back(JSONNode("serial", d->serialno()));
 	return n;
 }
