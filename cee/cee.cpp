@@ -48,55 +48,15 @@ void InputPacketBuffer::dumpCSV(const char* fname){
 	}
 	f.close();
 }
-	
-/// Stream source of output packets
-class OutputPacketSource{
-	public:
-	
-	/// Get the next packet to send to the device
-	virtual unsigned char* readPacketStart() = 0;
-	
-	/// Notify that the passed packet has been sent and is no longer in use
-	virtual void readPacketDone(unsigned char* packet){};
-};
 
-/// OutputPacketSource for periodic waveforms by repeating a buffer
-class OutputPacketSource_buffer: public OutputPacketSource{
-	public:
-	OutputPacketSource_buffer(): buffer(0), packet_count(0), index(0){}
-	
-	virtual unsigned char* readPacketStart(){
-		OUT_packet* p = &buffer[index];
-		index = (index+1)%packet_count;
-		return (unsigned char*) p;
-	}
-	
-	OUT_packet* buffer;
-	unsigned packet_count;
-	unsigned index;
-};
-
-
-/// OutputPacketSource that sends the same sample repeatedly
-class OutputPacketSource_constant: public OutputPacketSource{
-	public:
-	OutputPacketSource_constant(unsigned a, unsigned b, unsigned char flags){
-		for (int i=0; i<OUT_SAMPLES_PER_PACKET; i++){
-			packet.data[i].a=a;
-			packet.data[i].b=b;
-		}
-		packet.flags = flags;
-	}
-	
-	virtual unsigned char* readPacketStart(){
-		return (unsigned char*) &packet;
-	}
-	
-	OUT_packet packet;
-};
-
-
-CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc){
+CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
+	channel_a_v("av", "Voltage A", "V", "measure"),
+	channel_a_i("ai", "Current A", "I", "source"),
+	channel_b_v("bv", "Voltage B", "V", "measure"),
+	channel_b_i("bi", "Current B", "I", "source"),
+	channel_a_out("ao"),
+	channel_b_out("bo")
+	{
 	int r = libusb_open(dev, &handle);
 	if (r != 0){
 		cerr << "Could not open device"<<endl;
@@ -203,7 +163,7 @@ void CEE_device::in_transfer_complete(libusb_transfer *t){
 
 void CEE_device::out_transfer_complete(libusb_transfer *t){
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		output_source->readPacketDone(t->buffer);
+		//output_source->readPacketDone(t->buffer);
 		//t->buffer = output_source->readPacketStart();
 		cin.read((char*)t->buffer, sizeof(OUT_packet));
 		libusb_submit_transfer(t);

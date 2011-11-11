@@ -9,7 +9,6 @@
 
 using namespace std;
 
-set <device_ptr> devices;
 map <libusb_device *, device_ptr> active_libusb_devices;
 
 boost::thread* usb_thread;

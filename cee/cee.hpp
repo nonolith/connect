@@ -134,5 +134,12 @@ class CEE_device: public Device{
 	libusb_transfer* out_transfers[N_TRANSFERS];
 	int streaming;
 	InputPacketBuffer in_buffer;
-	OutputPacketSource* output_source;
+
+	InputChannel channel_a_v;
+	InputChannel channel_a_i;
+	InputChannel channel_b_v;
+	InputChannel channel_b_i;
+
+	OutputChannel channel_a_out;
+	OutputChannel channel_b_out;
 };

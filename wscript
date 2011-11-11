@@ -51,6 +51,7 @@ def build(bld):
                     'usb.cpp',
                     'json_service.cpp',
                     'cee/cee.cpp',
+                    'demoDevice/demoDevice.cpp'
                 ],
                 target='server',
                 cxxflags=['-Wall', '-g', '-std=gnu++0x', '-I../websocketpp/src'],

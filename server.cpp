@@ -6,10 +6,13 @@
 
 #include "dataserver.hpp"
 #include "websocket_handler.hpp"
+#include "demoDevice/demoDevice.hpp"
 
 using boost::asio::ip::tcp;
 const unsigned short port = 9003;
 const boost::posix_time::seconds rescan_interval = boost::posix_time::seconds(1); 
+
+std::set <device_ptr> devices;
 
 void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
 
@@ -18,6 +21,9 @@ int main(){
 	
 	try {
 		usb_init();
+
+		device_ptr p = device_ptr(new DemoDevice());
+		devices.insert(p);
 
 		boost::asio::io_service io;
 		tcp::endpoint endpoint(tcp::v6(), port);
