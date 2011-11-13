@@ -9,8 +9,14 @@ class ClientConn{
 	public:
 	ClientConn(websocketpp::session_ptr c): client(c){
 		std::cout << "Opened" <<std::endl;
-		device_list_changed.listen(boost::bind(&ClientConn::on_device_list_changed, this));
-		streaming_state_changed.listen(boost::bind(&ClientConn::on_streaming_state_changed, this));
+		l_device_list_changed.subscribe(
+			device_list_changed,
+			boost::bind(&ClientConn::on_device_list_changed, this)
+		);
+		l_streaming_state_changed.subscribe(
+			streaming_state_changed,
+			boost::bind(&ClientConn::on_streaming_state_changed, this)
+		);
 	}
 
 	~ClientConn(){
@@ -18,6 +24,9 @@ class ClientConn{
 	}
 
 	websocketpp::session_ptr client;
+
+	EventListener l_device_list_changed;
+	EventListener l_streaming_state_changed;
 
 	void on_message(const std::string &msg){
 		std::cout << "Recd:" << msg <<std::endl;

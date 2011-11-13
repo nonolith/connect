@@ -17,20 +17,35 @@ struct InputStream;
 struct OutputStream;
 struct OutputSource;
 
-typedef boost::function<void()> void_function ;
+typedef boost::function<void()> void_function;
+
+class Event;
+
+class EventListener{
+	public:
+		EventListener(): event(0){}
+		EventListener(Event& e, void_function h){subscribe(e, h);}
+		~EventListener(){unsubscribe();}
+
+		void subscribe(Event& e, void_function h);
+		void unsubscribe();
+
+		Event* event;
+		void_function handler;
+	private:
+		EventListener(const EventListener&);
+   		EventListener& operator=(const EventListener&);
+};
+
 class Event{
 	public:
-		void listen(void_function f){
-			listeners.push_back(f);
-		}
-
-		void notify(){
-			BOOST_FOREACH(void_function f, listeners){
-				io.post(f);
-			}
-		}
+		Event(){}
+		~Event();
+		void notify();
+		std::set<EventListener*> listeners;
 	private:
-		std::vector<void_function> listeners;	
+		Event(const Event&);
+   		Event& operator=(const Event&);
 };
 
 extern Event device_list_changed;
