@@ -3,6 +3,8 @@
 #error "device.hpp should not be included directly"
 #endif
 
+#include <boost/function.hpp>
+
 typedef boost::function<void()> void_function;
 
 class Event;

@@ -3,6 +3,9 @@
 #error "device.hpp should not be included directly"
 #endif
 
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
+
 struct Channel;
 struct InputStream;
 struct OutputStream;
