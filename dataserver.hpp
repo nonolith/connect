@@ -11,7 +11,6 @@ using std::string;
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
-#include <boost/foreach.hpp>
 
 extern boost::asio::io_service io;
 

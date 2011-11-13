@@ -41,7 +41,8 @@ void usb_fini(){
 }
 
 void usb_scan_devices(){
-	cerr << "Scanning" << endl;	libusb_device **devs;
+	//cerr << "Scanning" << endl;
+	libusb_device **devs;
 	
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0){

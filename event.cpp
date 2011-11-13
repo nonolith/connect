@@ -1,4 +1,5 @@
 #include "dataserver.hpp"
+#include <boost/foreach.hpp>
 
 void EventListener::subscribe(Event& e, void_function h){
 	unsubscribe();

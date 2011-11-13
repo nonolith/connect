@@ -1,9 +1,11 @@
 #include <iostream>
+#include <boost/foreach.hpp>
 
 #include "websocketpp.hpp"
 #include "websocket_handler.hpp"
 
 #include "dataserver.hpp"
+#include "json.hpp"
 
 class ClientConn{
 	public:
@@ -17,6 +19,9 @@ class ClientConn{
 			streaming_state_changed,
 			boost::bind(&ClientConn::on_streaming_state_changed, this)
 		);
+
+		on_device_list_changed();
+		on_streaming_state_changed();
 	}
 
 	~ClientConn(){
@@ -36,12 +41,28 @@ class ClientConn{
 		
 	}
 
+	void sendJSON(JSONNode &n){
+		string jc = (string) n.write_formatted();
+		client->send(jc);
+	}
+
 	void on_device_list_changed(){
-		client->send("{\"event\":\"device-list-changed\"}");
+		JSONNode n(JSON_NODE);
+		JSONNode devices = jsonDevicesArray();
+		devices.set_name("devices");
+
+		n.push_back(JSONNode("_action", "devices"));
+		n.push_back(devices);
+
+		sendJSON(n);
 	}
 
 	void on_streaming_state_changed(){
-		client->send("{\"event\":\"streaming-state-changed\"}");
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "streamstate"));
+		n.push_back(JSONNode("streaming", false));
+
+		sendJSON(n);
 	}
 };
 
