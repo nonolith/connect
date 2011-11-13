@@ -13,6 +13,7 @@ const unsigned short port = 9003;
 const boost::posix_time::seconds rescan_interval = boost::posix_time::seconds(1); 
 
 std::set <device_ptr> devices;
+boost::asio::io_service io;
 
 void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
 
@@ -25,7 +26,6 @@ int main(){
 		device_ptr p = device_ptr(new DemoDevice());
 		devices.insert(p);
 
-		boost::asio::io_service io;
 		tcp::endpoint endpoint(tcp::v6(), port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
 		

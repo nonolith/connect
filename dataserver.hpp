@@ -6,6 +6,9 @@ using std::string;
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/asio.hpp>
+
+extern boost::asio::io_service io;
 
 struct Channel;
 struct InputStream;
@@ -47,14 +50,45 @@ struct InputStream{
 		id(_id),
 		displayName(_dn),
 		units(_units),
-		state(startState),
-		index(idx){};
+		state(startState){};
+
+	~InputStream(){
+		free(data);
+	}
+
 	const string id;
 	const string displayName;
 	const string units;
 
 	string state;
-	int index;
+
+	/// Raw data buffer
+	uint16_t* data;
+
+	/// Allocated elements of *data
+	unsigned buffer_size;
+
+	/// data[i] for i<buffer_fill_point is valid
+	unsigned buffer_fill_point;
+
+	void allocate(unsigned size){
+		buffer_size = size;
+		buffer_fill_point = 0;
+		if (data){
+			free(data);
+		}
+		data = (uint16_t*) malloc(buffer_size*sizeof(uint16_t));
+	}
+
+	void put(uint16_t p){
+		if (buffer_fill_point < buffer_size){
+			data[buffer_fill_point++]=p;
+		}
+	}
+	
+	/// unit data = raw*scale + offset
+	float scale, offset;
+	float sample_time;
 };
 
 struct OutputStream{
