@@ -53,6 +53,8 @@ void usb_scan_devices(){
 	map <libusb_device *, device_ptr> prev_devices = active_libusb_devices;
 	map <libusb_device *, device_ptr>::iterator it;
 
+	bool changed = 0;
+
 	for (ssize_t i=0; i<cnt; i++){
 		it = prev_devices.find(devs[i]);
 		if (it != prev_devices.end()){
@@ -75,6 +77,7 @@ void usb_scan_devices(){
 			// devices are at these addresses, they are guaranteed not to be allocated
 			// to another device object.
 			active_libusb_devices.insert(pair<libusb_device *, device_ptr>(devs[i], p));
+			changed = 1;
 		}
 	}
 
@@ -83,7 +86,10 @@ void usb_scan_devices(){
 		// Iterate over devices that were not seen again and remove them
 		active_libusb_devices.erase(it->first);
 		devices.erase(it->second);
+		changed = 1;
 	}
 	libusb_free_device_list(devs, 1);
+
+	if (changed) device_list_changed.notify();
 }
 

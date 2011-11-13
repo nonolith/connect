@@ -79,12 +79,14 @@ void startRequest(){
 	BOOST_FOREACH (device_ptr d, devices){
 		d->start_streaming(1000);
 	}
+	streaming_state_changed.notify();
 }
 
 void stopRequest(){
 	BOOST_FOREACH (device_ptr d, devices){
 		d->stop_streaming();
 	}
+	streaming_state_changed.notify();
 }
 
 void rawDataRequest(websocketpp::session_ptr client){

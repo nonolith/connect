@@ -44,5 +44,7 @@ void DemoDevice::sample(const boost::system::error_code& e){
 	std::cerr << "Demo sampling" << std::endl;
 
 	channel_v.put(1234);
+	channel_v.data_received.notify();
 	channel_i.put(4567);
+	channel_i.data_received.notify();
 }

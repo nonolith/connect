@@ -15,6 +15,9 @@ const boost::posix_time::seconds rescan_interval = boost::posix_time::seconds(1)
 std::set <device_ptr> devices;
 boost::asio::io_service io;
 
+Event device_list_changed;
+Event streaming_state_changed;
+
 void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
 
 int main(){	
@@ -70,18 +73,3 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 		client->start_http(404, "Not found");
 	}
 }
-
-void data_server_handler::on_open(websocketpp::session_ptr client){
-	std::cout << "Opened" <<std::endl;
-}
-	
-void data_server_handler::on_close(websocketpp::session_ptr client){
-	std::cout << "Closed" <<std::endl;
-}
-
-void data_server_handler::on_message(websocketpp::session_ptr client,const std::string &msg){
-	std::cout << "Recd:" << msg <<std::endl;;
-}
-
-void data_server_handler::on_message(websocketpp::session_ptr client,
-	const std::vector<unsigned char> &data) {}

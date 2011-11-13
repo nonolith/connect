@@ -51,6 +51,7 @@ def build(bld):
                     'server.cpp',
                     'usb.cpp',
                     'json_service.cpp',
+                    'websocket_service.cpp',
                     'cee/cee.cpp',
                     'demoDevice/demoDevice.cpp'
                 ],

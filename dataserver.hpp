@@ -7,6 +7,8 @@ using std::string;
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
+#include <boost/function.hpp>
+#include <boost/foreach.hpp>
 
 extern boost::asio::io_service io;
 
@@ -14,6 +16,25 @@ struct Channel;
 struct InputStream;
 struct OutputStream;
 struct OutputSource;
+
+typedef boost::function<void()> void_function ;
+class Event{
+	public:
+		void listen(void_function f){
+			listeners.push_back(f);
+		}
+
+		void notify(){
+			BOOST_FOREACH(void_function f, listeners){
+				io.post(f);
+			}
+		}
+	private:
+		std::vector<void_function> listeners;	
+};
+
+extern Event device_list_changed;
+extern Event streaming_state_changed;
 
 class Device: public boost::enable_shared_from_this<Device> {
 	public: 
@@ -89,6 +110,8 @@ struct InputStream{
 	/// unit data = raw*scale + offset
 	float scale, offset;
 	float sample_time;
+
+	Event data_received;
 };
 
 struct OutputStream{
