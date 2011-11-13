@@ -50,6 +50,8 @@ void InputPacketBuffer::dumpCSV(const char* fname){
 }
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
+	channel_a("a", "A"),
+	channel_b("b", "B"),
 	channel_a_v("av", "Voltage A", "V", "measure"),
 	channel_a_i("ai", "Current A", "I", "source"),
 	channel_b_v("bv", "Voltage B", "V", "measure"),

@@ -17,9 +17,10 @@ class DemoDevice: public Device{
 	virtual const string hwversion(){return "0";}
 	virtual const string fwversion(){return "0";}
 	virtual const string serialno(){return "00000000";}
+	
+	Channel channel;
+	InputStream channel_v;
+	InputStream channel_i;
 
-	InputChannel channel_v;
-	InputChannel channel_i;
-
-	OutputChannel channel_out;
+	OutputStream channel_out;
 };

@@ -135,11 +135,14 @@ class CEE_device: public Device{
 	int streaming;
 	InputPacketBuffer in_buffer;
 
-	InputChannel channel_a_v;
-	InputChannel channel_a_i;
-	InputChannel channel_b_v;
-	InputChannel channel_b_i;
+	Channel channel_a;
+	Channel channel_b;
 
-	OutputChannel channel_a_out;
-	OutputChannel channel_b_out;
+	InputStream channel_a_v;
+	InputStream channel_a_i;
+	InputStream channel_b_v;
+	InputStream channel_b_i;
+
+	OutputStream channel_a_out;
+	OutputStream channel_b_out;
 };

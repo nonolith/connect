@@ -7,19 +7,42 @@
 #include <boost/foreach.hpp>
 
 
-JSONNode toJSON(OutputChannel* channel){
+JSONNode toJSON(OutputStream* s){
 	JSONNode n(JSON_NODE);
-	n.set_name(channel->id);
-	n.push_back(JSONNode("id", channel->id));
+	n.set_name(s->id);
+	n.push_back(JSONNode("id", s->id));
 	return n;
 }
 
-JSONNode toJSON(InputChannel* channel){
+JSONNode toJSON(InputStream* s){
+	JSONNode n(JSON_NODE);
+	n.set_name(s->id);
+	n.push_back(JSONNode("id", s->id));
+	n.push_back(JSONNode("displayName", s->displayName));
+	n.push_back(JSONNode("units", s->units));
+	return n;
+}
+
+JSONNode toJSON(Channel *channel){
 	JSONNode n(JSON_NODE);
 	n.set_name(channel->id);
 	n.push_back(JSONNode("id", channel->id));
 	n.push_back(JSONNode("displayName", channel->displayName));
-	n.push_back(JSONNode("units", channel->units));
+
+	JSONNode inputChannels(JSON_NODE);
+	inputChannels.set_name("inputs");
+	BOOST_FOREACH (InputStream* i, channel->inputs){
+		inputChannels.push_back(toJSON(i));
+	}
+	n.push_back(inputChannels);
+
+	JSONNode outputChannels(JSON_NODE);
+	outputChannels.set_name("outputs");
+	BOOST_FOREACH (OutputStream* i, channel->outputs){
+		outputChannels.push_back(toJSON(i));
+	}
+	n.push_back(outputChannels);
+
 	return n;
 }
 
@@ -30,19 +53,13 @@ JSONNode toJSON(device_ptr d){
 	n.push_back(JSONNode("fwversion", d->fwversion()));
 	n.push_back(JSONNode("serial", d->serialno()));
 
-	JSONNode inputChannels(JSON_NODE);
-	inputChannels.set_name("inputChannels");
-	BOOST_FOREACH (InputChannel* c, d->input_channels){
-		inputChannels.push_back(toJSON(c));
+	JSONNode channels(JSON_NODE);
+	channels.set_name("channels");
+	BOOST_FOREACH (Channel* c, d->channels){
+		channels.push_back(toJSON(c));
 	}
-	n.push_back(inputChannels);
+	n.push_back(channels);
 
-	JSONNode outputChannels(JSON_NODE);
-	outputChannels.set_name("outputChannels");
-	BOOST_FOREACH (OutputChannel* c, d->output_channels){
-		outputChannels.push_back(toJSON(c));
-	}
-	n.push_back(outputChannels);
 
 	return n;
 }
@@ -57,7 +74,6 @@ void devicesRequest(websocketpp::session_ptr client){
 	std::string jc = (std::string) n.write_formatted();
 	client->start_http(200, jc);
 }
-
 
 void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session_ptr client){
 	if (pathparts[2] != "v0"){

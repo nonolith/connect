@@ -7,9 +7,10 @@ using std::string;
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-class OutputChannel;
-class InputChannel;
-class OutputSource;
+struct Channel;
+struct InputStream;
+struct OutputStream;
+struct OutputSource;
 
 class Device: public boost::enable_shared_from_this<Device> {
 	public: 
@@ -26,36 +27,45 @@ class Device: public boost::enable_shared_from_this<Device> {
 		virtual const string hwversion(){return "unknown";}
 		virtual const string fwversion(){return "unknown";}
 
-		std::vector<InputChannel*> input_channels;
-		std::vector<OutputChannel*> output_channels;
+		std::vector<Channel*> channels;
 };
 
-struct InputChannel{
-	InputChannel(const string _id, const string _dn, const string _units, const string startState):
+typedef boost::shared_ptr<Device> device_ptr;
+
+struct Channel{
+	Channel(const string _id, const string _dn):
+		id(_id), displayName(_dn){}
+	const string id;
+	const string displayName;
+
+	std::vector<InputStream*> inputs;
+	std::vector<OutputStream*> outputs;
+};
+
+struct InputStream{
+	InputStream(const string _id, const string _dn, const string _units, const string startState, int idx=0):
 		id(_id),
 		displayName(_dn),
 		units(_units),
-		state(startState){};
+		state(startState),
+		index(idx){};
 	const string id;
 	const string displayName;
 	const string units;
-	string state;
 
-	std::vector<OutputChannel*> relatedOutputs;
+	string state;
+	int index;
 };
 
-struct OutputChannel{
-	OutputChannel(const string _id):
+struct OutputStream{
+	OutputStream(const string _id):
 		id(_id){};
 	const string id;
-
-	std::vector<InputChannel*> relatedInputs;
 
 	OutputSource *source;
 };
 
-
-typedef boost::shared_ptr<Device> device_ptr;
+device_ptr getDeviceBySerial(string id);
 
 void usb_init();
 void usb_scan_devices();
