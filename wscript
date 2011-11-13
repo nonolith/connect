@@ -49,6 +49,7 @@ def build(bld):
     bld.program(features='cxx cxxprogram',
                 source=[
                     'server.cpp',
+                    'device.cpp',
                     'event.cpp',
                     'usb.cpp',
                     'json_service.cpp',

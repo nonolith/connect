@@ -23,6 +23,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 		virtual const string hwversion(){return "unknown";}
 		virtual const string fwversion(){return "unknown";}
 
+		Channel* channelById(const std::string&);
+
 		std::vector<Channel*> channels;
 };
 
@@ -34,6 +36,9 @@ struct Channel{
 	const string id;
 	const string displayName;
 
+	InputStream* inputById(const std::string&);
+	OutputStream* outputById(const std::string&);
+	
 	std::vector<InputStream*> inputs;
 	std::vector<OutputStream*> outputs;
 };
@@ -64,25 +69,20 @@ struct InputStream{
 	/// data[i] for i<buffer_fill_point is valid
 	unsigned buffer_fill_point;
 
-	void allocate(unsigned size){
-		buffer_size = size;
-		buffer_fill_point = 0;
-		if (data){
-			free(data);
-		}
-		data = (uint16_t*) malloc(buffer_size*sizeof(uint16_t));
-	}
+	/// Allocate space for /size/ samples
+	void allocate(unsigned size);
 
-	void put(uint16_t p){
-		if (buffer_fill_point < buffer_size){
-			data[buffer_fill_point++]=p;
-		}
-	}
+	/// Store a sample and increment buffer_fill_point
+	/// Note: when you are done putting samples, call data_received.notify()
+	/// This is not called automatically, because it only needs to be called once
+	/// if multiple samples are put at the same time.
+	void put(uint16_t p);
 	
 	/// unit data = raw*scale + offset
 	float scale, offset;
 	float sample_time;
 
+	/// Event fires after data has been put
 	Event data_received;
 };
 
