@@ -165,11 +165,13 @@ public:
 	   iteratorKeeper & operator = (const iteratorKeeper &);
 
 	   json_index_t myRelativeOffset;
-	   jsonChildren * myChildren;
-	   JSONNode ** & myPos;
+	   
 	   #ifndef JSON_LIBRARY
 		  bool myReverse BITS(1);
 	   #endif
+
+	   jsonChildren * myChildren;
+	   JSONNode ** & myPos;
     };
 
     //This function DOES NOT delete the item it points to

@@ -42,7 +42,7 @@ def build(bld):
 		'JSONWriter.cpp',
 		'libjson.cpp', 
     ]]
-    libjson.cxxflags = "-c -O3 -ffast-math -fexpensive-optimizations -DNDEBUG".split()
+    libjson.cxxflags = "-c -O3 -ffast-math -fexpensive-optimizations".split()
     libjson.target = "json"
     libjson.name = "json"
 
