@@ -7,6 +7,19 @@
 #include "dataserver.hpp"
 #include "json.hpp"
 
+struct StreamWatch{
+	StreamWatch(InputStream *s):
+		stream(s),
+		index(0){
+		
+	}
+	InputStream *stream;
+	unsigned index;
+	EventListener data_received_l;
+};
+
+typedef std::pair<InputStream* const, StreamWatch*> watch_pair;
+
 class ClientConn{
 	public:
 	ClientConn(websocketpp::session_ptr c): client(c){
@@ -25,16 +38,42 @@ class ClientConn{
 	}
 
 	~ClientConn(){
-		
+		BOOST_FOREACH(watch_pair &p, watches){
+			delete p.second;
+		}
+	}
+
+	void watch(InputStream *stream){
+		StreamWatch *w = new StreamWatch(stream);
+		watches.insert(watch_pair(stream, w));
+		w->data_received_l.subscribe(
+			stream->data_received,
+			boost::bind(&ClientConn::on_data_received, this, w)
+		);
+	}
+
+	void watchall(){
+		BOOST_FOREACH (device_ptr d, devices){
+			BOOST_FOREACH(Channel* c, d->channels){
+				BOOST_FOREACH (InputStream* i, c->inputs){
+					watch(i);
+				}
+			}
+		}
 	}
 
 	websocketpp::session_ptr client;
 
 	EventListener l_device_list_changed;
 	EventListener l_streaming_state_changed;
+	std::map<InputStream*, StreamWatch*> watches;
 
 	void on_message(const std::string &msg){
 		std::cout << "Recd:" << msg <<std::endl;
+
+		if (msg=="watchall"){
+			watchall();
+		}
 	}
 
 	void on_message(const std::vector<unsigned char> &data){
@@ -61,6 +100,20 @@ class ClientConn{
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "streamstate"));
 		n.push_back(JSONNode("streaming", false));
+
+		sendJSON(n);
+	}
+
+	void on_data_received(StreamWatch* w){
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "update"));
+		n.push_back(JSONNode("streamId", w->stream->id));
+		JSONNode a(JSON_ARRAY);
+		a.set_name("data");
+		while (w->index < w->stream->buffer_fill_point){
+			a.push_back(JSONNode("", w->stream->data[w->index++]));
+		}
+		n.push_back(a);
 
 		sendJSON(n);
 	}
