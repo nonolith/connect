@@ -1,39 +1,13 @@
-
-s1 = """
-00
-11
-444444
-444444
-444444
-444444
-444444
-444444
-444444
-444444
-444444
-444444
-"""
-
-s2 = """
-00
-11
-555555
-555555
-555555
-555555
-555555
-555555
-555555
-555555
-555555
-555555
-"""
-
-def tobin(p): return p.replace('\n', '').decode('hex')
-
 import sys
 
-sys.stderr.write(repr((len(tobin(s1)), len(tobin(s2)))))
+MODE_DISABLED=0
+MODE_SVMI=1
+MODE_SIMV=2
 
-sys.stdout.write(tobin(s1)*5000)
-sys.stdout.write(tobin(s2)*5000)
+def makePacket(modeA, modeB, aValues, bValues):
+	out = chr(modeA) + chr(modeB)
+	for a, b in zip(aValues, bValues):
+		out += chr(a & 0xff) + chr((b&0x0f) << 4 | a>>8) + chr(b >> 4)
+	return out
+
+sys.stdout.write(makePacket(MODE_SVMI, MODE_SIMV, 5*[0]+5*[0xFFF], 10*[2151])*500)
