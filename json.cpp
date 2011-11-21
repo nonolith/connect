@@ -42,6 +42,8 @@ JSONNode toJSON(Channel *channel){
 
 JSONNode toJSON(device_ptr d){
 	JSONNode n(JSON_NODE);
+	n.set_name(d->getId());
+	n.push_back(JSONNode("id", d->getId()));
 	n.push_back(JSONNode("model", d->model()));
 	n.push_back(JSONNode("hwversion", d->hwversion()));
 	n.push_back(JSONNode("fwversion", d->fwversion()));
@@ -59,7 +61,7 @@ JSONNode toJSON(device_ptr d){
 }
 
 JSONNode jsonDevicesArray(){
-	JSONNode n(JSON_ARRAY);
+	JSONNode n(JSON_NODE);
 
 	BOOST_FOREACH (device_ptr d, devices){
 		n.push_back(toJSON(d));

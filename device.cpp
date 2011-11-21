@@ -2,9 +2,9 @@
 #include "dataserver.hpp"
 
 
-device_ptr getDeviceBySerial(string id){
+device_ptr getDeviceById(string id){
 	BOOST_FOREACH(device_ptr d, devices){
-		if (d->serialno() == id) return d;
+		if (d->getId() == id) return d;
 	}
 	return device_ptr();
 }
@@ -31,7 +31,7 @@ struct ErrorStringException : public std::exception{
 };
 
 InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId){
-	device_ptr d = getDeviceBySerial(deviceId);
+	device_ptr d = getDeviceById(deviceId);
 	if (!d){
 		throw ErrorStringException("Device not found");
 	}
