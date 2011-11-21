@@ -23,6 +23,29 @@ InputStream* Channel::inputById(const string& id){
 	return 0;
 }
 
+struct ErrorStringException : public std::exception{
+   string s;
+   ErrorStringException (string ss) throw() : s(ss) {}
+   virtual const char* what() const throw() { return s.c_str(); }
+   virtual ~ErrorStringException() throw() {}
+};
+
+InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId){
+	device_ptr d = getDeviceBySerial(deviceId);
+	if (!d){
+		throw ErrorStringException("Device not found");
+	}
+	Channel* c = d->channelById(channelId);
+	if (!c){
+		throw ErrorStringException("Channel not found");
+	}
+	InputStream *s = c->inputById(streamId);
+	if (!s){
+		throw ErrorStringException("Stream not found");
+	}
+	return s;
+}
+
 OutputStream* Channel::outputById(const string& id){
 	BOOST_FOREACH(OutputStream *i, outputs){
 		if (i->id == id) return i;

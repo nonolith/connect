@@ -96,3 +96,5 @@ struct OutputStream{
 
 	OutputSource *source;
 };
+
+InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId);

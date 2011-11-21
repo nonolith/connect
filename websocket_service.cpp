@@ -8,13 +8,26 @@
 #include "json.hpp"
 
 struct StreamWatch{
-	StreamWatch(InputStream *s):
+	StreamWatch(InputStream *s, unsigned si, unsigned ei, unsigned df):
 		stream(s),
-		index(0){
-		
+		startIndex(si),
+		endIndex(ei),
+		decimateFactor(df),
+		index(si),
+		outIndex(0){	
 	}
 	InputStream *stream;
+
+	// stream sample indexes
+	unsigned startIndex;
+	unsigned endIndex;
+	unsigned decimateFactor;
 	unsigned index;
+
+	// resampled indexes
+	unsigned outIndex;
+	
+
 	EventListener data_received_l;
 };
 
@@ -43,23 +56,14 @@ class ClientConn{
 		}
 	}
 
-	void watch(InputStream *stream){
-		StreamWatch *w = new StreamWatch(stream);
+	void watch(InputStream *stream, unsigned startIndex, unsigned endIndex, unsigned decimateFactor){
+		StreamWatch *w = new StreamWatch(stream, startIndex, endIndex, decimateFactor);
 		watches.insert(watch_pair(stream, w));
 		w->data_received_l.subscribe(
 			stream->data_received,
 			boost::bind(&ClientConn::on_data_received, this, w)
 		);
-	}
-
-	void watchall(){
-		BOOST_FOREACH (device_ptr d, devices){
-			BOOST_FOREACH(Channel* c, d->channels){
-				BOOST_FOREACH (InputStream* i, c->inputs){
-					watch(i);
-				}
-			}
-		}
+		on_data_received(w);
 	}
 
 	websocketpp::session_ptr client;
@@ -71,9 +75,24 @@ class ClientConn{
 	void on_message(const std::string &msg){
 		std::cout << "Recd:" << msg <<std::endl;
 
-		if (msg=="watchall"){
-			watchall();
-		}
+		try{
+			JSONNode n = libjson::parse(msg);
+			string cmd = n.at("_cmd").as_string();
+			if (cmd == "watch"){
+				string device = n.at("device").as_string();
+				string channel = n.at("channel").as_string();
+				string streamName = n.at("stream").as_string();
+				int startIndex = n.at("startIndex").as_int();
+				int endIndex = n.at("endIndex").as_int();
+				int decimateFactor = n.at("decimateFactor").as_int();
+
+				InputStream* stream = findStream(device, channel, streamName);
+				watch(stream, startIndex, endIndex, decimateFactor);
+			}
+		}catch(std::exception &e){ // TODO: more helpful error message
+			std::cerr << "WS JSON error:" << e.what() << std::endl;
+			return;
+		}		
 	}
 
 	void on_message(const std::vector<unsigned char> &data){
@@ -108,12 +127,20 @@ class ClientConn{
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "update"));
 		n.push_back(JSONNode("streamId", w->stream->id));
+		n.push_back(JSONNode("startIndex", w->index));
 		JSONNode a(JSON_ARRAY);
 		a.set_name("data");
-		while (w->index < w->stream->buffer_fill_point){
-			a.push_back(JSONNode("", w->stream->data[w->index++]));
+		while (w->index < w->stream->buffer_fill_point && w->index < w->endIndex){
+			a.push_back(JSONNode("", w->stream->data[w->index]));
+			w->index += w->decimateFactor;
 		}
 		n.push_back(a);
+
+		if (w->index >= w->endIndex){
+			n.push_back(JSONNode("end", true));
+			watches.erase(w->stream);
+			delete w;
+		}
 
 		sendJSON(n);
 	}
