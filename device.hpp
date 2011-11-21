@@ -52,10 +52,15 @@ struct InputStream{
 		id(_id),
 		displayName(_dn),
 		units(_units),
-		state(startState){};
+		state(startState),
+		data(0),
+		buffer_size(0),
+		buffer_fill_point(0){};
 
 	~InputStream(){
-		free(data);
+		if (data){
+			free(data);
+		}
 	}
 
 	const string id;
