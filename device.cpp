@@ -68,3 +68,17 @@ void InputStream::put(uint16_t p){
 		data[buffer_fill_point++]=p;
 	}
 }
+
+void startStreaming(){
+	BOOST_FOREACH (device_ptr d, devices){
+		d->start_streaming(1000);
+	}
+	streaming_state_changed.notify();
+}
+
+void stopStreaming(){
+	BOOST_FOREACH (device_ptr d, devices){
+		d->stop_streaming();
+	}
+	streaming_state_changed.notify();
+}

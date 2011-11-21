@@ -11,20 +11,6 @@ void devicesRequest(websocketpp::session_ptr client){
 	client->start_http(200, jc);
 }
 
-void startRequest(){
-	BOOST_FOREACH (device_ptr d, devices){
-		d->start_streaming(1000);
-	}
-	streaming_state_changed.notify();
-}
-
-void stopRequest(){
-	BOOST_FOREACH (device_ptr d, devices){
-		d->stop_streaming();
-	}
-	streaming_state_changed.notify();
-}
-
 void rawDataRequest(websocketpp::session_ptr client){
 	JSONNode n(JSON_NODE);
 
@@ -63,10 +49,10 @@ void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session
 	if (pathparts[3] == "devices"){
 		devicesRequest(client);
 	}else if (pathparts[3] == "start" /*&& client->m_http_method=="POST"*/){
-		startRequest();
+		startStreaming();
 		client->start_http(200, "true");
 	}else if (pathparts[3] == "stop" /*&& client->m_http_method=="POST"*/){
-		stopRequest();
+		stopStreaming();
 		client->start_http(200, "true");
 	}else if (pathparts[3] == "raw_data"){
 		rawDataRequest(client);

@@ -88,8 +88,12 @@ class ClientConn{
 
 				InputStream* stream = findStream(device, channel, streamName);
 				watch(stream, startIndex, endIndex, decimateFactor);
+			}else if (cmd == "startStreaming"){
+				startStreaming();
+			}else if (cmd == "stopStreaming"){
+				stopStreaming();
 			}
-		}catch(std::exception &e){ // TODO: more helpful error message
+		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
 			std::cerr << "WS JSON error:" << e.what() << std::endl;
 			return;
 		}		
@@ -124,15 +128,21 @@ class ClientConn{
 	}
 
 	void on_data_received(StreamWatch* w){
+		if (w->stream->buffer_fill_point <= w->index){
+			// Fast path if we haven't reached the next wanted sample yet
+			return;
+		}
+
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "update"));
 		n.push_back(JSONNode("streamId", w->stream->id));
-		n.push_back(JSONNode("startIndex", w->index));
+		n.push_back(JSONNode("startIndex", w->outIndex));
 		JSONNode a(JSON_ARRAY);
 		a.set_name("data");
 		while (w->index < w->stream->buffer_fill_point && w->index < w->endIndex){
 			a.push_back(JSONNode("", w->stream->data[w->index]));
 			w->index += w->decimateFactor;
+			w->outIndex++;
 		}
 		n.push_back(a);
 

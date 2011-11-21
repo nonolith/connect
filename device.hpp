@@ -98,3 +98,6 @@ struct OutputStream{
 };
 
 InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId);
+
+void startStreaming();
+void stopStreaming();
