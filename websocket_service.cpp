@@ -26,9 +26,23 @@ struct StreamWatch{
 
 	// resampled indexes
 	unsigned outIndex;
-	
 
 	EventListener data_received_l;
+
+	inline bool isComplete(){
+		return index >= endIndex;
+	}
+
+	inline bool isDataAvailable(){
+		return index < stream->buffer_fill_point && !isComplete();
+	}
+
+	inline float nextSample(){
+		float r = stream->data[index];
+		index += decimateFactor;
+		outIndex++;
+		return r;
+	}
 };
 
 typedef std::pair<InputStream* const, StreamWatch*> watch_pair;
@@ -128,7 +142,7 @@ class ClientConn{
 	}
 
 	void on_data_received(StreamWatch* w){
-		if (w->stream->buffer_fill_point <= w->index){
+		if (!w->isDataAvailable()){
 			// Fast path if we haven't reached the next wanted sample yet
 			return;
 		}
@@ -139,10 +153,8 @@ class ClientConn{
 		n.push_back(JSONNode("startIndex", w->outIndex));
 		JSONNode a(JSON_ARRAY);
 		a.set_name("data");
-		while (w->index < w->stream->buffer_fill_point && w->index < w->endIndex){
-			a.push_back(JSONNode("", w->stream->data[w->index]));
-			w->index += w->decimateFactor;
-			w->outIndex++;
+		while (w->isDataAvailable()){
+			a.push_back(JSONNode("", w->nextSample()));
 		}
 		n.push_back(a);
 
