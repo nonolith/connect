@@ -8,7 +8,8 @@
 #include "json.hpp"
 
 struct StreamWatch{
-	StreamWatch(InputStream *s, unsigned si, unsigned ei, unsigned df):
+	StreamWatch(const string& _id, InputStream *s, unsigned si, unsigned ei, unsigned df):
+		id(_id),
 		stream(s),
 		startIndex(si),
 		endIndex(ei),
@@ -16,6 +17,7 @@ struct StreamWatch{
 		index(si),
 		outIndex(0){	
 	}
+	string id;
 	InputStream *stream;
 
 	// stream sample indexes
@@ -45,7 +47,7 @@ struct StreamWatch{
 	}
 };
 
-typedef std::pair<InputStream* const, StreamWatch*> watch_pair;
+typedef std::pair<const string, StreamWatch*> watch_pair;
 
 class ClientConn{
 	public:
@@ -70,9 +72,18 @@ class ClientConn{
 		}
 	}
 
-	void watch(InputStream *stream, unsigned startIndex, unsigned endIndex, unsigned decimateFactor){
-		StreamWatch *w = new StreamWatch(stream, startIndex, endIndex, decimateFactor);
-		watches.insert(watch_pair(stream, w));
+	void watch(const string& id,
+	           InputStream *stream,
+	           unsigned startIndex,
+	           unsigned endIndex,
+	           unsigned decimateFactor){
+		std::map<string, StreamWatch*>::iterator it = watches.find(id);
+		if (it != watches.end()){
+			delete it->second;
+			watches.erase(it);
+		}
+		StreamWatch *w = new StreamWatch(id, stream, startIndex, endIndex, decimateFactor);
+		watches.insert(watch_pair(id, w));
 		w->data_received_l.subscribe(
 			stream->data_received,
 			boost::bind(&ClientConn::on_data_received, this, w)
@@ -84,7 +95,7 @@ class ClientConn{
 
 	EventListener l_device_list_changed;
 	EventListener l_streaming_state_changed;
-	std::map<InputStream*, StreamWatch*> watches;
+	std::map<string, StreamWatch*> watches;
 
 	void on_message(const std::string &msg){
 		std::cout << "Recd:" << msg <<std::endl;
@@ -93,6 +104,7 @@ class ClientConn{
 			JSONNode n = libjson::parse(msg);
 			string cmd = n.at("_cmd").as_string();
 			if (cmd == "watch"){
+				string id = n.at("id").as_string();
 				string device = n.at("device").as_string();
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
@@ -101,7 +113,7 @@ class ClientConn{
 				int decimateFactor = n.at("decimateFactor").as_int();
 
 				InputStream* stream = findStream(device, channel, streamName);
-				watch(stream, startIndex, endIndex, decimateFactor);
+				watch(id, stream, startIndex, endIndex, decimateFactor);
 			}else if (cmd == "startStreaming"){
 				startStreaming();
 			}else if (cmd == "stopStreaming"){
@@ -149,8 +161,8 @@ class ClientConn{
 
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "update"));
-		n.push_back(JSONNode("streamId", w->stream->id));
-		n.push_back(JSONNode("startIndex", w->outIndex));
+		n.push_back(JSONNode("id", w->id));
+		n.push_back(JSONNode("idx", w->outIndex));
 		JSONNode a(JSON_ARRAY);
 		a.set_name("data");
 		while (w->isDataAvailable()){
@@ -160,7 +172,7 @@ class ClientConn{
 
 		if (w->index >= w->endIndex){
 			n.push_back(JSONNode("end", true));
-			watches.erase(w->stream);
+			watches.erase(w->id);
 			delete w;
 		}
 
