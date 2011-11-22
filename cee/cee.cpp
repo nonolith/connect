@@ -78,15 +78,17 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 }
 
 CEE_device::~CEE_device(){
-	stop_streaming();
+	pause_capture();
 	libusb_close(handle);
 }
 
+void CEE_device::prepare_capture(float seconds){
+	
+}
+
 /// Start streaming for the specified number of samples
-void CEE_device::start_streaming(unsigned samples){
-	if (streaming){
-		stop_streaming();
-	}
+void CEE_device::start_capture(){
+	unsigned samples=100;
 	
 	streaming = 1;
 	
@@ -106,7 +108,7 @@ void CEE_device::start_streaming(unsigned samples){
 	}
 }
 
-void CEE_device::stop_streaming(){
+void CEE_device::pause_capture(){
 	if (!streaming) return;
 	for (int i=0; i<N_TRANSFERS; i++){
 		if (in_transfers[i]){
@@ -155,7 +157,7 @@ void CEE_device::in_transfer_complete(libusb_transfer *t){
 		// don't submit more transfers, but wait for all the transfers to complete
 		t->status = LIBUSB_TRANSFER_CANCELLED;
 		if (in_buffer.fullyBuffered()){
-			stop_streaming();
+			pause_capture();
 			cerr << "Done." << endl;
 			in_buffer.dumpToFile("inData.bin");
 			in_buffer.dumpCSV("inData.csv");
@@ -172,7 +174,7 @@ void CEE_device::out_transfer_complete(libusb_transfer *t){
 		//cerr <<  millis() << " " << t << " sent " << t->actual_length << endl;
 	}else{
 		cerr << "OTransfer error "<< t->status << " " << t << endl;
-		stop_streaming();
+		pause_capture();
 	}
 }
 

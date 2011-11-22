@@ -69,16 +69,54 @@ void InputStream::put(uint16_t p){
 	}
 }
 
-void startStreaming(){
-	BOOST_FOREACH (device_ptr d, devices){
-		d->start_streaming(1000);
+CaptureState captureState = CAPTURE_INACTIVE;
+float captureLength = 0;
+
+string captureStateToString(CaptureState s){
+	switch (s){
+		case CAPTURE_INACTIVE:
+			return "inactive";
+		case CAPTURE_READY:
+			return "ready";
+		case CAPTURE_ACTIVE:
+			return "active";
+		case CAPTURE_PAUSED:
+			return "paused";
+		case CAPTURE_DONE:
+			return "done";
+		default:
+			return "";
 	}
-	streaming_state_changed.notify();
 }
 
-void stopStreaming(){
-	BOOST_FOREACH (device_ptr d, devices){
-		d->stop_streaming();
+void prepareCapture(float seconds){
+	if (captureState == CAPTURE_ACTIVE){
+		pauseCapture();
 	}
-	streaming_state_changed.notify();
+
+	captureLength = seconds;
+
+	BOOST_FOREACH (device_ptr d, devices){
+		d->prepare_capture(seconds);
+	}
+	captureState = CAPTURE_READY;
+	capture_state_changed.notify();	
+}
+
+void startCapture(){
+	if (captureState != CAPTURE_READY || captureState != CAPTURE_PAUSED) return;
+	BOOST_FOREACH (device_ptr d, devices){
+		d->start_capture();
+	}
+	captureState = CAPTURE_ACTIVE;
+	capture_state_changed.notify();
+}
+
+void pauseCapture(){
+	if (captureState != CAPTURE_ACTIVE) return;
+	BOOST_FOREACH (device_ptr d, devices){
+		d->pause_capture();
+	}
+	captureState = CAPTURE_PAUSED;
+	capture_state_changed.notify();
 }

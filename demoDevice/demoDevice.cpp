@@ -17,17 +17,19 @@ DemoDevice::DemoDevice():
 }
 
 DemoDevice::~DemoDevice(){
-	stop_streaming();
+	pause_capture();
 }
 
-void DemoDevice::start_streaming(unsigned samples){
-	channel_v.allocate(samples);
-	channel_i.allocate(samples);
+void DemoDevice::prepare_capture(float seconds){
+	channel_v.allocate(seconds/channel_v.sampleTime);
+	channel_i.allocate(seconds/channel_v.sampleTime);
+}
 
+void DemoDevice::start_capture(){
 	setTimer();
 }
 
-void DemoDevice::stop_streaming(){
+void DemoDevice::pause_capture(){
 	sample_timer.cancel();
 }
 

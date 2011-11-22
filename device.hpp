@@ -15,11 +15,11 @@ class Device: public boost::enable_shared_from_this<Device> {
 	public: 
 		virtual ~Device(){};
 		
-		/// Start streaming for the specified number of samples
-		virtual void start_streaming(unsigned samples) = 0;
-		
-		/// Cancel streaming
-		virtual void stop_streaming() = 0;
+		/// Allocate resources to capture the specified number of seconds of data
+		virtual void prepare_capture(float seconds) = 0;
+
+		virtual void start_capture() = 0;
+		virtual void pause_capture() = 0;
 
 		virtual const string getId(){return model()+"~"+serialno();}
 		virtual const string serialno(){return "0";}
@@ -109,5 +109,19 @@ struct OutputStream{
 
 InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId);
 
-void startStreaming();
-void stopStreaming();
+enum CaptureState{
+	CAPTURE_INACTIVE,
+	CAPTURE_READY,
+	CAPTURE_ACTIVE,
+	CAPTURE_PAUSED,
+	CAPTURE_DONE,
+};
+
+string captureStateToString(CaptureState s);
+
+extern CaptureState captureState;
+extern float captureLength;
+
+void prepareCapture(float seconds);
+void startCapture();
+void pauseCapture();

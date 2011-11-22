@@ -57,19 +57,17 @@ class ClientConn{
 			device_list_changed,
 			boost::bind(&ClientConn::on_device_list_changed, this)
 		);
-		l_streaming_state_changed.subscribe(
-			streaming_state_changed,
-			boost::bind(&ClientConn::on_streaming_state_changed, this)
+		l_capture_state_changed.subscribe(
+			capture_state_changed,
+			boost::bind(&ClientConn::on_capture_state_changed, this)
 		);
 
 		on_device_list_changed();
-		on_streaming_state_changed();
+		on_capture_state_changed();
 	}
 
 	~ClientConn(){
-		BOOST_FOREACH(watch_pair &p, watches){
-			delete p.second;
-		}
+		clearAllWatches();
 	}
 
 	void watch(const string& id,
@@ -91,10 +89,17 @@ class ClientConn{
 		on_data_received(w);
 	}
 
+	void clearAllWatches(){
+		BOOST_FOREACH(watch_pair &p, watches){
+			delete p.second;
+		}
+		watches.empty();
+	}
+
 	websocketpp::session_ptr client;
 
 	EventListener l_device_list_changed;
-	EventListener l_streaming_state_changed;
+	EventListener l_capture_state_changed;
 	std::map<string, StreamWatch*> watches;
 
 	void on_message(const std::string &msg){
@@ -114,10 +119,10 @@ class ClientConn{
 
 				InputStream* stream = findStream(device, channel, streamName);
 				watch(id, stream, startIndex, endIndex, decimateFactor);
-			}else if (cmd == "startStreaming"){
-				startStreaming();
-			}else if (cmd == "stopStreaming"){
-				stopStreaming();
+			}else if (cmd == "startCapture"){
+				startCapture();
+			}else if (cmd == "pauseCapture"){
+				pauseCapture();
 			}
 		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
 			std::cerr << "WS JSON error:" << e.what() << std::endl;
@@ -145,10 +150,14 @@ class ClientConn{
 		sendJSON(n);
 	}
 
-	void on_streaming_state_changed(){
+	void on_capture_state_changed(){
+		if (captureState == CAPTURE_READY){
+			clearAllWatches();
+		}
+
 		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "streamstate"));
-		n.push_back(JSONNode("streaming", false));
+		n.push_back(JSONNode("_action", "capture_state"));
+		n.push_back(JSONNode("state", captureStateToString(captureState)));
 
 		sendJSON(n);
 	}

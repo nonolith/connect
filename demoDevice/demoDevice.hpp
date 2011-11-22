@@ -8,10 +8,10 @@ class DemoDevice: public Device{
 	virtual ~DemoDevice();
 	
 	/// Start streaming for the specified number of samples
-	virtual void start_streaming(unsigned samples);
-	
-	/// Cancel streaming
-	virtual void stop_streaming();
+	virtual void prepare_capture(float seconds);
+
+	virtual void start_capture();
+	virtual void pause_capture();
 
 	virtual const string model(){return "com.nonolithlabs.demo";}
 	virtual const string hwversion(){return "0";}

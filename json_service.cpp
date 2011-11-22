@@ -48,12 +48,6 @@ void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session
 
 	if (pathparts[3] == "devices"){
 		devicesRequest(client);
-	}else if (pathparts[3] == "start" /*&& client->m_http_method=="POST"*/){
-		startStreaming();
-		client->start_http(200, "true");
-	}else if (pathparts[3] == "stop" /*&& client->m_http_method=="POST"*/){
-		stopStreaming();
-		client->start_http(200, "true");
 	}else if (pathparts[3] == "raw_data"){
 		rawDataRequest(client);
 	}else{

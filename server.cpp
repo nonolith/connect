@@ -16,7 +16,7 @@ std::set <device_ptr> devices;
 boost::asio::io_service io;
 
 Event device_list_changed;
-Event streaming_state_changed;
+Event capture_state_changed;
 
 void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
 
