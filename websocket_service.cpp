@@ -40,7 +40,7 @@ struct StreamWatch{
 	}
 
 	inline float nextSample(){
-		float r = stream->data[index];
+		float r = stream->data[index]*stream->scale + stream->offset;
 		index += decimateFactor;
 		outIndex++;
 		return r;

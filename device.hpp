@@ -48,14 +48,18 @@ struct Channel{
 };
 
 struct InputStream{
-	InputStream(const string _id, const string _dn, const string _units, const string startState, int idx=0):
+	InputStream(const string _id, const string _dn, const string _units, const string startState,
+		        float _scale, float _offset, float _sampleTime):
 		id(_id),
 		displayName(_dn),
 		units(_units),
 		state(startState),
 		data(0),
 		buffer_size(0),
-		buffer_fill_point(0){};
+		buffer_fill_point(0),
+		scale(_scale),
+		offset(_offset),
+		sampleTime(_sampleTime){};
 
 	~InputStream(){
 		if (data){
@@ -89,7 +93,7 @@ struct InputStream{
 	
 	/// unit data = raw*scale + offset
 	float scale, offset;
-	float sample_time;
+	float sampleTime;
 
 	/// Event fires after data has been put
 	Event data_received;

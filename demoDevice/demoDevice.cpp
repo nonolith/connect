@@ -3,10 +3,11 @@
 #include <iostream>
 
 DemoDevice::DemoDevice():
-	channel("channel", "Channel"),
-	channel_v("av", "Voltage A", "V", "measure", 0),
-	channel_i("ai", "Current A", "I", "source", 1),
+	channel("channel", "Channel A"),
+	channel_v("v", "Voltage", "V", "measure", 1.0/1000, -1, 0.050),
+	channel_i("i", "Current", "I", "source", 1.0/1000, -1, 0.050),
 	channel_out("o"),
+	count(0),
 	sample_timer(io){
 
 	channels.push_back(&channel);
@@ -31,7 +32,7 @@ void DemoDevice::stop_streaming(){
 }
 
 void DemoDevice::setTimer(){
-	sample_timer.expires_from_now(boost::posix_time::milliseconds(100));
+	sample_timer.expires_from_now(boost::posix_time::milliseconds(50));
 	sample_timer.async_wait(boost::bind(
 		&DemoDevice::sample,this,
 		boost::asio::placeholders::error
@@ -41,10 +42,11 @@ void DemoDevice::setTimer(){
 void DemoDevice::sample(const boost::system::error_code& e){
 	if (e) return;
 	setTimer();
-	std::cerr << "Demo sampling" << std::endl;
 
-	channel_v.put(1234);
+	count++;
+
+	channel_v.put(sin(count/10.0)*1000.0+1000.0);
 	channel_v.data_received.notify();
-	channel_i.put(4567);
+	channel_i.put(sin(count/8.0)*1000.0+1000.0);
 	channel_i.data_received.notify();
 }

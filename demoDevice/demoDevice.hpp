@@ -25,6 +25,7 @@ class DemoDevice: public Device{
 	OutputStream channel_out;
 
 private:
+	unsigned count;
 	boost::asio::deadline_timer sample_timer;
 	void sample(const boost::system::error_code&);
 	void setTimer();
