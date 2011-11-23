@@ -1,6 +1,7 @@
 #include "demoDevice.hpp"
 #include <boost/bind.hpp>
 #include <iostream>
+#include <math.h>
 
 DemoDevice::DemoDevice():
 	channel("channel", "Channel A"),
@@ -21,7 +22,7 @@ DemoDevice::~DemoDevice(){
 }
 
 void DemoDevice::on_prepare_capture(){
-	samples = captureLength/channel_v.sampleTime;
+	samples = ceil(captureLength/channel_v.sampleTime);
 	channel_v.allocate(samples);
 	channel_i.allocate(samples);
 	count = 0;
