@@ -57,17 +57,25 @@ class ClientConn{
 			device_list_changed,
 			boost::bind(&ClientConn::on_device_list_changed, this)
 		);
-		l_capture_state_changed.subscribe(
-			capture_state_changed,
-			boost::bind(&ClientConn::on_capture_state_changed, this)
-		);
 
 		on_device_list_changed();
-		on_capture_state_changed();
 	}
 
 	~ClientConn(){
 		clearAllWatches();
+	}
+
+	void selectDevice(device_ptr dev){
+		clearAllWatches();
+
+		device = dev;
+
+		l_capture_state_changed.subscribe(
+			device->captureStateChanged,
+			boost::bind(&ClientConn::on_capture_state_changed, this)
+		);
+		on_capture_state_changed();
+		on_device_info_changed();
 	}
 
 	void watch(const string& id,
@@ -93,7 +101,7 @@ class ClientConn{
 		BOOST_FOREACH(watch_pair &p, watches){
 			delete p.second;
 		}
-		watches.empty();
+		watches.clear();
 	}
 
 	websocketpp::session_ptr client;
@@ -102,27 +110,36 @@ class ClientConn{
 	EventListener l_capture_state_changed;
 	std::map<string, StreamWatch*> watches;
 
+	device_ptr device;
+
 	void on_message(const std::string &msg){
 		std::cout << "Recd:" << msg <<std::endl;
 
 		try{
 			JSONNode n = libjson::parse(msg);
 			string cmd = n.at("_cmd").as_string();
-			if (cmd == "watch"){
+
+			if (cmd == "selectDevice"){
 				string id = n.at("id").as_string();
-				string device = n.at("device").as_string();
+				selectDevice(getDeviceById(id));
+			}else if (cmd == "watch"){
+				string id = n.at("id").as_string();
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
 				int startIndex = n.at("startIndex").as_int();
 				int endIndex = n.at("endIndex").as_int();
 				int decimateFactor = n.at("decimateFactor").as_int();
-
-				InputStream* stream = findStream(device, channel, streamName);
+				
+				//TODO: findStream of a particular device
+				InputStream* stream = findStream(device->getId(), channel, streamName); 
 				watch(id, stream, startIndex, endIndex, decimateFactor);
+			}else if (cmd == "prepareCapture"){
+				float length = n.at("length").as_float();
+				if (device) device->prepare_capture(length);
 			}else if (cmd == "startCapture"){
-				startCapture();
+				if (device) device->start_capture();
 			}else if (cmd == "pauseCapture"){
-				pauseCapture();
+				if (device) device->pause_capture();
 			}
 		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
 			std::cerr << "WS JSON error:" << e.what() << std::endl;
@@ -150,14 +167,28 @@ class ClientConn{
 		sendJSON(n);
 	}
 
+	void on_device_info_changed(){
+		if (!device) return;
+
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "deviceInfo"));
+	
+		JSONNode d = toJSON(device, true);
+		d.set_name("device");
+		n.push_back(d);
+
+		sendJSON(n);
+	}
+
 	void on_capture_state_changed(){
-		if (captureState == CAPTURE_READY){
+		if (device->captureState == CAPTURE_READY){
 			clearAllWatches();
 		}
 
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "capture_state"));
-		n.push_back(JSONNode("state", captureStateToString(captureState)));
+		n.push_back(JSONNode("state", captureStateToString(device->captureState)));
+		n.push_back(JSONNode("length", device->captureLength));
 
 		sendJSON(n);
 	}

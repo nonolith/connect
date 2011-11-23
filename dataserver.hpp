@@ -16,7 +16,6 @@ extern boost::asio::io_service io;
 extern std::set<device_ptr> devices;
 
 extern Event device_list_changed;
-extern Event capture_state_changed;
 
 void usb_init();
 void usb_scan_devices();

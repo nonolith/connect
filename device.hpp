@@ -11,15 +11,25 @@ struct InputStream;
 struct OutputStream;
 struct OutputSource;
 
+enum CaptureState{
+	CAPTURE_INACTIVE,
+	CAPTURE_READY,
+	CAPTURE_ACTIVE,
+	CAPTURE_PAUSED,
+	CAPTURE_DONE,
+};
+
+string captureStateToString(CaptureState s);
+
 class Device: public boost::enable_shared_from_this<Device> {
 	public: 
+		Device(): captureState(CAPTURE_INACTIVE), captureLength(0) {}
 		virtual ~Device(){};
 		
 		/// Allocate resources to capture the specified number of seconds of data
-		virtual void prepare_capture(float seconds) = 0;
-
-		virtual void start_capture() = 0;
-		virtual void pause_capture() = 0;
+		void prepare_capture(float seconds);
+		void start_capture();
+		void pause_capture();
 
 		virtual const string getId(){return model()+"~"+serialno();}
 		virtual const string serialno(){return "0";}
@@ -29,7 +39,17 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 		Channel* channelById(const std::string&);
 
+		Event captureStateChanged;
+		CaptureState captureState;
+		float captureLength;
+
 		std::vector<Channel*> channels;
+
+	protected:
+		virtual void on_prepare_capture() = 0;
+		virtual void on_start_capture() = 0;
+		virtual void on_pause_capture() = 0;
+		void done_capture();
 };
 
 typedef boost::shared_ptr<Device> device_ptr;
@@ -107,21 +127,5 @@ struct OutputStream{
 	OutputSource *source;
 };
 
+device_ptr getDeviceById(string id);
 InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId);
-
-enum CaptureState{
-	CAPTURE_INACTIVE,
-	CAPTURE_READY,
-	CAPTURE_ACTIVE,
-	CAPTURE_PAUSED,
-	CAPTURE_DONE,
-};
-
-string captureStateToString(CaptureState s);
-
-extern CaptureState captureState;
-extern float captureLength;
-
-void prepareCapture(float seconds);
-void startCapture();
-void pauseCapture();

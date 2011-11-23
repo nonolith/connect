@@ -40,7 +40,7 @@ JSONNode toJSON(Channel *channel){
 	return n;
 }
 
-JSONNode toJSON(device_ptr d){
+JSONNode toJSON(device_ptr d, bool includeChannels){
 	JSONNode n(JSON_NODE);
 	n.set_name(d->getId());
 	n.push_back(JSONNode("id", d->getId()));
@@ -49,13 +49,14 @@ JSONNode toJSON(device_ptr d){
 	n.push_back(JSONNode("fwversion", d->fwversion()));
 	n.push_back(JSONNode("serial", d->serialno()));
 
-	JSONNode channels(JSON_NODE);
-	channels.set_name("channels");
-	BOOST_FOREACH (Channel* c, d->channels){
-		channels.push_back(toJSON(c));
+	if (includeChannels){
+		JSONNode channels(JSON_NODE);
+		channels.set_name("channels");
+		BOOST_FOREACH (Channel* c, d->channels){
+			channels.push_back(toJSON(c));
+		}
+		n.push_back(channels);
 	}
-	n.push_back(channels);
-
 
 	return n;
 }

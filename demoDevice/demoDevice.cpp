@@ -20,16 +20,18 @@ DemoDevice::~DemoDevice(){
 	pause_capture();
 }
 
-void DemoDevice::prepare_capture(float seconds){
-	channel_v.allocate(seconds/channel_v.sampleTime);
-	channel_i.allocate(seconds/channel_v.sampleTime);
+void DemoDevice::on_prepare_capture(){
+	samples = captureLength/channel_v.sampleTime;
+	channel_v.allocate(samples);
+	channel_i.allocate(samples);
+	count = 0;
 }
 
-void DemoDevice::start_capture(){
+void DemoDevice::on_start_capture(){
 	setTimer();
 }
 
-void DemoDevice::pause_capture(){
+void DemoDevice::on_pause_capture(){
 	sample_timer.cancel();
 }
 
@@ -51,4 +53,6 @@ void DemoDevice::sample(const boost::system::error_code& e){
 	channel_v.data_received.notify();
 	channel_i.put(sin(count/8.0)*1000.0+1000.0);
 	channel_i.data_received.notify();
+
+	if (count >= samples) done_capture();
 }

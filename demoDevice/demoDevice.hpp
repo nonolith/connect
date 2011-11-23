@@ -6,12 +6,6 @@ class DemoDevice: public Device{
 	public: 
 	DemoDevice();
 	virtual ~DemoDevice();
-	
-	/// Start streaming for the specified number of samples
-	virtual void prepare_capture(float seconds);
-
-	virtual void start_capture();
-	virtual void pause_capture();
 
 	virtual const string model(){return "com.nonolithlabs.demo";}
 	virtual const string hwversion(){return "0";}
@@ -25,7 +19,12 @@ class DemoDevice: public Device{
 	OutputStream channel_out;
 
 private:
+	virtual void on_prepare_capture();
+	virtual void on_start_capture();
+	virtual void on_pause_capture();
+
 	unsigned count;
+	unsigned samples;
 	boost::asio::deadline_timer sample_timer;
 	void sample(const boost::system::error_code&);
 	void setTimer();

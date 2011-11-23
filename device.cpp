@@ -1,6 +1,44 @@
 #include <boost/foreach.hpp>
 #include "dataserver.hpp"
+#include <iostream>
 
+
+void Device::prepare_capture(float seconds){
+	if (captureState == CAPTURE_ACTIVE){
+		pause_capture();
+	}
+
+	std::cerr << "prepare capture" <<std::endl;
+	captureState = CAPTURE_READY;
+	captureLength = seconds;
+	on_prepare_capture();
+	captureStateChanged.notify();
+}
+
+void Device::start_capture(){
+	if (captureState == CAPTURE_PAUSED || captureState == CAPTURE_READY){
+		captureState = CAPTURE_ACTIVE;
+		std::cerr << "start capture" <<std::endl;
+		on_start_capture();
+		captureStateChanged.notify();
+	}
+}
+
+void Device::pause_capture(){
+	if (captureState == CAPTURE_ACTIVE){
+		captureState = CAPTURE_PAUSED;
+		std::cerr << "pause capture" <<std::endl;
+		on_pause_capture();
+		captureStateChanged.notify();
+	}
+}
+
+void Device::done_capture(){
+	captureState = CAPTURE_DONE;
+	std::cerr << "done capture" <<std::endl;
+	on_pause_capture();
+	captureStateChanged.notify();
+}
 
 device_ptr getDeviceById(string id){
 	BOOST_FOREACH(device_ptr d, devices){
@@ -87,36 +125,4 @@ string captureStateToString(CaptureState s){
 		default:
 			return "";
 	}
-}
-
-void prepareCapture(float seconds){
-	if (captureState == CAPTURE_ACTIVE){
-		pauseCapture();
-	}
-
-	captureLength = seconds;
-
-	BOOST_FOREACH (device_ptr d, devices){
-		d->prepare_capture(seconds);
-	}
-	captureState = CAPTURE_READY;
-	capture_state_changed.notify();	
-}
-
-void startCapture(){
-	if (captureState != CAPTURE_READY || captureState != CAPTURE_PAUSED) return;
-	BOOST_FOREACH (device_ptr d, devices){
-		d->start_capture();
-	}
-	captureState = CAPTURE_ACTIVE;
-	capture_state_changed.notify();
-}
-
-void pauseCapture(){
-	if (captureState != CAPTURE_ACTIVE) return;
-	BOOST_FOREACH (device_ptr d, devices){
-		d->pause_capture();
-	}
-	captureState = CAPTURE_PAUSED;
-	capture_state_changed.notify();
 }

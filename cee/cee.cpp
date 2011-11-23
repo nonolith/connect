@@ -82,12 +82,12 @@ CEE_device::~CEE_device(){
 	libusb_close(handle);
 }
 
-void CEE_device::prepare_capture(float seconds){
+void CEE_device::on_prepare_capture(){
 	
 }
 
 /// Start streaming for the specified number of samples
-void CEE_device::start_capture(){
+void CEE_device::on_start_capture(){
 	unsigned samples=100;
 	
 	streaming = 1;
@@ -108,7 +108,7 @@ void CEE_device::start_capture(){
 	}
 }
 
-void CEE_device::pause_capture(){
+void CEE_device::on_pause_capture(){
 	if (!streaming) return;
 	for (int i=0; i<N_TRANSFERS; i++){
 		if (in_transfers[i]){
