@@ -110,7 +110,7 @@ class ClientConn{
 	EventListener l_capture_state_changed;
 	std::map<string, StreamWatch*> watches;
 
-	device_ptr device;
+	device_ptr device; //TODO: weak reference?
 
 	void on_message(const std::string &msg){
 		std::cout << "Recd:" << msg <<std::endl;
@@ -140,6 +140,17 @@ class ClientConn{
 				if (device) device->start_capture();
 			}else if (cmd == "pauseCapture"){
 				if (device) device->pause_capture();
+			}else if (cmd == "set"){
+				string cId = n.at("channel").as_string();
+				Channel *channel = device->channelById(cId);
+				if (!channel) return; //TODO: exception
+				string source = n.at("source").as_string();
+				if (source == "constant"){
+					float val = n.at("value").as_float();
+					unsigned mode = n.at("mode").as_int(); //TODO: validate
+					device->setOutput(channel, new ConstantOutputSource(mode, val));
+					std::cout << "Set source" <<std::endl;
+				}
 			}
 		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
 			std::cerr << "WS JSON error:" << e.what() << std::endl;

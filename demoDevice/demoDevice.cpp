@@ -5,8 +5,8 @@
 
 DemoDevice::DemoDevice():
 	channel("channel", "Channel A"),
-	channel_v("v", "Voltage", "V", "measure", 1.0/1000, -1, 0.050),
-	channel_i("i", "Current", "I", "source", 1.0/1000, -1, 0.050),
+	channel_v("v", "Voltage", "V", "measure", 1.0/1000, -1, 0.050, 0),
+	channel_i("i", "Current", "I", "source", 1.0/1000, -1, 0.050, 1),
 	count(0),
 	sample_timer(io){
 
@@ -48,9 +48,27 @@ void DemoDevice::sample(const boost::system::error_code& e){
 
 	count++;
 
-	channel_v.put(sin(count/10.0)*1000.0+1000.0);
+	unsigned mode = 0;
+	float val = 0;
+	if (channel.source){
+		channel.source->nextValue(count/channel_v.sampleTime, mode, val);
+	}
+
+	float a, b;
+
+	if (mode == 0){
+		a = val*1000 + 1000;
+		b = 100*val*1000 + 1000;
+	}else{
+		a = 100.0/val*1000 + 1000;
+		b = val*1000 + 1000;
+	}
+
+	std::cout << "Sample: "<< a << " " << b << " " << mode << "  " << val << std::endl;
+
+	channel_v.put(a);
 	channel_v.data_received.notify();
-	channel_i.put(sin(count/8.0)*1000.0+1000.0);
+	channel_i.put(b);
 	channel_i.data_received.notify();
 
 	if (count >= samples) done_capture();

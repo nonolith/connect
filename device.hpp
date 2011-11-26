@@ -36,6 +36,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 		virtual const string hwversion(){return "unknown";}
 		virtual const string fwversion(){return "unknown";}
 
+		virtual void setOutput(Channel* channel, OutputSource* source);
+
 		Channel* channelById(const std::string&);
 
 		Event captureStateChanged;
@@ -55,19 +57,19 @@ typedef boost::shared_ptr<Device> device_ptr;
 
 struct Channel{
 	Channel(const string _id, const string _dn):
-		id(_id), displayName(_dn){}
+		id(_id), displayName(_dn), source(0){}
 	const string id;
 	const string displayName;
 
 	InputStream* inputById(const std::string&);
 	
 	std::vector<InputStream*> inputs;
-	OutputSource *output_source;
+	OutputSource *source;
 };
 
 struct InputStream{
 	InputStream(const string _id, const string _dn, const string _units, const string startState,
-		        float _scale, float _offset, float _sampleTime):
+		        float _scale, float _offset, float _sampleTime, unsigned _outputMode=0):
 		id(_id),
 		displayName(_dn),
 		units(_units),
@@ -77,7 +79,8 @@ struct InputStream{
 		buffer_fill_point(0),
 		scale(_scale),
 		offset(_offset),
-		sampleTime(_sampleTime){};
+		sampleTime(_sampleTime),
+		outputMode(_outputMode){};
 
 	~InputStream(){
 		if (data){
@@ -113,8 +116,29 @@ struct InputStream{
 	float scale, offset;
 	float sampleTime;
 
+	/// mode for output that "sources" this stream's variable
+	/// 0 if outputting this variable is not supported.
+	unsigned outputMode;
+
 	/// Event fires after data has been put
 	Event data_received;
+};
+
+struct OutputSource{
+	virtual string displayName() = 0;
+	virtual void nextValue(float time, unsigned& mode, float &outValue) = 0;
+};
+
+struct ConstantOutputSource: public OutputSource{
+	ConstantOutputSource(unsigned m, float val): mode(m), value(val){}
+	virtual string displayName(){return "Constant";};
+	virtual void nextValue(float time, unsigned& outMode, float &outValue){
+		outValue = value;
+		outMode = mode;
+	}
+
+	unsigned mode;
+	float value;
 };
 
 device_ptr getDeviceById(string id);

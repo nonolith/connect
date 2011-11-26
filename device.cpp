@@ -40,6 +40,10 @@ void Device::done_capture(){
 	captureStateChanged.notify();
 }
 
+void Device::setOutput(Channel* channel, OutputSource* source){
+	channel->source=source;
+}
+
 device_ptr getDeviceById(string id){
 	BOOST_FOREACH(device_ptr d, devices){
 		if (d->getId() == id) return d;
