@@ -55,9 +55,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_a_v("av", "Voltage A", "V", "measure", 0, 0, 0),
 	channel_a_i("ai", "Current A", "I", "source", 0, 0, 0),
 	channel_b_v("bv", "Voltage B", "V", "measure", 0, 0, 0),
-	channel_b_i("bi", "Current B", "I", "source", 0, 0, 0),
-	channel_a_out("ao"),
-	channel_b_out("bo")
+	channel_b_i("bi", "Current B", "I", "source", 0, 0, 0)
 	{
 	int r = libusb_open(dev, &handle);
 	if (r != 0){

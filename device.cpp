@@ -84,14 +84,6 @@ InputStream* findStream(const string& deviceId, const string& channelId, const s
 	return s;
 }
 
-OutputStream* Channel::outputById(const string& id){
-	BOOST_FOREACH(OutputStream *i, outputs){
-		if (i->id == id) return i;
-	}
-	return 0;
-}
-
-
 void InputStream::allocate(unsigned size){
 	buffer_size = size;
 	buffer_fill_point = 0;

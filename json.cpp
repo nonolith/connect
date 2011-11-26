@@ -1,12 +1,6 @@
 #include "json.hpp"
 #include <boost/foreach.hpp>
 
-JSONNode toJSON(OutputStream* s){
-	JSONNode n(JSON_NODE);
-	n.set_name(s->id);
-	n.push_back(JSONNode("id", s->id));
-	return n;
-}
 
 JSONNode toJSON(InputStream* s){
 	JSONNode n(JSON_NODE);
@@ -29,13 +23,6 @@ JSONNode toJSON(Channel *channel){
 		inputChannels.push_back(toJSON(i));
 	}
 	n.push_back(inputChannels);
-
-	JSONNode outputChannels(JSON_NODE);
-	outputChannels.set_name("outputs");
-	BOOST_FOREACH (OutputStream* i, channel->outputs){
-		outputChannels.push_back(toJSON(i));
-	}
-	n.push_back(outputChannels);
 
 	return n;
 }

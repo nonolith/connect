@@ -8,7 +8,6 @@
 
 struct Channel;
 struct InputStream;
-struct OutputStream;
 struct OutputSource;
 
 enum CaptureState{
@@ -61,10 +60,9 @@ struct Channel{
 	const string displayName;
 
 	InputStream* inputById(const std::string&);
-	OutputStream* outputById(const std::string&);
 	
 	std::vector<InputStream*> inputs;
-	std::vector<OutputStream*> outputs;
+	OutputSource *output_source;
 };
 
 struct InputStream{
@@ -117,14 +115,6 @@ struct InputStream{
 
 	/// Event fires after data has been put
 	Event data_received;
-};
-
-struct OutputStream{
-	OutputStream(const string _id):
-		id(_id){};
-	const string id;
-
-	OutputSource *source;
 };
 
 device_ptr getDeviceById(string id);

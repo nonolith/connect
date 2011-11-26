@@ -16,8 +16,6 @@ class DemoDevice: public Device{
 	InputStream channel_v;
 	InputStream channel_i;
 
-	OutputStream channel_out;
-
 private:
 	virtual void on_prepare_capture();
 	virtual void on_start_capture();

@@ -7,12 +7,10 @@ DemoDevice::DemoDevice():
 	channel("channel", "Channel A"),
 	channel_v("v", "Voltage", "V", "measure", 1.0/1000, -1, 0.050),
 	channel_i("i", "Current", "I", "source", 1.0/1000, -1, 0.050),
-	channel_out("o"),
 	count(0),
 	sample_timer(io){
 
 	channels.push_back(&channel);
-	channel.outputs.push_back(&channel_out);
 	channel.inputs.push_back(&channel_v);
 	channel.inputs.push_back(&channel_i);
 }

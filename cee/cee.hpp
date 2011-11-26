@@ -137,9 +137,6 @@ class CEE_device: public Device{
 	InputStream channel_b_v;
 	InputStream channel_b_i;
 
-	OutputStream channel_a_out;
-	OutputStream channel_b_out;
-
 	protected:
 	virtual void on_prepare_capture();
 	virtual void on_start_capture();
