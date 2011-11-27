@@ -103,9 +103,6 @@ void InputStream::put(uint16_t p){
 	}
 }
 
-CaptureState captureState = CAPTURE_INACTIVE;
-float captureLength = 0;
-
 string captureStateToString(CaptureState s){
 	switch (s){
 		case CAPTURE_INACTIVE:
