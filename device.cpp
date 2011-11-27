@@ -94,10 +94,10 @@ void InputStream::allocate(unsigned size){
 	if (data){
 		free(data);
 	}
-	data = (uint16_t*) malloc(buffer_size*sizeof(uint16_t));
+	data = (float *) malloc(buffer_size*sizeof(float));
 }
 
-void InputStream::put(uint16_t p){
+void InputStream::put(float p){
 	if (buffer_fill_point < buffer_size){
 		data[buffer_fill_point++]=p;
 	}

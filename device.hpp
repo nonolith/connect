@@ -69,7 +69,7 @@ struct Channel{
 
 struct InputStream{
 	InputStream(const string _id, const string _dn, const string _units, const string startState,
-		        float _scale, float _offset, float _sampleTime, unsigned _outputMode=0):
+		        float _sampleTime, unsigned _outputMode=0):
 		id(_id),
 		displayName(_dn),
 		units(_units),
@@ -77,8 +77,6 @@ struct InputStream{
 		data(0),
 		buffer_size(0),
 		buffer_fill_point(0),
-		scale(_scale),
-		offset(_offset),
 		sampleTime(_sampleTime),
 		outputMode(_outputMode){};
 
@@ -95,7 +93,7 @@ struct InputStream{
 	string state;
 
 	/// Raw data buffer
-	uint16_t* data;
+	float* data;
 
 	/// Allocated elements of *data
 	unsigned buffer_size;
@@ -110,10 +108,8 @@ struct InputStream{
 	/// Note: when you are done putting samples, call data_received.notify()
 	/// This is not called automatically, because it only needs to be called once
 	/// if multiple samples are put at the same time.
-	void put(uint16_t p);
+	void put(float p);
 	
-	/// unit data = raw*scale + offset
-	float scale, offset;
 	float sampleTime;
 
 	/// mode for output that "sources" this stream's variable

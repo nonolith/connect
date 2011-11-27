@@ -25,14 +25,21 @@ long millis(){
 void in_transfer_callback(libusb_transfer *t);
 void out_transfer_callback(libusb_transfer *t);
 
+const int CEE_sample_per = 160;
+const int CEE_timer_clock = 4e6; // 4 MHz
+const float CEE_sample_time = CEE_sample_per / CEE_timer_clock; // 40us
+const float CEE_I_gain = 45*.07;
+
+
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("av", "Voltage A", "V", "measure", 0, 0, 0),
-	channel_a_i("ai", "Current A", "I", "source", 0, 0, 0),
-	channel_b_v("bv", "Voltage B", "V", "measure", 0, 0, 0),
-	channel_b_i("bi", "Current B", "I", "source", 0, 0, 0)
+	channel_a_v("av", "Voltage A", "V", "measure", CEE_sample_time),
+	channel_a_i("ai", "Current A", "I", "source",  CEE_sample_time),
+	channel_b_v("bv", "Voltage B", "V", "measure", CEE_sample_time),
+	channel_b_i("bi", "Current B", "I", "source",  CEE_sample_time)
 	{
+
 	int r = libusb_open(dev, &handle);
 	if (r != 0){
 		cerr << "Could not open device"<<endl;

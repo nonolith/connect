@@ -5,8 +5,8 @@
 
 DemoDevice::DemoDevice():
 	channel("channel", "Channel A"),
-	channel_v("v", "Voltage", "V", "measure", 1.0/1000, -1, 0.050, 0),
-	channel_i("i", "Current", "I", "source", 1.0/1000, -1, 0.050, 1),
+	channel_v("v", "Voltage", "V", "measure", 0.050, 0),
+	channel_i("i", "Current", "I", "source", 0.050, 1),
 	count(0),
 	sample_timer(io){
 
@@ -57,11 +57,11 @@ void DemoDevice::sample(const boost::system::error_code& e){
 	float a, b;
 
 	if (mode == 0){
-		a = val*1000 + 1000;
-		b = 100*val*1000 + 1000;
+		a = val;
+		b = 100*val;
 	}else{
-		a = 100.0/val*1000 + 1000;
-		b = val*1000 + 1000;
+		a = 100.0/val;
+		b = val;
 	}
 
 	std::cout << "Sample: "<< a << " " << b << " " << mode << "  " << val << std::endl;
