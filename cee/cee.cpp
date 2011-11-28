@@ -9,6 +9,7 @@
 #include <fstream>
 #include <libusb-1.0/libusb.h>
 #include <sys/timeb.h>
+#include <boost/bind.hpp>
 using namespace std;
 
 #include "cee.hpp"
@@ -27,7 +28,7 @@ void out_transfer_callback(libusb_transfer *t);
 
 const int CEE_sample_per = 160;
 const int CEE_timer_clock = 4e6; // 4 MHz
-const float CEE_sample_time = CEE_sample_per / CEE_timer_clock; // 40us
+const float CEE_sample_time = CEE_sample_per / (float) CEE_timer_clock; // 40us
 const float CEE_I_gain = 45*.07;
 
 
@@ -39,6 +40,13 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_b_v("bv", "Voltage B", "V", "measure", CEE_sample_time),
 	channel_b_i("bi", "Current B", "I", "source",  CEE_sample_time)
 	{
+
+	channels.push_back(&channel_a);
+	channel_a.inputs.push_back(&channel_a_v);
+	channel_a.inputs.push_back(&channel_a_i);
+	channels.push_back(&channel_b);
+	channel_a.inputs.push_back(&channel_b_v);
+	channel_a.inputs.push_back(&channel_b_i);
 
 	int r = libusb_open(dev, &handle);
 	if (r != 0){
@@ -62,7 +70,13 @@ CEE_device::~CEE_device(){
 }
 
 void CEE_device::on_prepare_capture(){
-	
+	samples = ceil(captureLength/CEE_sample_time);
+	std::cerr << "CEE prepare "<< samples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
+	incount = outcount = 0;
+	channel_a_v.allocate(samples);
+	channel_a_i.allocate(samples);
+	channel_b_v.allocate(samples);
+	channel_b_i.allocate(samples);
 }
 
 void CEE_device::on_start_capture(){
@@ -70,10 +84,13 @@ void CEE_device::on_start_capture(){
 		in_transfers[i] = libusb_alloc_transfer(0);
 		unsigned char* buf = (unsigned char*) malloc(sizeof(IN_packet));
 		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 500);
+		in_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(in_transfers[i]);
 		
 		out_transfers[i] = libusb_alloc_transfer(0);
 		buf = (unsigned char *) malloc(sizeof(OUT_packet));
+		fill_out_packet(buf);
+		outcount++;
 		libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 500);
 		out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(out_transfers[i]);
@@ -110,15 +127,17 @@ void CEE_device::on_pause_capture(){
 		}
 	}
 }
-
 void CEE_device::in_transfer_complete(libusb_transfer *t){
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
+		incount++;
 		//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
+		io.post(boost::bind(&CEE_device::handle_in_packet, this, t->buffer));
+		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
 	}else{
 		cerr << "ITransfer error "<< t->status << " " << t << endl;
 	}
 	
-	if (1){
+	if (incount < samples){
 		libusb_submit_transfer(t);
 	}else{
 		// don't submit more transfers, but wait for all the transfers to complete
@@ -130,11 +149,61 @@ void CEE_device::in_transfer_complete(libusb_transfer *t){
 	}
 }
 
+void CEE_device::handle_in_packet(unsigned char *buffer){
+	IN_packet *pkt = (IN_packet*) buffer;
+	for (int i=0; i<10; i++){
+		channel_a_v.put(pkt->data[i].av()*5.0/2048.0);
+		channel_a_i.put(pkt->data[i].ai()*2.5/2048.0/CEE_I_gain);
+		channel_b_v.put(pkt->data[i].bv()*5.0/2048.0);
+		channel_b_i.put(pkt->data[i].bi()*2.5/2048.0/CEE_I_gain);
+	}
+
+	free(buffer);
+
+	channel_a_v.data_received.notify();
+	channel_a_i.data_received.notify();
+	channel_b_v.data_received.notify();
+	channel_b_i.data_received.notify();
+}
+
+
+uint16_t encode_out(CEE_chanmode mode, float val){
+	if (mode == SVMI){
+		return 4095*val/5.0;
+	}else if (mode == SIMV){
+		return 4095*(1.25+CEE_I_gain*val)/2.5;
+	}else return 0;
+}
+
+void CEE_device::fill_out_packet(unsigned char* buf){
+	if (channel_a.source && channel_b.source){
+		unsigned mode_a = channel_a.source->mode;
+		unsigned mode_b = channel_a.source->mode;
+
+		OUT_packet *pkt = (OUT_packet *)buf;
+
+		pkt->flags = (mode_a<<4) | mode_b;
+
+		for (int i=0; i<10; i++){
+			pkt->data[i].pack(
+				encode_out((CEE_chanmode)mode_a, channel_a.source->nextValue(outcount/CEE_sample_time)),
+				encode_out((CEE_chanmode)mode_b, channel_b.source->nextValue(outcount/CEE_sample_time))
+			);
+		}	
+	}else{
+		memset(buf, 0, 32);
+	}
+	
+}
+
 void CEE_device::out_transfer_complete(libusb_transfer *t){
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		cin.read((char*)t->buffer, sizeof(OUT_packet));
-		libusb_submit_transfer(t);
-		//cerr <<  millis() << " " << t << " sent " << t->actual_length << endl;
+		if (outcount < samples){
+			fill_out_packet(t->buffer);
+			outcount++;
+			libusb_submit_transfer(t);
+		}
+		//cerr << outcount << " " << millis() << " " << t << " sent " << t->actual_length << endl;
 	}else{
 		cerr << "OTransfer error "<< t->status << " " << t << endl;
 		done_capture();

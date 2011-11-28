@@ -26,8 +26,8 @@ int main(){
 	try {
 		usb_init();
 
-		device_ptr p = device_ptr(new DemoDevice());
-		devices.insert(p);
+		//device_ptr p = device_ptr(new DemoDevice());
+		//devices.insert(p);
 
 		tcp::endpoint endpoint(tcp::v6(), port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));

@@ -2,11 +2,21 @@
 
 #include "../dataserver.hpp"
 
+
+enum CEE_chanmode{
+	DISABLED = 0,
+	SVMI = 1,
+	SIMV = 2,
+};
+
+
 struct IN_sample{
-	signed int a_v:12;
-	signed int a_i:12;
-	signed int b_v:12;
-	signed int b_i:12;
+	uint8_t avl, ail, aih_avh, bvl, bil, bih_bvh;
+
+	int16_t av(){return ((aih_avh&0x0f)<<8) | avl;}
+	int16_t bv(){return ((bih_bvh&0x0f)<<8) | bvl;}
+	int16_t ai(){return ((aih_avh&0xf0)<<4) | ail;}
+	int16_t bi(){return ((bih_bvh&0xf0)<<4) | bil;}
 } __attribute__((packed));
 
 #define IN_SAMPLES_PER_PACKET 10
@@ -20,8 +30,12 @@ struct IN_packet{
 
 #define OUT_SAMPLES_PER_PACKET 10
 struct OUT_sample{
-	unsigned a:12;
-	unsigned b:12;
+	uint8_t al, bl, bh_ah;
+	void pack(uint16_t a, uint16_t b){
+		al = a & 0xff;
+		bl = b & 0xff;
+		bh_ah = ((b>>4)&0xf0) |	(a>>8);
+	}
 } __attribute__((packed));
 
 struct OUT_packet{
@@ -66,4 +80,9 @@ class CEE_device: public Device{
 	virtual void on_prepare_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
+
+	void fill_out_packet(unsigned char*);
+	void handle_in_packet(unsigned char*);
+
+	unsigned samples, incount, outcount;
 };

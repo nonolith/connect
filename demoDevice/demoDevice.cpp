@@ -51,7 +51,8 @@ void DemoDevice::sample(const boost::system::error_code& e){
 	unsigned mode = 0;
 	float val = 0;
 	if (channel.source){
-		channel.source->nextValue(count/channel_v.sampleTime, mode, val);
+		mode = channel.source->mode;
+		channel.source->nextValue(count/channel_v.sampleTime);
 	}
 
 	float a, b;

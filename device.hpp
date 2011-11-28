@@ -122,18 +122,20 @@ struct InputStream{
 
 struct OutputSource{
 	virtual string displayName() = 0;
-	virtual void nextValue(float time, unsigned& mode, float &outValue) = 0;
+	virtual float nextValue(float time) = 0;
+
+	const unsigned mode;
+
+	protected:
+		OutputSource(unsigned m): mode(m){};
 };
 
 struct ConstantOutputSource: public OutputSource{
-	ConstantOutputSource(unsigned m, float val): mode(m), value(val){}
+	ConstantOutputSource(unsigned m, float val): OutputSource(m), value(val){}
 	virtual string displayName(){return "Constant";};
-	virtual void nextValue(float time, unsigned& outMode, float &outValue){
-		outValue = value;
-		outMode = mode;
+	virtual float nextValue(float time){
+		return value;
 	}
-
-	unsigned mode;
 	float value;
 };
 
