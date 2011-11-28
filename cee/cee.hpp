@@ -9,14 +9,17 @@ enum CEE_chanmode{
 	SIMV = 2,
 };
 
+inline int16_t signextend12(uint16_t v){
+	return (v>((1<<11)-1))?(v - (1<<12)):v;
+}
 
 struct IN_sample{
 	uint8_t avl, ail, aih_avh, bvl, bil, bih_bvh;
 
-	int16_t av(){return ((aih_avh&0x0f)<<8) | avl;}
-	int16_t bv(){return ((bih_bvh&0x0f)<<8) | bvl;}
-	int16_t ai(){return ((aih_avh&0xf0)<<4) | ail;}
-	int16_t bi(){return ((bih_bvh&0xf0)<<4) | bil;}
+	int16_t av(){return signextend12((aih_avh&0x0f)<<8) | avl;}
+	int16_t bv(){return signextend12((bih_bvh&0x0f)<<8) | bvl;}
+	int16_t ai(){return signextend12((aih_avh&0xf0)<<4) | ail;}
+	int16_t bi(){return signextend12((bih_bvh&0xf0)<<4) | bil;}
 } __attribute__((packed));
 
 #define IN_SAMPLES_PER_PACKET 10
