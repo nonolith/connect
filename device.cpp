@@ -34,10 +34,12 @@ void Device::pause_capture(){
 }
 
 void Device::done_capture(){
-	captureState = CAPTURE_DONE;
-	std::cerr << "done capture" <<std::endl;
-	on_pause_capture();
-	captureStateChanged.notify();
+	if (captureState == CAPTURE_ACTIVE){
+		captureState = CAPTURE_DONE;
+		std::cerr << "done capture" <<std::endl;
+		on_pause_capture();
+		captureStateChanged.notify();
+	}
 }
 
 void Device::setOutput(Channel* channel, OutputSource* source){

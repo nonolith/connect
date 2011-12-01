@@ -83,7 +83,7 @@ void CEE_device::on_start_capture(){
 	for (int i=0; i<N_TRANSFERS; i++){
 		in_transfers[i] = libusb_alloc_transfer(0);
 		unsigned char* buf = (unsigned char*) malloc(sizeof(IN_packet));
-		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 500);
+		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 5000);
 		in_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(in_transfers[i]);
 		
@@ -91,62 +91,34 @@ void CEE_device::on_start_capture(){
 		buf = (unsigned char *) malloc(sizeof(OUT_packet));
 		fill_out_packet(buf);
 		outcount++;
-		libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 500);
+		libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 5000);
 		out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(out_transfers[i]);
 	}
 }
 
 void CEE_device::on_pause_capture(){
+	std::cerr << "on_pause_capture" <<std::endl;
+
+	libusb_lock_events(NULL);
 	for (int i=0; i<N_TRANSFERS; i++){
 		if (in_transfers[i]){
 			// zero user_data tells the callback to free on complete. this obj may be dead by then
 			in_transfers[i]->user_data=0;
-			
-			int r=-1;
-			if (in_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
-				r = libusb_cancel_transfer(in_transfers[i]);
-			}
-			if (r != 0){
-				libusb_free_transfer(in_transfers[i]);
-			}
+
+			libusb_cancel_transfer(in_transfers[i]);
 			in_transfers[i] = 0;
 		}
 		
 		if (out_transfers[i]){
 			// zero user_data tells the callback to free on complete. this obj may be dead by then
 			out_transfers[i]->user_data=0;
-			int r=-1;
-			if (out_transfers[i]->status != LIBUSB_TRANSFER_CANCELLED){
-				r = libusb_cancel_transfer(out_transfers[i]);
-			}
-			if (r != 0){
-				libusb_free_transfer(in_transfers[i]);
-			}
+			
+			libusb_cancel_transfer(out_transfers[i]);
 			out_transfers[i] = 0;
 		}
 	}
-}
-void CEE_device::in_transfer_complete(libusb_transfer *t){
-	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		incount++;
-		//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
-		io.post(boost::bind(&CEE_device::handle_in_packet, this, t->buffer));
-		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
-	}else{
-		cerr << "ITransfer error "<< t->status << " " << t << endl;
-	}
-	
-	if (incount < samples){
-		libusb_submit_transfer(t);
-	}else{
-		// don't submit more transfers, but wait for all the transfers to complete
-		t->status = LIBUSB_TRANSFER_CANCELLED;
-		if (1){
-			done_capture();
-			cerr << "Done." << endl;
-		}
-	}
+	libusb_unlock_events(NULL);
 }
 
 void CEE_device::handle_in_packet(unsigned char *buffer){
@@ -164,6 +136,10 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 	channel_a_i.data_received.notify();
 	channel_b_v.data_received.notify();
 	channel_b_i.data_received.notify();
+
+	if (channel_a_v.buffer_fill_point == samples){
+		done_capture();
+	}
 }
 
 
@@ -196,33 +172,70 @@ void CEE_device::fill_out_packet(unsigned char* buf){
 	
 }
 
-void CEE_device::out_transfer_complete(libusb_transfer *t){
+void destroy_transfer(CEE_device *dev, libusb_transfer** list, libusb_transfer* t){
+	t->user_data = 0;
+	for (int i=0; i<N_TRANSFERS; i++){
+		if (list[i] == t){
+			list[i] = 0;
+		}
+	}
+	cerr << "Freeing lpacket "<< t << " " << t->status << endl;
+	libusb_free_transfer(t);
+}
+
+
+/// Runs in USB thread
+void in_transfer_callback(libusb_transfer *t){
+	if (!t->user_data){
+		cerr << "Freeing in packet "<< t << " " << t->status << endl;
+		cerr.flush();
+		libusb_free_transfer(t); // user_data was zeroed out when device was deleted
+		return;
+	}
+
+	CEE_device *dev = (CEE_device *) t->user_data;
+
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		if (outcount < samples){
-			fill_out_packet(t->buffer);
-			outcount++;
+		//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
+		io.post(boost::bind(&CEE_device::handle_in_packet, dev, t->buffer));
+		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
+
+		if (dev->incount < dev->samples){
+			dev->incount++;
+			libusb_submit_transfer(t);
+		}else{
+			// don't submit more transfers, but wait for all the transfers to complete
+			cerr << "Queued last in packet" << endl;
+			destroy_transfer(dev, dev->in_transfers, t);
+		}
+	}else{
+		cerr << "ITransfer error "<< t->status << " " << t << endl;
+		//TODO: notify main thread of error
+		destroy_transfer(dev, dev->in_transfers, t);
+	}
+}
+
+
+/// Runs in USB thread
+void out_transfer_callback(libusb_transfer *t){
+	if (!t->user_data){
+		cerr << "Freeing out packet "<< t << " " << t->status << endl;
+		cerr.flush();
+		libusb_free_transfer(t); // user_data was zeroed out when device was deleted
+		return;
+	}
+
+	CEE_device *dev = (CEE_device *) t->user_data;
+
+	if (t->status == LIBUSB_TRANSFER_COMPLETED){
+		if (dev->outcount < dev->samples){
+			dev->fill_out_packet(t->buffer);
+			dev->outcount++;
 			libusb_submit_transfer(t);
 		}
 		//cerr << outcount << " " << millis() << " " << t << " sent " << t->actual_length << endl;
 	}else{
 		cerr << "OTransfer error "<< t->status << " " << t << endl;
-		done_capture();
-	}
-}
-
-
-void in_transfer_callback(libusb_transfer *t){
-	if (t->user_data){
-		((CEE_device *)(t->user_data))->in_transfer_complete(t);
-	}else{ // user_data was zeroed out when device was deleted
-		libusb_free_transfer(t);
-	}
-}
-
-void out_transfer_callback(libusb_transfer *t){
-	if (t->user_data){
-		((CEE_device *)(t->user_data))->out_transfer_complete(t);
-	}else{ // user_data was zeroed out when device was deleted
-		libusb_free_transfer(t);
+		destroy_transfer(dev, dev->out_transfers, t);
 	}
 }

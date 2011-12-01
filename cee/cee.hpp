@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../dataserver.hpp"
-
+#include <boost/thread/mutex.hpp>
 
 enum CEE_chanmode{
 	DISABLED = 0,
@@ -61,13 +61,10 @@ class CEE_device: public Device{
 	virtual const string hwversion(){return "unknown";}
 	virtual const string fwversion(){return "unknown";}
 	virtual const string serialno(){return serial;}
-	
-	/// Called in USB event thread
-	void in_transfer_complete(libusb_transfer *t);
-	void out_transfer_complete(libusb_transfer *t);
 
 	libusb_device_handle *handle;
 	char serial[32];
+
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
 
@@ -79,13 +76,13 @@ class CEE_device: public Device{
 	InputStream channel_b_v;
 	InputStream channel_b_i;
 
-	protected:
-	virtual void on_prepare_capture();
-	virtual void on_start_capture();
-	virtual void on_pause_capture();
-
 	void fill_out_packet(unsigned char*);
 	void handle_in_packet(unsigned char*);
 
 	unsigned samples, incount, outcount;
+
+	protected:
+	virtual void on_prepare_capture();
+	virtual void on_start_capture();
+	virtual void on_pause_capture();
 };
