@@ -1,3 +1,6 @@
 [submodule "websocketpp"]
 	path = websocketpp
 	url = https://github.com/nonolith/websocketpp.git
+[submodule "libusb"]
+	path = libusb
+	url = git://git.libusb.org/libusb-stuge.git
