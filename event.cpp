@@ -16,8 +16,11 @@ void EventListener::unsubscribe(){
 }
 
 void Event::notify(){
-	for (std::set<EventListener*>::iterator it=listeners.begin(); it!=listeners.end(); it++){
-		(*it)->handler();
+	for (std::set<EventListener*>::iterator it=listeners.begin(); it!=listeners.end();){
+		EventListener* e = *it;
+		it++; // Increment before calling handler in case the handler removes this listener,
+		      // which would invalidate the iterator.
+		e->handler();
 	}
 }
 
