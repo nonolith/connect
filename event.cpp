@@ -17,7 +17,7 @@ void EventListener::unsubscribe(){
 
 void Event::notify(){
 		BOOST_FOREACH(EventListener* e, listeners){
-			io.post(e->handler); // TODO: what if e is dead by the time the ioloop gets there?
+			e->handler();
 		}
 }
 
