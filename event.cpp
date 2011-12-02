@@ -16,9 +16,9 @@ void EventListener::unsubscribe(){
 }
 
 void Event::notify(){
-		BOOST_FOREACH(EventListener* e, listeners){
-			e->handler();
-		}
+	for (std::set<EventListener*>::iterator it=listeners.begin(); it!=listeners.end(); it++){
+		(*it)->handler();
+	}
 }
 
 Event::~Event(){
