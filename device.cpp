@@ -43,6 +43,9 @@ void Device::done_capture(){
 }
 
 void Device::setOutput(Channel* channel, OutputSource* source){
+	if (channel->source){
+		delete channel->source;
+	}
 	channel->source=source;
 }
 
