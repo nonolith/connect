@@ -6,7 +6,7 @@
 #include "json.hpp"
 
 void devicesRequest(websocketpp::session_ptr client){
-	JSONNode n = jsonDevicesArray();
+	JSONNode n = jsonDevicesArray(true);
 	string jc = (string) n.write_formatted();
 	client->start_http(200, jc);
 }

@@ -35,18 +35,18 @@ const float CEE_I_gain = 45*.07;
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("av", "Voltage A", "V", "measure", CEE_sample_time),
-	channel_a_i("ai", "Current A", "I", "source",  CEE_sample_time),
-	channel_b_v("bv", "Voltage B", "V", "measure", CEE_sample_time),
-	channel_b_i("bi", "Current B", "I", "source",  CEE_sample_time)
+	channel_a_v("av", "Voltage A", "V", 0.0, 5.0, "measure", CEE_sample_time),
+	channel_a_i("ai", "Current A", "mA", -200, 200, "source",  CEE_sample_time),
+	channel_b_v("bv", "Voltage B", "V", 0.0, 5.0, "measure", CEE_sample_time),
+	channel_b_i("bi", "Current B", "mA", -200, 200, "source",  CEE_sample_time)
 	{
 
 	channels.push_back(&channel_a);
 	channel_a.inputs.push_back(&channel_a_v);
 	channel_a.inputs.push_back(&channel_a_i);
 	channels.push_back(&channel_b);
-	channel_a.inputs.push_back(&channel_b_v);
-	channel_a.inputs.push_back(&channel_b_i);
+	channel_b.inputs.push_back(&channel_b_v);
+	channel_b.inputs.push_back(&channel_b_i);
 
 	int r = libusb_open(dev, &handle);
 	if (r != 0){

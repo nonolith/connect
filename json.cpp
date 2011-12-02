@@ -8,6 +8,9 @@ JSONNode toJSON(InputStream* s){
 	n.push_back(JSONNode("id", s->id));
 	n.push_back(JSONNode("displayName", s->displayName));
 	n.push_back(JSONNode("units", s->units));
+	n.push_back(JSONNode("min", s->min));
+	n.push_back(JSONNode("max", s->max));
+	n.push_back(JSONNode("sampleTime", s->sampleTime));
 	return n;
 }
 
@@ -48,11 +51,11 @@ JSONNode toJSON(device_ptr d, bool includeChannels){
 	return n;
 }
 
-JSONNode jsonDevicesArray(){
+JSONNode jsonDevicesArray(bool includeChannels){
 	JSONNode n(JSON_NODE);
 
 	BOOST_FOREACH (device_ptr d, devices){
-		n.push_back(toJSON(d));
+		n.push_back(toJSON(d, includeChannels));
 	}
 	return n;
 }

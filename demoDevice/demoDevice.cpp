@@ -5,8 +5,8 @@
 
 DemoDevice::DemoDevice():
 	channel("channel", "Channel A"),
-	channel_v("v", "Voltage", "V", "measure", 0.050, 0),
-	channel_i("i", "Current", "I", "source", 0.050, 1),
+	channel_v("v", "Voltage", "V", -2, 2, "measure", 0.050, 0),
+	channel_i("i", "Current", "mA", -2, 2, "source", 0.050, 1),
 	count(0),
 	sample_timer(io){
 

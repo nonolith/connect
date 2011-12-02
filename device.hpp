@@ -68,11 +68,13 @@ struct Channel{
 };
 
 struct InputStream{
-	InputStream(const string _id, const string _dn, const string _units, const string startState,
-		        float _sampleTime, unsigned _outputMode=0):
+	InputStream(const string _id, const string _dn, const string _units, float _min, float _max,
+				const string startState, float _sampleTime, unsigned _outputMode=0):
 		id(_id),
 		displayName(_dn),
 		units(_units),
+		min(_min),
+		max(_max),
 		state(startState),
 		data(0),
 		buffer_size(0),
@@ -89,6 +91,8 @@ struct InputStream{
 	const string id;
 	const string displayName;
 	const string units;
+
+	float min, max;
 
 	string state;
 
