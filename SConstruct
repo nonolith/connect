@@ -22,5 +22,15 @@ Command('libusb/Makefile', [], 'cd libusb; ./autogen.sh && ./configure')
 Command('libusb_nonolith.a', ['libusb/Makefile'], 'cd libusb; make; mv libusb/.libs/libusb-1.0.a ../libusb_nonolith.a')
 
 boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
+libs = ['usb_nonolith', 'websocketpp', 'json']+boostlibs
 
-Program('server', sources, LIBS=['usb_nonolith', 'websocketpp', 'json']+boostlibs, CCFLAGS=['-Wall', '-g', '-Iwebsocketpp/src'], LIBPATH=['.'])
+if sys.platform.startswith('linux'):
+    pass
+elif sys.platform == 'darwin':
+    libs += ['objc']
+elif sys.platform.startswith('win'):
+    pass
+else:
+    print "Unknown platform", sys.platform
+
+Program('server', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-Iwebsocketpp/src'], LIBPATH=['.'])
