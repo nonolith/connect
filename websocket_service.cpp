@@ -14,16 +14,16 @@ struct StreamWatch{
 		startIndex(si),
 		endIndex(ei),
 		decimateFactor(df),
-		index(si),
 		outIndex(0)
 	{
 		if (si == -1){
 			// startIndex -1 means start at current position
 			index = stream->buffer_fill_point;
-			if (index > 0) index--;
+			if (index > decimateFactor) index-=decimateFactor;	
+		}else{
+			index = si;
+			if (index < decimateFactor) index = decimateFactor;		
 		}
-		index = si;
-		if (index < decimateFactor) index = decimateFactor;			
 	}
 	string id;
 	InputStream *stream;
@@ -49,6 +49,7 @@ struct StreamWatch{
 	}
 
 	inline float nextSample(){
+		std::cout << "nextSample " << index << std::endl;
 		float total;
 		for (unsigned i = (index-decimateFactor); i <= index; i++){
 			total += stream->data[i];}
