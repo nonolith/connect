@@ -22,7 +22,8 @@ struct StreamWatch{
 			index = stream->buffer_fill_point;
 			if (index > 0) index--;
 		}
-			
+		index = si;
+		if (index < decimateFactor) index = decimateFactor;			
 	}
 	string id;
 	InputStream *stream;
@@ -48,10 +49,13 @@ struct StreamWatch{
 	}
 
 	inline float nextSample(){
-		float r = stream->data[index];
+		float total;
+		for (unsigned i = (index-decimateFactor); i <= index; i++){
+			total += stream->data[i];}
+		total /= decimateFactor;
 		index += decimateFactor;
 		outIndex++;
-		return r;
+		return total;
 	}
 };
 
