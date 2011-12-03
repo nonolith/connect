@@ -8,21 +8,28 @@
 #include "json.hpp"
 
 struct StreamWatch{
-	StreamWatch(const string& _id, InputStream *s, unsigned si, unsigned ei, unsigned df):
+	StreamWatch(const string& _id, InputStream *s, int si, int ei, unsigned df):
 		id(_id),
 		stream(s),
 		startIndex(si),
 		endIndex(ei),
 		decimateFactor(df),
 		index(si),
-		outIndex(0){	
+		outIndex(0)
+	{
+		if (si == -1){
+			// startIndex -1 means start at current position
+			index = stream->buffer_fill_point;
+			if (index > 0) index--;
+		}
+			
 	}
 	string id;
 	InputStream *stream;
 
 	// stream sample indexes
-	unsigned startIndex;
-	unsigned endIndex;
+	int startIndex;
+	int endIndex;
 	unsigned decimateFactor;
 	unsigned index;
 
@@ -32,7 +39,8 @@ struct StreamWatch{
 	EventListener data_received_l;
 
 	inline bool isComplete(){
-		return index >= endIndex;
+		if (endIndex == -1) return false;
+		return index >= (unsigned) endIndex;
 	}
 
 	inline bool isDataAvailable(){
@@ -221,7 +229,7 @@ class ClientConn{
 		}
 		n.push_back(a);
 
-		if (w->index >= w->endIndex){
+		if (w->isComplete()){
 			n.push_back(JSONNode("end", true));
 			watches.erase(w->id);
 			delete w;
