@@ -52,7 +52,7 @@ void DemoDevice::sample(const boost::system::error_code& e){
 	float val = 0;
 	if (channel.source){
 		mode = channel.source->mode;
-		channel.source->nextValue(count/channel_v.sampleTime);
+		val = channel.source->nextValue(count/channel_v.sampleTime);
 	}
 
 	float a, b;
@@ -65,7 +65,7 @@ void DemoDevice::sample(const boost::system::error_code& e){
 		b = val;
 	}
 
-	std::cout << "Sample: "<< a << " " << b << " " << mode << "  " << val << std::endl;
+	//std::cout << "Sample: "<< a << " " << b << " " << mode << "  " << val << std::endl;
 
 	channel_v.put(a);
 	channel_v.data_received.notify();

@@ -20,14 +20,16 @@ Event capture_state_changed;
 
 void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
 
-int main(){	
+int main(int argc, char* argv[]){	
 	data_server_handler_ptr handler(new data_server_handler());
 	
 	try {
 		usb_init();
 
-		//device_ptr p = device_ptr(new DemoDevice());
-		//devices.insert(p);
+		if (argc==2 && string(argv[1])=="demo"){
+			device_ptr p = device_ptr(new DemoDevice());
+			devices.insert(p);
+		}
 
 		tcp::endpoint endpoint(tcp::v6(), port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
