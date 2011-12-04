@@ -191,7 +191,6 @@ void destroy_transfer(CEE_device *dev, libusb_transfer** list, libusb_transfer* 
 void in_transfer_callback(libusb_transfer *t){
 	if (!t->user_data){
 		//cerr << "Freeing in packet "<< t << " " << t->status << endl;
-		cerr.flush();
 		libusb_free_transfer(t); // user_data was zeroed out when device was deleted
 		return;
 	}
@@ -223,7 +222,6 @@ void in_transfer_callback(libusb_transfer *t){
 void out_transfer_callback(libusb_transfer *t){
 	if (!t->user_data){
 		//cerr << "Freeing out packet "<< t << " " << t->status << endl;
-		cerr.flush();
 		libusb_free_transfer(t); // user_data was zeroed out when device was deleted
 		return;
 	}
