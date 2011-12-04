@@ -10,15 +10,12 @@
 
 using boost::asio::ip::tcp;
 const unsigned short port = 9003;
-const boost::posix_time::seconds rescan_interval = boost::posix_time::seconds(1); 
 
 std::set <device_ptr> devices;
 boost::asio::io_service io;
 
 Event device_list_changed;
 Event capture_state_changed;
-
-void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t);
 
 int main(int argc, char* argv[]){	
 	data_server_handler_ptr handler(new data_server_handler());
@@ -37,8 +34,7 @@ int main(int argc, char* argv[]){
 		server->set_max_message_size(0xFFFF); // 64KiB
 		server->start_accept();
 
-		boost::asio::deadline_timer rescan_timer(io, rescan_interval);
-        rescan_timer.async_wait(boost::bind(&on_rescan_timer,boost::asio::placeholders::error, &rescan_timer));
+		usb_scan_devices();
 		
 		io.run();
 	} catch (std::exception& e) {
@@ -46,12 +42,6 @@ int main(int argc, char* argv[]){
 	}
 	
 	return 0;
-}
-
-void on_rescan_timer(const boost::system::error_code& /*e*/, boost::asio::deadline_timer* t){
-	t->expires_at(t->expires_at() + rescan_interval);
-	t->async_wait(boost::bind(on_rescan_timer,boost::asio::placeholders::error, t));
-	usb_scan_devices();
 }
 
 void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session_ptr client);
