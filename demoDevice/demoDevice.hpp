@@ -8,13 +8,13 @@ class DemoDevice: public Device{
 	virtual ~DemoDevice();
 
 	virtual const string model(){return "com.nonolithlabs.demo";}
-	virtual const string hwversion(){return "0";}
-	virtual const string fwversion(){return "0";}
+	virtual const string hwVersion(){return "0";}
+	virtual const string fwVersion(){return "0";}
 	virtual const string serialno(){return "00000000";}
 
 	Channel channel;
-	InputStream channel_v;
-	InputStream channel_i;
+	Stream channel_v;
+	Stream channel_i;
 
 private:
 	virtual void on_prepare_capture();

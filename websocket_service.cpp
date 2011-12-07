@@ -8,7 +8,7 @@
 #include "json.hpp"
 
 struct StreamWatch{
-	StreamWatch(const string& _id, InputStream *s, int si, int ei, unsigned df):
+	StreamWatch(const string& _id, Stream *s, int si, int ei, unsigned df):
 		id(_id),
 		stream(s),
 		startIndex(si),
@@ -26,7 +26,7 @@ struct StreamWatch{
 		}
 	}
 	string id;
-	InputStream *stream;
+	Stream *stream;
 
 	// stream sample indexes
 	int startIndex;
@@ -49,7 +49,6 @@ struct StreamWatch{
 	}
 
 	inline float nextSample(){
-		std::cout << "nextSample " << index << std::endl;
 		float total;
 		for (unsigned i = (index-decimateFactor); i <= index; i++){
 			total += stream->data[i];}
@@ -92,7 +91,7 @@ class ClientConn{
 	}
 
 	void watch(const string& id,
-	           InputStream *stream,
+	           Stream *stream,
 	           unsigned startIndex,
 	           unsigned endIndex,
 	           unsigned decimateFactor){
@@ -144,7 +143,7 @@ class ClientConn{
 				int decimateFactor = n.at("decimateFactor").as_int();
 				
 				//TODO: findStream of a particular device
-				InputStream* stream = findStream(device->getId(), channel, streamName); 
+				Stream* stream = findStream(device->getId(), channel, streamName); 
 				watch(id, stream, startIndex, endIndex, decimateFactor);
 			}else if (cmd == "prepareCapture"){
 				float length = n.at("length").as_float();

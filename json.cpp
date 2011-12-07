@@ -2,7 +2,7 @@
 #include <boost/foreach.hpp>
 
 
-JSONNode toJSON(InputStream* s){
+JSONNode toJSON(Stream* s){
 	JSONNode n(JSON_NODE);
 	n.set_name(s->id);
 	n.push_back(JSONNode("id", s->id));
@@ -20,13 +20,12 @@ JSONNode toJSON(Channel *channel){
 	n.push_back(JSONNode("id", channel->id));
 	n.push_back(JSONNode("displayName", channel->displayName));
 
-	JSONNode inputChannels(JSON_NODE);
-//TODO - change "inputs" and "inputChannels" to "streams"
-	inputChannels.set_name("inputs");
-	BOOST_FOREACH (InputStream* i, channel->inputs){
-		inputChannels.push_back(toJSON(i));
+	JSONNode channels(JSON_NODE);
+	channels.set_name("streams");
+	BOOST_FOREACH (Stream* i, channel->streams){
+		channels.push_back(toJSON(i));
 	}
-	n.push_back(inputChannels);
+	n.push_back(channels);
 
 	return n;
 }
@@ -36,8 +35,8 @@ JSONNode toJSON(device_ptr d, bool includeChannels){
 	n.set_name(d->getId());
 	n.push_back(JSONNode("id", d->getId()));
 	n.push_back(JSONNode("model", d->model()));
-	n.push_back(JSONNode("hwversion", d->hwversion()));
-	n.push_back(JSONNode("fwversion", d->fwversion()));
+	n.push_back(JSONNode("hwVersion", d->hwVersion()));
+	n.push_back(JSONNode("fwVersion", d->fwVersion()));
 	n.push_back(JSONNode("serial", d->serialno()));
 
 	if (includeChannels){

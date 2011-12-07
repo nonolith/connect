@@ -71,10 +71,10 @@ class CEE_device: public Device{
 	Channel channel_a;
 	Channel channel_b;
 
-	InputStream channel_a_v;
-	InputStream channel_a_i;
-	InputStream channel_b_v;
-	InputStream channel_b_i;
+	Stream channel_a_v;
+	Stream channel_a_i;
+	Stream channel_b_v;
+	Stream channel_b_i;
 
 	void fill_out_packet(unsigned char*);
 	void handle_in_packet(unsigned char*);

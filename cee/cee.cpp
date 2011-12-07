@@ -42,11 +42,11 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	{
 
 	channels.push_back(&channel_a);
-	channel_a.inputs.push_back(&channel_a_v);
-	channel_a.inputs.push_back(&channel_a_i);
+	channel_a.streams.push_back(&channel_a_v);
+	channel_a.streams.push_back(&channel_a_i);
 	channels.push_back(&channel_b);
-	channel_b.inputs.push_back(&channel_b_v);
-	channel_b.inputs.push_back(&channel_b_i);
+	channel_b.streams.push_back(&channel_b_v);
+	channel_b.streams.push_back(&channel_b_i);
 
 	channel_a.source = new ConstantOutputSource(0, 0);
 	channel_b.source = new ConstantOutputSource(0, 0);

@@ -20,7 +20,7 @@ void rawDataRequest(websocketpp::session_ptr client){
 		BOOST_FOREACH(Channel* c, d->channels){
 			JSONNode cn(JSON_NODE);
 			cn.set_name(c->id);
-			BOOST_FOREACH (InputStream* i, c->inputs){
+			BOOST_FOREACH (Stream* i, c->streams){
 				JSONNode sn(JSON_ARRAY);
 				sn.set_name(i->id);
 

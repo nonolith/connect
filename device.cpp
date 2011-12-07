@@ -63,8 +63,8 @@ Channel* Device::channelById(const string& id){
 	return 0;
 }
 
-InputStream* Channel::inputById(const string& id){
-	BOOST_FOREACH(InputStream *i, inputs){
+Stream* Channel::streamById(const string& id){
+	BOOST_FOREACH(Stream *i, streams){
 		if (i->id == id) return i;
 	}
 	return 0;
@@ -77,7 +77,7 @@ struct ErrorStringException : public std::exception{
    virtual ~ErrorStringException() throw() {}
 };
 
-InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId){
+Stream* findStream(const string& deviceId, const string& channelId, const string& streamId){
 	device_ptr d = getDeviceById(deviceId);
 	if (!d){
 		throw ErrorStringException("Device not found");
@@ -86,14 +86,14 @@ InputStream* findStream(const string& deviceId, const string& channelId, const s
 	if (!c){
 		throw ErrorStringException("Channel not found");
 	}
-	InputStream *s = c->inputById(streamId);
+	Stream *s = c->streamById(streamId);
 	if (!s){
 		throw ErrorStringException("Stream not found");
 	}
 	return s;
 }
 
-void InputStream::allocate(unsigned size){
+void Stream::allocate(unsigned size){
 	buffer_size = size;
 	buffer_fill_point = 0;
 	if (data){
@@ -102,7 +102,7 @@ void InputStream::allocate(unsigned size){
 	data = (float *) malloc(buffer_size*sizeof(float));
 }
 
-void InputStream::put(float p){
+void Stream::put(float p){
 	if (buffer_fill_point < buffer_size){
 		data[buffer_fill_point++]=p;
 	}

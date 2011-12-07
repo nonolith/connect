@@ -13,8 +13,8 @@ DemoDevice::DemoDevice():
 	sample_timer(io){
 
 	channels.push_back(&channel);
-	channel.inputs.push_back(&channel_v);
-	channel.inputs.push_back(&channel_i);
+	channel.streams.push_back(&channel_v);
+	channel.streams.push_back(&channel_i);
 }
 
 DemoDevice::~DemoDevice(){

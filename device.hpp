@@ -7,7 +7,7 @@
 #include <boost/enable_shared_from_this.hpp>
 
 struct Channel;
-struct InputStream;
+struct Stream;
 struct OutputSource;
 
 enum CaptureState{
@@ -33,8 +33,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 		virtual const string getId(){return model()+"~"+serialno();}
 		virtual const string serialno(){return "0";}
 		virtual const string model() = 0;
-		virtual const string hwversion(){return "unknown";}
-		virtual const string fwversion(){return "unknown";}
+		virtual const string hwVersion(){return "unknown";}
+		virtual const string fwVersion(){return "unknown";}
 
 		virtual void setOutput(Channel* channel, OutputSource* source);
 
@@ -61,14 +61,14 @@ struct Channel{
 	const string id;
 	const string displayName;
 
-	InputStream* inputById(const std::string&);
+	Stream* streamById(const std::string&);
 	
-	std::vector<InputStream*> inputs;
+	std::vector<Stream*> streams;
 	OutputSource *source;
 };
 
-struct InputStream{
-	InputStream(const string _id, const string _dn, const string _units, float _min, float _max,
+struct Stream{
+	Stream(const string _id, const string _dn, const string _units, float _min, float _max,
 				const string startState, float _sampleTime, unsigned _outputMode=0):
 		id(_id),
 		displayName(_dn),
@@ -82,7 +82,7 @@ struct InputStream{
 		sampleTime(_sampleTime),
 		outputMode(_outputMode){};
 
-	~InputStream(){
+	~Stream(){
 		if (data){
 			free(data);
 		}
@@ -144,4 +144,4 @@ struct ConstantOutputSource: public OutputSource{
 };
 
 device_ptr getDeviceById(string id);
-InputStream* findStream(const string& deviceId, const string& channelId, const string& streamId);
+Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);
