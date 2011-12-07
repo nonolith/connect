@@ -21,6 +21,7 @@ JSONNode toJSON(Channel *channel){
 	n.push_back(JSONNode("displayName", channel->displayName));
 
 	JSONNode inputChannels(JSON_NODE);
+//TODO - change "inputs" and "inputChannels" to "streams"
 	inputChannels.set_name("inputs");
 	BOOST_FOREACH (InputStream* i, channel->inputs){
 		inputChannels.push_back(toJSON(i));
