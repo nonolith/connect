@@ -64,7 +64,6 @@ typedef std::pair<const string, StreamWatch*> watch_pair;
 class ClientConn{
 	public:
 	ClientConn(websocketpp::session_ptr c): client(c){
-		std::cout << "Opened" <<std::endl;
 		l_device_list_changed.subscribe(
 			device_list_changed,
 			boost::bind(&ClientConn::on_device_list_changed, this)
@@ -125,7 +124,7 @@ class ClientConn{
 	device_ptr device; //TODO: weak reference?
 
 	void on_message(const std::string &msg){
-		std::cout << "Recd:" << msg <<std::endl;
+//		std::cout << "RXD: " << msg <<std::endl;
 
 		try{
 			JSONNode n = libjson::parse(msg);
@@ -161,7 +160,6 @@ class ClientConn{
 					float val = n.at("value").as_float();
 					unsigned mode = n.at("mode").as_int(); //TODO: validate
 					device->setOutput(channel, new ConstantOutputSource(mode, val));
-					std::cout << "Set source" <<std::endl;
 				}
 			}
 		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
@@ -176,6 +174,7 @@ class ClientConn{
 
 	void sendJSON(JSONNode &n){
 		string jc = (string) n.write_formatted();
+//		std::cout << "TXD: " << jc <<std::endl;
 		client->send(jc);
 	}
 
@@ -209,7 +208,7 @@ class ClientConn{
 		}
 
 		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "capture_state"));
+		n.push_back(JSONNode("_action", "captureState"));
 		n.push_back(JSONNode("state", captureStateToString(device->captureState)));
 		n.push_back(JSONNode("length", device->captureLength));
 
