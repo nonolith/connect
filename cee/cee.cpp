@@ -128,9 +128,9 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 	IN_packet *pkt = (IN_packet*) buffer;
 	for (int i=0; i<10; i++){
 		channel_a_v.put(pkt->data[i].av()*5.0/2048.0);
-		channel_a_i.put(pkt->data[i].ai()*2.5/2048.0/CEE_I_gain);
+		channel_a_i.put(pkt->data[i].ai()*2.5/2048.0/CEE_I_gain*1000.0);
 		channel_b_v.put(pkt->data[i].bv()*5.0/2048.0);
-		channel_b_i.put(pkt->data[i].bi()*2.5/2048.0/CEE_I_gain);
+		channel_b_i.put(pkt->data[i].bi()*2.5/2048.0/CEE_I_gain*1000.0);
 	}
 
 	free(buffer);
@@ -150,7 +150,7 @@ uint16_t encode_out(CEE_chanmode mode, float val){
 	if (mode == SVMI){
 		return 4095*val/5.0;
 	}else if (mode == SIMV){
-		return 4095*(1.25+CEE_I_gain*val)/2.5;
+		return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
 	}else return 0;
 }
 
