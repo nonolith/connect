@@ -7,7 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include <libusb-1.0/libusb.h>
+#include <libusb/libusb.h>
 #include <sys/timeb.h>
 #include <boost/bind.hpp>
 using namespace std;

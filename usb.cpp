@@ -1,5 +1,5 @@
 #include <iostream>
-#include <libusb-1.0/libusb.h>
+#include <libusb/libusb.h>
 #include <vector>
 #include <map>
 #include <boost/thread.hpp>

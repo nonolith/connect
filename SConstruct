@@ -39,5 +39,4 @@ else:
 
 libs += boostlibs
 
-Program('server', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-Iwebsocketpp/src', '-shared'], LIBPATH=['.'], FRAMEWORKS=frameworks)
-
+Program('server', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], LIBPATH=['.'], FRAMEWORKS=frameworks)
