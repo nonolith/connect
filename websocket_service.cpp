@@ -22,7 +22,6 @@ struct Listener{
 			index = startSample;
 			if (index < decimateFactor) index = decimateFactor;
 		}
-		std::cerr << "start listen "<<index<<std::endl;
 	}
 
 	const string id;
@@ -92,14 +91,18 @@ class ClientConn{
 	void listen(const string& id,
 	           Stream *stream,
 	           unsigned decimateFactor, int start=-1){
+		cancelListen(id);
+		Listener *w = new Listener(id, stream, decimateFactor, start);
+		listeners.insert(listener_pair(id, w));
+		on_data_received();
+	}
+
+	void cancelListen(const string& id){
 		std::map<string, Listener*>::iterator it = listeners.find(id);
 		if (it != listeners.end()){
 			delete it->second;
 			listeners.erase(it);
 		}
-		Listener *w = new Listener(id, stream, decimateFactor, start);
-		listeners.insert(listener_pair(id, w));
-		on_data_received();
 	}
 
 	void clearAllListeners(){
@@ -142,6 +145,9 @@ class ClientConn{
 				//TODO: findStream of a particular device
 				Stream* stream = findStream(device->getId(), channel, streamName); 
 				listen(id, stream, decimateFactor, startSample);
+			}else if (cmd == "cancelListen"){
+				string id = n.at("id").as_string();
+				cancelListen(id);
 			}else if (cmd == "prepareCapture"){
 				float length = n.at("length").as_float();
 				if (device) device->prepare_capture(length);
@@ -159,6 +165,8 @@ class ClientConn{
 					unsigned mode = n.at("mode").as_int(); //TODO: validate
 					device->setOutput(channel, new ConstantOutputSource(mode, val));
 				}
+			}else{
+				std::cerr << "Unknown command " << cmd << std::endl;
 			}
 		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
 			std::cerr << "WS JSON error:" << e.what() << std::endl;
