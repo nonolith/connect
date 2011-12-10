@@ -8,14 +8,21 @@
 #include "json.hpp"
 
 struct Listener{
-	Listener(const string& _id, Stream *s, unsigned df):
+	Listener(const string& _id, Stream *s, unsigned df, int startSample):
 		id(_id),
 		stream(s),
-		decimateFactor(df)
+		decimateFactor(df),
+		outIndex(0)
 	{
-		index = stream->buffer_fill_point;
-		// go back one sample time so we have data immediately
-		if (index > decimateFactor) index-=decimateFactor;
+		if (startSample == -1){
+			// startSample -1 means start at current position
+			index = stream->buffer_fill_point;
+			if (index > decimateFactor) index-=decimateFactor;
+		}else{
+			index = startSample;
+			if (index < decimateFactor) index = decimateFactor;
+		}
+		std::cerr << "start listen "<<index<<std::endl;
 	}
 
 	const string id;
@@ -25,17 +32,26 @@ struct Listener{
 	unsigned decimateFactor;
 	unsigned index;
 
+	unsigned outIndex;
+
 	inline bool isDataAvailable(){
 		return index < stream->buffer_fill_point;
 	}
 
 	inline float nextSample(){
-		float total;
+		float total=0;
 		for (unsigned i = (index-decimateFactor); i <= index; i++){
-			total += stream->data[i];}
+			total += stream->data[i];
+		}
 		total /= decimateFactor;
 		index += decimateFactor;
+		outIndex++;
 		return total;
+	}
+
+	inline void reset(){
+		index = decimateFactor;
+		outIndex = 0;
 	}
 };
 
@@ -75,13 +91,13 @@ class ClientConn{
 
 	void listen(const string& id,
 	           Stream *stream,
-	           unsigned decimateFactor){
+	           unsigned decimateFactor, int start=-1){
 		std::map<string, Listener*>::iterator it = listeners.find(id);
 		if (it != listeners.end()){
 			delete it->second;
 			listeners.erase(it);
 		}
-		Listener *w = new Listener(id, stream, decimateFactor);
+		Listener *w = new Listener(id, stream, decimateFactor, start);
 		listeners.insert(listener_pair(id, w));
 		on_data_received();
 	}
@@ -91,6 +107,12 @@ class ClientConn{
 			delete p.second;
 		}
 		listeners.clear();
+	}
+
+	void resetAllListeners(){
+		BOOST_FOREACH(listener_pair &p, listeners){
+			p.second->reset();
+		}
 	}
 
 	websocketpp::session_ptr client;
@@ -115,10 +137,11 @@ class ClientConn{
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
 				int decimateFactor = n.at("decimateFactor").as_int();
+				int startSample = n.at("start").as_int();
 				
 				//TODO: findStream of a particular device
 				Stream* stream = findStream(device->getId(), channel, streamName); 
-				listen(id, stream, decimateFactor);
+				listen(id, stream, decimateFactor, startSample);
 			}else if (cmd == "prepareCapture"){
 				float length = n.at("length").as_float();
 				if (device) device->prepare_capture(length);
@@ -178,11 +201,14 @@ class ClientConn{
 	}
 
 	void on_capture_state_changed(){
+		if (device->captureState == CAPTURE_READY){
+			resetAllListeners();
+		}
+
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "captureState"));
 		n.push_back(JSONNode("state", captureStateToString(device->captureState)));
 		n.push_back(JSONNode("length", device->captureLength));
-
 		sendJSON(n);
 	}
 
@@ -202,6 +228,7 @@ class ClientConn{
 			JSONNode n(JSON_NODE);
 
 			n.push_back(JSONNode("id", w->id));
+			n.push_back(JSONNode("idx", w->outIndex));
 			
 			JSONNode a(JSON_ARRAY);
 			a.set_name("data");
