@@ -37,8 +37,6 @@ struct StreamWatch{
 	// resampled indexes
 	unsigned outIndex;
 
-	EventListener data_received_l;
-
 	inline bool isComplete(){
 		if (endIndex == -1) return false;
 		return index >= (unsigned) endIndex;
@@ -85,6 +83,10 @@ class ClientConn{
 			device->captureStateChanged,
 			boost::bind(&ClientConn::on_capture_state_changed, this)
 		);
+		l_data_received.subscribe(
+			device->dataReceived,
+			boost::bind(&ClientConn::on_data_received, this)
+		);
 		on_capture_state_changed();
 		on_device_info_changed();
 	}
@@ -101,11 +103,7 @@ class ClientConn{
 		}
 		StreamWatch *w = new StreamWatch(id, stream, startIndex, endIndex, decimateFactor);
 		watches.insert(watch_pair(id, w));
-		w->data_received_l.subscribe(
-			stream->data_received,
-			boost::bind(&ClientConn::on_data_received, this, w)
-		);
-		on_data_received(w);
+		on_data_received();
 	}
 
 	void clearAllWatches(){
@@ -119,6 +117,7 @@ class ClientConn{
 
 	EventListener l_device_list_changed;
 	EventListener l_capture_state_changed;
+	EventListener l_data_received;
 	std::map<string, StreamWatch*> watches;
 
 	device_ptr device; //TODO: weak reference?
@@ -215,30 +214,49 @@ class ClientConn{
 		sendJSON(n);
 	}
 
-	void on_data_received(StreamWatch* w){
-		if (!w->isDataAvailable()){
-			// Fast path if we haven't reached the next wanted sample yet
-			return;
+	void on_data_received(){
+		JSONNode message(JSON_NODE);
+		JSONNode watchJSON(JSON_ARRAY);
+		std::map<string, StreamWatch*>::iterator it;
+		bool dataToSend = false;
+
+
+		for (it=watches.begin(); it!=watches.end();){
+			// Increment before (potentially) deleting the watch, as that invalidates the iterator 
+			std::map<string, StreamWatch*>::iterator currentIt = it++;
+			StreamWatch* w = currentIt->second;
+
+			if (!w->isDataAvailable()){
+				continue;
+			}
+
+			dataToSend = true;
+			JSONNode n(JSON_NODE);
+
+			n.push_back(JSONNode("id", w->id));
+			n.push_back(JSONNode("idx", w->outIndex));
+			
+			JSONNode a(JSON_ARRAY);
+			a.set_name("data");
+			while (w->isDataAvailable()){
+				a.push_back(JSONNode("", w->nextSample()));
+			}
+			n.push_back(a);
+
+			if (w->isComplete()){
+				n.push_back(JSONNode("end", true));
+				watches.erase(currentIt);
+				delete w;
+			}
+			watchJSON.push_back(n);
 		}
 
-		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "update"));
-		n.push_back(JSONNode("id", w->id));
-		n.push_back(JSONNode("idx", w->outIndex));
-		JSONNode a(JSON_ARRAY);
-		a.set_name("data");
-		while (w->isDataAvailable()){
-			a.push_back(JSONNode("", w->nextSample()));
+		if (dataToSend){
+			message.push_back(JSONNode("_action", "update"));
+			watchJSON.set_name("watches");
+			message.push_back(watchJSON);
+			sendJSON(message);
 		}
-		n.push_back(a);
-
-		if (w->isComplete()){
-			n.push_back(JSONNode("end", true));
-			watches.erase(w->id);
-			delete w;
-		}
-
-		sendJSON(n);
 	}
 };
 

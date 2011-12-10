@@ -40,6 +40,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 		Channel* channelById(const std::string&);
 
+		Event dataReceived;
+
 		Event captureStateChanged;
 		CaptureState captureState;
 		float captureLength;
@@ -119,9 +121,6 @@ struct Stream{
 	/// mode for output that "sources" this stream's variable
 	/// 0 if outputting this variable is not supported.
 	unsigned outputMode;
-
-	/// Event fires after data has been put
-	Event data_received;
 };
 
 struct OutputSource{

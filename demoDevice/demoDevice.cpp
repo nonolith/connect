@@ -73,7 +73,6 @@ void DemoDevice::sample(const boost::system::error_code& e){
 		channel_i.put(b);
 	}
 
-	channel_i.data_received.notify();
-	channel_v.data_received.notify();
+	dataReceived.notify();
 	if (count >= samples) done_capture();
 }

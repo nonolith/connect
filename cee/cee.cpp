@@ -135,11 +135,8 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 
 	free(buffer);
 
-	channel_a_v.data_received.notify();
-	channel_a_i.data_received.notify();
-	channel_b_v.data_received.notify();
-	channel_b_i.data_received.notify();
-
+	dataReceived.notify();
+	
 	if (channel_a_v.buffer_fill_point == samples){
 		done_capture();
 	}
