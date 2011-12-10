@@ -69,8 +69,8 @@ void DemoDevice::sample(const boost::system::error_code& e){
 			b = val;
 		}
 	
-		channel_v.put(a);	
-		channel_i.put(b);
+		channel_v.put(a+sin(count*0.01)*0.1);
+		channel_i.put(b+sin(count*0.01)*0.1);
 	}
 
 	dataReceived.notify();
