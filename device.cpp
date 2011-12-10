@@ -100,6 +100,8 @@ void Stream::allocate(unsigned size){
 		free(data);
 	}
 	data = (float *) malloc(buffer_size*sizeof(float));
+
+	if (!data) buffer_size=0;
 }
 
 void Stream::put(float p){
