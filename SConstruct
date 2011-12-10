@@ -15,7 +15,7 @@ websocketpp = Library('websocketpp', ['websocketpp/src/'+i for i in [
                 'websocket_session.cpp',
                 'sha1/sha1.cpp',
                 'base64/base64.cpp'
-            ]])
+            ]], CCFLAGS=['-g', '-O3'])
 
 
 Command('libusb/Makefile', [], 'cd libusb; ./autogen.sh && ./configure')
