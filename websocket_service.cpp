@@ -7,43 +7,26 @@
 #include "dataserver.hpp"
 #include "json.hpp"
 
-struct StreamWatch{
-	StreamWatch(const string& _id, Stream *s, int si, int ei, unsigned df):
+struct Listener{
+	Listener(const string& _id, Stream *s, unsigned df):
 		id(_id),
 		stream(s),
-		startIndex(si),
-		endIndex(ei),
-		decimateFactor(df),
-		outIndex(0)
+		decimateFactor(df)
 	{
-		if (si == -1){
-			// startIndex -1 means start at current position
-			index = stream->buffer_fill_point;
-			if (index > decimateFactor) index-=decimateFactor;	
-		}else{
-			index = si;
-			if (index < decimateFactor) index = decimateFactor;		
-		}
+		index = stream->buffer_fill_point;
+		// go back one sample time so we have data immediately
+		if (index > decimateFactor) index-=decimateFactor;
 	}
-	string id;
+
+	const string id;
 	Stream *stream;
 
-	// stream sample indexes
-	int startIndex;
-	int endIndex;
+	// stream sample index
 	unsigned decimateFactor;
 	unsigned index;
 
-	// resampled indexes
-	unsigned outIndex;
-
-	inline bool isComplete(){
-		if (endIndex == -1) return false;
-		return index >= (unsigned) endIndex;
-	}
-
 	inline bool isDataAvailable(){
-		return index < stream->buffer_fill_point && !isComplete();
+		return index < stream->buffer_fill_point;
 	}
 
 	inline float nextSample(){
@@ -52,12 +35,11 @@ struct StreamWatch{
 			total += stream->data[i];}
 		total /= decimateFactor;
 		index += decimateFactor;
-		outIndex++;
 		return total;
 	}
 };
 
-typedef std::pair<const string, StreamWatch*> watch_pair;
+typedef std::pair<const string, Listener*> listener_pair;
 
 class ClientConn{
 	public:
@@ -71,11 +53,11 @@ class ClientConn{
 	}
 
 	~ClientConn(){
-		clearAllWatches();
+		clearAllListeners();
 	}
 
 	void selectDevice(device_ptr dev){
-		clearAllWatches();
+		clearAllListeners();
 
 		device = dev;
 
@@ -91,26 +73,24 @@ class ClientConn{
 		on_device_info_changed();
 	}
 
-	void watch(const string& id,
+	void listen(const string& id,
 	           Stream *stream,
-	           unsigned startIndex,
-	           unsigned endIndex,
 	           unsigned decimateFactor){
-		std::map<string, StreamWatch*>::iterator it = watches.find(id);
-		if (it != watches.end()){
+		std::map<string, Listener*>::iterator it = listeners.find(id);
+		if (it != listeners.end()){
 			delete it->second;
-			watches.erase(it);
+			listeners.erase(it);
 		}
-		StreamWatch *w = new StreamWatch(id, stream, startIndex, endIndex, decimateFactor);
-		watches.insert(watch_pair(id, w));
+		Listener *w = new Listener(id, stream, decimateFactor);
+		listeners.insert(listener_pair(id, w));
 		on_data_received();
 	}
 
-	void clearAllWatches(){
-		BOOST_FOREACH(watch_pair &p, watches){
+	void clearAllListeners(){
+		BOOST_FOREACH(listener_pair &p, listeners){
 			delete p.second;
 		}
-		watches.clear();
+		listeners.clear();
 	}
 
 	websocketpp::session_ptr client;
@@ -118,13 +98,11 @@ class ClientConn{
 	EventListener l_device_list_changed;
 	EventListener l_capture_state_changed;
 	EventListener l_data_received;
-	std::map<string, StreamWatch*> watches;
+	std::map<string, Listener*> listeners;
 
-	device_ptr device; //TODO: weak reference?
+	device_ptr device;
 
 	void on_message(const std::string &msg){
-//		std::cout << "RXD: " << msg <<std::endl;
-
 		try{
 			JSONNode n = libjson::parse(msg);
 			string cmd = n.at("_cmd").as_string();
@@ -132,17 +110,15 @@ class ClientConn{
 			if (cmd == "selectDevice"){
 				string id = n.at("id").as_string();
 				selectDevice(getDeviceById(id));
-			}else if (cmd == "watch"){
+			}else if (cmd == "listen"){
 				string id = n.at("id").as_string();
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
-				int startIndex = n.at("startIndex").as_int();
-				int endIndex = n.at("endIndex").as_int();
 				int decimateFactor = n.at("decimateFactor").as_int();
 				
 				//TODO: findStream of a particular device
 				Stream* stream = findStream(device->getId(), channel, streamName); 
-				watch(id, stream, startIndex, endIndex, decimateFactor);
+				listen(id, stream, decimateFactor);
 			}else if (cmd == "prepareCapture"){
 				float length = n.at("length").as_float();
 				if (device) device->prepare_capture(length);
@@ -202,10 +178,6 @@ class ClientConn{
 	}
 
 	void on_capture_state_changed(){
-		if (device->captureState == CAPTURE_READY){
-			clearAllWatches();
-		}
-
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "captureState"));
 		n.push_back(JSONNode("state", captureStateToString(device->captureState)));
@@ -216,15 +188,11 @@ class ClientConn{
 
 	void on_data_received(){
 		JSONNode message(JSON_NODE);
-		JSONNode watchJSON(JSON_ARRAY);
-		std::map<string, StreamWatch*>::iterator it;
+		JSONNode listenerJSON(JSON_ARRAY);
 		bool dataToSend = false;
 
-
-		for (it=watches.begin(); it!=watches.end();){
-			// Increment before (potentially) deleting the watch, as that invalidates the iterator 
-			std::map<string, StreamWatch*>::iterator currentIt = it++;
-			StreamWatch* w = currentIt->second;
+		BOOST_FOREACH(listener_pair &p, listeners){
+			Listener *w = p.second;
 
 			if (!w->isDataAvailable()){
 				continue;
@@ -234,7 +202,6 @@ class ClientConn{
 			JSONNode n(JSON_NODE);
 
 			n.push_back(JSONNode("id", w->id));
-			n.push_back(JSONNode("idx", w->outIndex));
 			
 			JSONNode a(JSON_ARRAY);
 			a.set_name("data");
@@ -243,18 +210,13 @@ class ClientConn{
 			}
 			n.push_back(a);
 
-			if (w->isComplete()){
-				n.push_back(JSONNode("end", true));
-				watches.erase(currentIt);
-				delete w;
-			}
-			watchJSON.push_back(n);
+			listenerJSON.push_back(n);
 		}
 
 		if (dataToSend){
 			message.push_back(JSONNode("_action", "update"));
-			watchJSON.set_name("watches");
-			message.push_back(watchJSON);
+			listenerJSON.set_name("listeners");
+			message.push_back(listenerJSON);
 			sendJSON(message);
 		}
 	}
