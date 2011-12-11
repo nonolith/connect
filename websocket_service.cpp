@@ -221,6 +221,7 @@ class ClientConn{
 		n.push_back(JSONNode("_action", "captureState"));
 		n.push_back(JSONNode("state", captureStateToString(device->captureState)));
 		n.push_back(JSONNode("length", device->captureLength));
+		n.push_back(JSONNode("continuous", device->captureContinuous));
 		sendJSON(n);
 	}
 
