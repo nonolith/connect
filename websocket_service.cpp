@@ -16,7 +16,10 @@ struct Listener{
 	{
 		if (startSample < 0){
 			// startSample -1 means start at current position
-			index = stream->buffer_max() + startSample + 1;
+			if ((int) stream->buffer_max() < -startSample)
+				index = stream->buffer_min();
+			else
+				index = stream->buffer_max() + startSample + 1;
 			if (index > decimateFactor) index-=decimateFactor;
 		}else{
 			index = startSample;
