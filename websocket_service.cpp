@@ -14,9 +14,9 @@ struct Listener{
 		decimateFactor(df),
 		outIndex(0)
 	{
-		if (startSample == -1){
+		if (startSample < 0){
 			// startSample -1 means start at current position
-			index = stream->buffer_max();
+			index = stream->buffer_max() + startSample + 1;
 			if (index > decimateFactor) index-=decimateFactor;
 		}else{
 			index = startSample;
