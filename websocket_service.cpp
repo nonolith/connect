@@ -193,7 +193,7 @@ class ClientConn{
 	}
 
 	void sendJSON(JSONNode &n){
-		string jc = (string) n.write_formatted();
+		string jc = (string) n.write();
 		if (debugFlag){
 			std::cout << "TXD: " << jc <<std::endl;
 		}
