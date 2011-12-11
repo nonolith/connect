@@ -142,6 +142,15 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 	}
 }
 
+void CEE_device::setOutput(Channel* channel, OutputSource* source){
+	libusb_lock_events(NULL);
+	if (channel->source){
+		delete channel->source;
+	}
+	channel->source=source;
+	libusb_unlock_events(NULL);
+}
+
 
 uint16_t encode_out(CEE_chanmode mode, float val){
 	if (mode == SVMI){

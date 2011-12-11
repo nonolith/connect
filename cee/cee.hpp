@@ -61,6 +61,8 @@ class CEE_device: public Device{
 	virtual const string hwversion(){return "unknown";}
 	virtual const string fwversion(){return "unknown";}
 	virtual const string serialno(){return serial;}
+	
+	virtual void setOutput(Channel* channel, OutputSource* source);
 
 	libusb_device_handle *handle;
 	char serial[32];
