@@ -14,16 +14,20 @@ struct Listener{
 		decimateFactor(df),
 		outIndex(0)
 	{
+		unsigned m = stream->buffer_min() + decimateFactor;
 		if (startSample < 0){
 			// startSample -1 means start at current position
-			if ((int) stream->buffer_max() < -startSample)
-				index = stream->buffer_min();
+			int i = (int)(stream->buffer_max()) + startSample + 1;
+			if (i > (int) m + (int) decimateFactor) 
+				index = i - decimateFactor;
+			else if (i > (int) m)
+				index = i;
 			else
-				index = stream->buffer_max() + startSample + 1;
-			if (index > decimateFactor) index-=decimateFactor;
+				index = m;
 		}else{
 			index = startSample;
-			if (index < decimateFactor) index = decimateFactor;
+			if (index < m)
+				index = m;
 		}
 	}
 
