@@ -23,9 +23,9 @@ DemoDevice::~DemoDevice(){
 
 void DemoDevice::on_prepare_capture(){
 	samples = ceil(captureLength/channel_v.sampleTime);
-	std::cout << "Starting for " << samples << " samples" <<std::endl;
-	channel_v.allocate(samples);
-	channel_i.allocate(samples);
+	std::cout << "Starting for " << samples << " samples "<< captureContinuous <<std::endl;
+	channel_v.allocate(samples, captureContinuous);
+	channel_i.allocate(samples, captureContinuous);
 	count = 0;
 }
 
@@ -74,5 +74,5 @@ void DemoDevice::sample(const boost::system::error_code& e){
 	}
 
 	dataReceived.notify();
-	if (count >= samples) done_capture();
+	if (!captureContinuous && count >= samples) done_capture();
 }

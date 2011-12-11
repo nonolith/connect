@@ -76,10 +76,10 @@ void CEE_device::on_prepare_capture(){
 	samples = ceil(captureLength/CEE_sample_time);
 	std::cerr << "CEE prepare "<< samples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
 	incount = outcount = 0;
-	channel_a_v.allocate(samples);
-	channel_a_i.allocate(samples);
-	channel_b_v.allocate(samples);
-	channel_b_i.allocate(samples);
+	channel_a_v.allocate(samples, captureContinuous);
+	channel_a_i.allocate(samples, captureContinuous);
+	channel_b_v.allocate(samples, captureContinuous);
+	channel_b_i.allocate(samples, captureContinuous);
 }
 
 void CEE_device::on_start_capture(){
@@ -137,7 +137,7 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 
 	dataReceived.notify();
 	
-	if (channel_a_v.buffer_fill_point == samples){
+	if (!captureContinuous && channel_a_v.buffer_i >= samples){
 		done_capture();
 	}
 }

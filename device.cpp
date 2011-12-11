@@ -3,7 +3,7 @@
 #include <iostream>
 
 
-void Device::prepare_capture(float seconds){
+void Device::prepare_capture(float seconds, bool continuous){
 	if (captureState == CAPTURE_ACTIVE){
 		pause_capture();
 	}
@@ -11,6 +11,7 @@ void Device::prepare_capture(float seconds){
 	std::cerr << "prepare capture" <<std::endl;
 	captureState = CAPTURE_READY;
 	captureLength = seconds;
+	captureContinuous = continuous;
 	on_prepare_capture();
 	captureStateChanged.notify();
 }
@@ -93,21 +94,16 @@ Stream* findStream(const string& deviceId, const string& channelId, const string
 	return s;
 }
 
-void Stream::allocate(unsigned size){
+void Stream::allocate(unsigned size, bool cont){
 	buffer_size = size;
-	buffer_fill_point = 0;
+	buffer_i = 0;
+	continuous = cont;
 	if (data){
 		free(data);
 	}
 	data = (float *) malloc(buffer_size*sizeof(float));
 
 	if (!data) buffer_size=0;
-}
-
-void Stream::put(float p){
-	if (buffer_fill_point < buffer_size){
-		data[buffer_fill_point++]=p;
-	}
 }
 
 string captureStateToString(CaptureState s){

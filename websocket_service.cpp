@@ -16,7 +16,7 @@ struct Listener{
 	{
 		if (startSample == -1){
 			// startSample -1 means start at current position
-			index = stream->buffer_fill_point;
+			index = stream->buffer_max();
 			if (index > decimateFactor) index-=decimateFactor;
 		}else{
 			index = startSample;
@@ -34,13 +34,13 @@ struct Listener{
 	unsigned outIndex;
 
 	inline bool isDataAvailable(){
-		return index < stream->buffer_fill_point;
+		return index < stream->buffer_i;
 	}
 
 	inline float nextSample(){
 		float total=0;
 		for (unsigned i = (index-decimateFactor); i <= index; i++){
-			total += stream->data[i];
+			total += stream->get(i);
 		}
 		total /= decimateFactor;
 		index += decimateFactor;
@@ -150,7 +150,11 @@ class ClientConn{
 				cancelListen(id);
 			}else if (cmd == "prepareCapture"){
 				float length = n.at("length").as_float();
-				if (device) device->prepare_capture(length);
+				bool continuous = false;
+				if (n.find("continuous") != n.end()){
+					continuous = n.at("continuous").as_bool();
+				}
+				if (device) device->prepare_capture(length, continuous);
 			}else if (cmd == "startCapture"){
 				if (device) device->start_capture();
 			}else if (cmd == "pauseCapture"){
