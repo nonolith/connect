@@ -22,7 +22,7 @@ string captureStateToString(CaptureState s);
 
 class Device: public boost::enable_shared_from_this<Device> {
 	public: 
-		Device(): captureState(CAPTURE_INACTIVE), captureLength(0) {}
+		Device(): captureState(CAPTURE_INACTIVE), captureLength(0), captureContinuous(false) {}
 		virtual ~Device(){};
 		
 		/// Allocate resources to capture the specified number of seconds of data
@@ -87,6 +87,7 @@ struct Stream{
 		state(startState),
 		buffer_size(0),
 		buffer_i(0),
+		continuous(0),
 		sampleTime(_sampleTime),
 		outputMode(_outputMode),
 		data(0){};
