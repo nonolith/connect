@@ -199,7 +199,7 @@ void in_transfer_callback(libusb_transfer *t){
 		io.post(boost::bind(&CEE_device::handle_in_packet, dev, t->buffer));
 		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
 
-		if (dev->incount < dev->samples){
+		if (dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->samples){
 			dev->incount++;
 			libusb_submit_transfer(t);
 		}else{
@@ -226,7 +226,7 @@ void out_transfer_callback(libusb_transfer *t){
 	CEE_device *dev = (CEE_device *) t->user_data;
 
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		if (dev->outcount < dev->samples){
+		if (dev->captureContinuous || dev->outcount*OUT_SAMPLES_PER_PACKET < dev->samples){
 			dev->fill_out_packet(t->buffer);
 			dev->outcount++;
 			libusb_submit_transfer(t);
