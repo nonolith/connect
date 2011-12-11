@@ -35,10 +35,10 @@ const float CEE_I_gain = 45*.07;
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("av", "Voltage A", "V", 0.0, 5.0, "measure", CEE_sample_time),
-	channel_a_i("ai", "Current A", "mA", -200, 200, "source",  CEE_sample_time),
-	channel_b_v("bv", "Voltage B", "V", 0.0, 5.0, "measure", CEE_sample_time),
-	channel_b_i("bi", "Current B", "mA", -200, 200, "source",  CEE_sample_time)
+	channel_a_v("av", "Voltage A", "V",   0.0, 5.0, "measure", CEE_sample_time, 1),
+	channel_a_i("ai", "Current A", "mA", -200, 200, "source",  CEE_sample_time, 2),
+	channel_b_v("bv", "Voltage B", "V",   0.0, 5.0, "measure", CEE_sample_time, 1),
+	channel_b_i("bi", "Current B", "mA", -200, 200, "source",  CEE_sample_time, 2)
 	{
 
 	channels.push_back(&channel_a);

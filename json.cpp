@@ -11,6 +11,7 @@ JSONNode toJSON(Stream* s){
 	n.push_back(JSONNode("min", s->min));
 	n.push_back(JSONNode("max", s->max));
 	n.push_back(JSONNode("sampleTime", s->sampleTime));
+	n.push_back(JSONNode("outputMode", s->outputMode));
 	return n;
 }
 
