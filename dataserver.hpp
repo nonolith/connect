@@ -13,6 +13,8 @@ extern boost::asio::io_service io;
 #include "event.hpp"
 #include "device.hpp"
 
+extern bool debugFlag;
+
 extern std::set<device_ptr> devices;
 
 extern Event device_list_changed;

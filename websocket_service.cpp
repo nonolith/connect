@@ -135,6 +135,9 @@ class ClientConn{
 	device_ptr device;
 
 	void on_message(const std::string &msg){
+		if (debugFlag){
+			std::cout << "RXD: " << msg << std::endl;
+		}
 		try{
 			JSONNode n = libjson::parse(msg);
 			string cmd = n.at("_cmd").as_string();
@@ -191,7 +194,9 @@ class ClientConn{
 
 	void sendJSON(JSONNode &n){
 		string jc = (string) n.write_formatted();
-//		std::cout << "TXD: " << jc <<std::endl;
+		if (debugFlag){
+			std::cout << "TXD: " << jc <<std::endl;
+		}
 		client->send(jc);
 	}
 

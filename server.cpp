@@ -14,6 +14,8 @@ const unsigned short port = 9003;
 std::set <device_ptr> devices;
 boost::asio::io_service io;
 
+bool debugFlag;
+
 Event device_list_changed;
 Event capture_state_changed;
 
@@ -28,6 +30,12 @@ int main(int argc, char* argv[]){
 			devices.insert(p);
 		}
 
+		if (argc==2 && string(argv[1])=="debug"){
+			debugFlag = 1;
+		}
+		else{
+			debugFlag = 0;
+		}
 		tcp::endpoint endpoint(tcp::v6(), port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
 		
