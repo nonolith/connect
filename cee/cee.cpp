@@ -143,12 +143,11 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 }
 
 void CEE_device::setOutput(Channel* channel, OutputSource* source){
-	libusb_lock_events(NULL);
+	boost::mutex::scoped_lock lock(outputMutex);
 	if (channel->source){
 		delete channel->source;
 	}
 	channel->source=source;
-	libusb_unlock_events(NULL);
 }
 
 
@@ -161,6 +160,7 @@ uint16_t encode_out(CEE_chanmode mode, float val){
 }
 
 void CEE_device::fill_out_packet(unsigned char* buf){
+	boost::mutex::scoped_lock lock(outputMutex);
 	if (channel_a.source && channel_b.source){
 		unsigned mode_a = channel_a.source->mode;
 		unsigned mode_b = channel_a.source->mode;
