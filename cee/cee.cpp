@@ -31,14 +31,19 @@ const int CEE_timer_clock = 4e6; // 4 MHz
 const float CEE_sample_time = CEE_sample_per / (float) CEE_timer_clock; // 40us
 const float CEE_I_gain = 45*.07;
 
+const float V_min = 0;
+const float V_max = 5.0;
+const float I_min = -200;
+const float I_max = 200;
+
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("av", "Voltage A", "V",   0.0, 5.0, "measure", CEE_sample_time, 1),
-	channel_a_i("ai", "Current A", "mA", -200, 200, "source",  CEE_sample_time, 2),
-	channel_b_v("bv", "Voltage B", "V",   0.0, 5.0, "measure", CEE_sample_time, 1),
-	channel_b_i("bi", "Current B", "mA", -200, 200, "source",  CEE_sample_time, 2)
+	channel_a_v("av", "Voltage A", "V",  V_min, V_max, "measure", CEE_sample_time, 1),
+	channel_a_i("ai", "Current A", "mA", I_min, I_max, "source",  CEE_sample_time, 2),
+	channel_b_v("bv", "Voltage B", "V",  V_min, V_max, "measure", CEE_sample_time, 1),
+	channel_b_i("bi", "Current B", "mA", I_min, I_max, "source",  CEE_sample_time, 2)
 	{
 
 	channels.push_back(&channel_a);
@@ -150,11 +155,19 @@ void CEE_device::setOutput(Channel* channel, OutputSource* source){
 	channel->source=source;
 }
 
+inline float constrain(float val, float lo, float hi){
+	if (val > hi) val = hi;
+	if (val < lo) val = lo;
+	return val;
+}
+
 
 uint16_t encode_out(CEE_chanmode mode, float val){
 	if (mode == SVMI){
+		val = constrain(val, V_min, V_max);
 		return 4095*val/5.0;
 	}else if (mode == SIMV){
+		val = constrain(val, I_min, I_max);
 		return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
 	}else return 0;
 }
