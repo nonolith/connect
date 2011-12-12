@@ -7,8 +7,8 @@ const float demoSampleTime = 0.010;
 
 DemoDevice::DemoDevice():
 	channel("channel", "Channel A"),
-	channel_v("v", "Voltage", "V", -2, 2, "measure", demoSampleTime/10, 0),
-	channel_i("i", "Current", "mA", -2, 2, "source", demoSampleTime/10, 1),
+	channel_v("v", "Voltage", "V",     0,   5, "measure", demoSampleTime/10, 1),
+	channel_i("i", "Current", "mA", -200, 200, "source",  demoSampleTime/10, 2),
 	count(0),
 	sample_timer(io){
 
@@ -59,12 +59,12 @@ void DemoDevice::sample(const boost::system::error_code& e){
 			val = channel.source->nextValue(count/channel_v.sampleTime);
 		}
 	
-		float a, b;
-	
-		if (mode == 0){
+		float a=0, b=0;
+		
+		if (mode == 1){
 			a = val;
 			b = 100*val;
-		}else{
+		}else if (mode == 2){
 			a = 100.0/val;
 			b = val;
 		}
