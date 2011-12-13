@@ -82,7 +82,8 @@ class CEE_device: public Device{
 	void fill_out_packet(unsigned char*);
 	void handle_in_packet(unsigned char*);
 
-	unsigned samples, incount, outcount;
+	/// count of IN and OUT packets, owned by USB thread
+	unsigned incount, outcount;
 
 	protected:
 	virtual void on_prepare_capture();

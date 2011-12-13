@@ -38,12 +38,13 @@ const float I_max = 200;
 
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
+	Device(CEE_sample_time),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("av", "Voltage A", "V",  V_min, V_max, "measure", CEE_sample_time, 1),
-	channel_a_i("ai", "Current A", "mA", I_min, I_max, "source",  CEE_sample_time, 2),
-	channel_b_v("bv", "Voltage B", "V",  V_min, V_max, "measure", CEE_sample_time, 1),
-	channel_b_i("bi", "Current B", "mA", I_min, I_max, "source",  CEE_sample_time, 2)
+	channel_a_v("av", "Voltage A", "V",  V_min, V_max,  1),
+	channel_a_i("ai", "Current A", "mA", I_min, I_max,  2),
+	channel_b_v("bv", "Voltage B", "V",  V_min, V_max,  1),
+	channel_b_i("bi", "Current B", "mA", I_min, I_max,  2)
 	{
 
 	channels.push_back(&channel_a);
@@ -78,13 +79,13 @@ CEE_device::~CEE_device(){
 }
 
 void CEE_device::on_prepare_capture(){
-	samples = ceil(captureLength/CEE_sample_time);
-	std::cerr << "CEE prepare "<< samples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
+	captureSamples = ceil(captureLength/CEE_sample_time);
+	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
 	incount = outcount = 0;
-	channel_a_v.allocate(samples, captureContinuous);
-	channel_a_i.allocate(samples, captureContinuous);
-	channel_b_v.allocate(samples, captureContinuous);
-	channel_b_i.allocate(samples, captureContinuous);
+	channel_a_v.allocate(captureSamples);
+	channel_a_i.allocate(captureSamples);
+	channel_b_v.allocate(captureSamples);
+	channel_b_i.allocate(captureSamples);
 }
 
 void CEE_device::on_start_capture(){
@@ -132,19 +133,15 @@ void CEE_device::on_pause_capture(){
 void CEE_device::handle_in_packet(unsigned char *buffer){
 	IN_packet *pkt = (IN_packet*) buffer;
 	for (int i=0; i<10; i++){
-		channel_a_v.put(pkt->data[i].av()*5.0/2048.0);
-		channel_a_i.put(pkt->data[i].ai()*2.5/2048.0/CEE_I_gain*1000.0);
-		channel_b_v.put(pkt->data[i].bv()*5.0/2048.0);
-		channel_b_i.put(pkt->data[i].bi()*2.5/2048.0/CEE_I_gain*1000.0);
+		put(channel_a_v, pkt->data[i].av()*5.0/2048.0);
+		put(channel_a_i, pkt->data[i].ai()*2.5/2048.0/CEE_I_gain*1000.0);
+		put(channel_b_v, pkt->data[i].bv()*5.0/2048.0);
+		put(channel_b_i, pkt->data[i].bi()*2.5/2048.0/CEE_I_gain*1000.0);
+		sampleDone();
 	}
 
 	free(buffer);
-
-	dataReceived.notify();
-	
-	if (!captureContinuous && channel_a_v.buffer_i >= samples){
-		done_capture();
-	}
+	packetDone();
 }
 
 void CEE_device::setOutput(Channel* channel, OutputSource* source){
@@ -221,7 +218,7 @@ void in_transfer_callback(libusb_transfer *t){
 		io.post(boost::bind(&CEE_device::handle_in_packet, dev, t->buffer));
 		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
 
-		if (dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->samples){
+		if (dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->captureSamples){
 			dev->incount++;
 			libusb_submit_transfer(t);
 		}else{
@@ -248,7 +245,7 @@ void out_transfer_callback(libusb_transfer *t){
 	CEE_device *dev = (CEE_device *) t->user_data;
 
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		if (dev->captureContinuous || dev->outcount*OUT_SAMPLES_PER_PACKET < dev->samples){
+		if (dev->captureContinuous || dev->outcount*OUT_SAMPLES_PER_PACKET < dev->captureSamples){
 			dev->fill_out_packet(t->buffer);
 			dev->outcount++;
 			libusb_submit_transfer(t);

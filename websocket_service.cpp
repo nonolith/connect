@@ -8,16 +8,17 @@
 #include "json.hpp"
 
 struct Listener{
-	Listener(const string& _id, Stream *s, unsigned df, int startSample):
+	Listener(const string& _id, device_ptr d, Stream *s, unsigned df, int startSample):
 		id(_id),
+		device(d),
 		stream(s),
 		decimateFactor(df),
 		outIndex(0)
 	{
-		unsigned m = stream->buffer_min() + decimateFactor;
+		unsigned m = d->buffer_min() + decimateFactor;
 		if (startSample < 0){
 			// startSample -1 means start at current position
-			int i = (int)(stream->buffer_max()) + startSample + 1;
+			int i = (int)(d->buffer_max()) + startSample + 1;
 			if (i > (int) m + (int) decimateFactor) 
 				index = i - decimateFactor;
 			else if (i > (int) m)
@@ -32,6 +33,7 @@ struct Listener{
 	}
 
 	const string id;
+	device_ptr device;
 	Stream *stream;
 
 	// stream sample index
@@ -41,13 +43,13 @@ struct Listener{
 	unsigned outIndex;
 
 	inline bool isDataAvailable(){
-		return index < stream->buffer_i;
+		return index < device->capture_i;
 	}
 
 	inline float nextSample(){
 		float total=0;
 		for (unsigned i = (index-decimateFactor); i <= index; i++){
-			total += stream->get(i);
+			total += device->get(*stream, i);
 		}
 		total /= decimateFactor;
 		index += decimateFactor;
@@ -99,7 +101,7 @@ class ClientConn{
 	           Stream *stream,
 	           unsigned decimateFactor, int start=-1){
 		cancelListen(id);
-		Listener *w = new Listener(id, stream, decimateFactor, start);
+		Listener *w = new Listener(id, device, stream, decimateFactor, start);
 		listeners.insert(listener_pair(id, w));
 		on_data_received();
 	}

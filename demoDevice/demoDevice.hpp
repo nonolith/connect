@@ -21,8 +21,6 @@ private:
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
 
-	unsigned count;
-	unsigned samples;
 	boost::asio::deadline_timer sample_timer;
 	void sample(const boost::system::error_code&);
 	void setTimer();

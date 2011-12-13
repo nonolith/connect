@@ -10,7 +10,6 @@ JSONNode toJSON(Stream* s){
 	n.push_back(JSONNode("units", s->units));
 	n.push_back(JSONNode("min", s->min));
 	n.push_back(JSONNode("max", s->max));
-	n.push_back(JSONNode("sampleTime", s->sampleTime));
 	n.push_back(JSONNode("outputMode", s->outputMode));
 	return n;
 }
@@ -39,7 +38,8 @@ JSONNode toJSON(device_ptr d, bool includeChannels){
 	n.push_back(JSONNode("hwVersion", d->hwVersion()));
 	n.push_back(JSONNode("fwVersion", d->fwVersion()));
 	n.push_back(JSONNode("serial", d->serialno()));
-
+	n.push_back(JSONNode("sampleTime", d->sampleTime));
+		
 	if (includeChannels){
 		JSONNode channels(JSON_NODE);
 		channels.set_name("channels");

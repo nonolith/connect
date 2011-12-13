@@ -24,8 +24,8 @@ void rawDataRequest(websocketpp::session_ptr client){
 				JSONNode sn(JSON_ARRAY);
 				sn.set_name(i->id);
 
-				for(unsigned x=i->buffer_min(); x<i->buffer_max(); x++){
-					sn.push_back(JSONNode("", i->get(x)));
+				for(unsigned x=d->buffer_min(); x<d->buffer_max(); x++){
+					sn.push_back(JSONNode("", d->get(*i, x)));
 				}
 
 				cn.push_back(sn);

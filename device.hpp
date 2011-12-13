@@ -20,9 +20,52 @@ enum CaptureState{
 
 string captureStateToString(CaptureState s);
 
+struct Stream{
+	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0):
+		id(_id),
+		displayName(_dn),
+		units(_units),
+		min(_min),
+		max(_max),
+		
+		outputMode(_outputMode),
+		data(0){};
+
+	~Stream(){
+		if (data){
+			free(data);
+		}
+	}
+
+	const string id;
+	const string displayName;
+	const string units;
+
+	float min, max;
+
+	string state;
+
+	/// Allocate space for /size/ samples
+	bool allocate(unsigned size);
+
+	/// mode for output that "sources" this stream's variable
+	/// 0 if outputting this variable is not supported.
+	unsigned outputMode;
+
+	/// Raw data buffer
+	float* data;
+};
+
+
 class Device: public boost::enable_shared_from_this<Device> {
 	public: 
-		Device(): captureState(CAPTURE_INACTIVE), captureLength(0), captureContinuous(false) {}
+		Device(float _sampleTime):
+			captureState(CAPTURE_INACTIVE),
+			captureLength(0),
+			captureSamples(0),
+			captureContinuous(false),
+			sampleTime(_sampleTime),
+			capture_i(0) {}
 		virtual ~Device(){};
 		
 		/// Allocate resources to capture the specified number of seconds of data
@@ -50,10 +93,66 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 		Event captureStateChanged;
 		CaptureState captureState;
+		
 		float captureLength;
+		
+		/// Number of samples in current capture
+		/// Allocated size (elements) of stream.data
+		unsigned captureSamples;
+		
+		/// True if configured for continuous (ring buffer) sampling
 		bool captureContinuous;
+		
+		/// Time of a sample
+		float sampleTime;
+		
+		/// monotonically increasing sample counter
+	    /// index of next-written element is capture_i%captureSamples
+		unsigned capture_i; //TODO: what if it wraps (11 hours)
 
 		std::vector<Channel*> channels;
+		
+		/// Store a sample to a stream
+		/// Note: when you are done putting samples, call sampleDone();
+		inline void put(Stream& s, float p){
+			if (!s.data || !captureSamples || (capture_i>=captureSamples && !captureContinuous)) return;
+			s.data[capture_i % captureSamples]=p;
+		}
+
+		/// Get the sample corresponding to buffer_i==i. If it is not in
+		/// memory (either overwritten or not yet collected), returns NaN. 
+		inline float get(Stream& s, unsigned i){
+			if (   !s.data || !captureSamples   // not prepared
+				|| i>=capture_i             // not yet collected
+				|| (capture_i>captureSamples && i<=capture_i-captureSamples)) // overwritten
+				return NAN;
+			else
+				return s.data[i%captureSamples];
+		}
+
+		/// Returns the lowest buffer index currently available
+		inline unsigned buffer_min(){
+			if (capture_i < captureSamples)
+				return 0;
+			else
+				return capture_i - captureSamples;
+		}
+
+		/// Returns the highest buffer index currently available
+		inline unsigned buffer_max(){
+			return capture_i;
+		}
+		
+		inline void sampleDone(){
+			capture_i++;
+		}
+		
+		inline void packetDone(){
+			dataReceived.notify();
+			if (!captureContinuous && capture_i >= captureSamples){
+				done_capture();
+			}
+		}
 
 	protected:
 		virtual void on_prepare_capture() = 0;
@@ -76,92 +175,6 @@ struct Channel{
 	OutputSource *source;
 };
 
-struct Stream{
-	Stream(const string _id, const string _dn, const string _units, float _min, float _max,
-				const string startState, float _sampleTime, unsigned _outputMode=0):
-		id(_id),
-		displayName(_dn),
-		units(_units),
-		min(_min),
-		max(_max),
-		state(startState),
-		buffer_size(0),
-		buffer_i(0),
-		continuous(0),
-		sampleTime(_sampleTime),
-		outputMode(_outputMode),
-		data(0){};
-
-	~Stream(){
-		if (data){
-			free(data);
-		}
-	}
-
-	const string id;
-	const string displayName;
-	const string units;
-
-	float min, max;
-
-	string state;
-
-	/// Allocated elements of *data
-	unsigned buffer_size;
-
-	/// monotonically increasing sample counter
-	/// index of next-written element is buffer_i%buffer_size
-	unsigned buffer_i; //TODO: what if it wraps (11 hours)
-
-	// True if configured for continuous (ring buffer) sampling
-	bool continuous;
-
-	/// Allocate space for /size/ samples
-	void allocate(unsigned size, bool continuous);
-
-	/// Store a sample and increment buffer_fill_point
-	/// Note: when you are done putting samples, call data_received.notify()
-	/// This is not called automatically, because it only needs to be called once
-	/// if multiple samples are put at the same time.
-	inline void put(float p){
-		if (!data || !buffer_size || (buffer_i>=buffer_size && !continuous)) return;
-		data[buffer_i++ % buffer_size]=p;
-	}
-
-	/// Get the sample corresponding to buffer_i==i. If it is not in
-	/// memory (either overwritten or not yet collected), returns NaN. 
-	inline float get(unsigned i){
-		if (   !data || !buffer_size   // not prepared
-		    || i>=buffer_i             // not yet collected
-		    || (buffer_i>buffer_size && i<=buffer_i-buffer_size)) // overwritten
-			return NAN;
-		else
-			return data[i%buffer_size];
-	}
-
-	/// Returns the lowest buffer index currently available
-	inline unsigned buffer_min(){
-		if (buffer_i < buffer_size)
-			return 0;
-		else
-			return buffer_i - buffer_size;
-	}
-
-	/// Returns the highest buffer index currently available
-	inline unsigned buffer_max(){
-		return buffer_i;
-	}
-	
-	float sampleTime;
-
-	/// mode for output that "sources" this stream's variable
-	/// 0 if outputting this variable is not supported.
-	unsigned outputMode;
-
-protected:
-	/// Raw data buffer
-	float* data;
-};
 
 struct OutputSource{
 	virtual string displayName() = 0;

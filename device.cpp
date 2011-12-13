@@ -12,6 +12,8 @@ void Device::prepare_capture(float seconds, bool continuous){
 	captureState = CAPTURE_READY;
 	captureLength = seconds;
 	captureContinuous = continuous;
+	captureSamples = 0;
+	capture_i = 0;
 	on_prepare_capture();
 	captureStateChanged.notify();
 }
@@ -94,16 +96,12 @@ Stream* findStream(const string& deviceId, const string& channelId, const string
 	return s;
 }
 
-void Stream::allocate(unsigned size, bool cont){
-	buffer_size = size;
-	buffer_i = 0;
-	continuous = cont;
+bool Stream::allocate(unsigned size){
 	if (data){
 		free(data);
 	}
-	data = (float *) malloc(buffer_size*sizeof(float));
-
-	if (!data) buffer_size=0;
+	data = (float *) malloc(size*sizeof(float));
+	return !!data;
 }
 
 string captureStateToString(CaptureState s){
