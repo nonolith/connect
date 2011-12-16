@@ -176,7 +176,7 @@ void CEE_device::fill_out_packet(unsigned char* buf){
 	boost::mutex::scoped_lock lock(outputMutex);
 	if (channel_a.source && channel_b.source){
 		unsigned mode_a = channel_a.source->mode;
-		unsigned mode_b = channel_a.source->mode;
+		unsigned mode_b = channel_b.source->mode;
 
 		OUT_packet *pkt = (OUT_packet *)buf;
 
