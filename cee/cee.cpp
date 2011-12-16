@@ -177,7 +177,7 @@ void CEE_device::fill_out_packet(unsigned char* buf){
 
 		OUT_packet *pkt = (OUT_packet *)buf;
 
-		pkt->flags = (mode_a<<4) | mode_b;
+		pkt->flags = (mode_b<<4) | mode_a;
 
 		for (int i=0; i<10; i++){
 			pkt->data[i].pack(
