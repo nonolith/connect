@@ -79,13 +79,17 @@ CEE_device::~CEE_device(){
 }
 
 void CEE_device::on_prepare_capture(){
+	boost::mutex::scoped_lock lock(outputMutex);
 	captureSamples = ceil(captureLength/CEE_sample_time);
 	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
-	incount = outcount = 0;
 	channel_a_v.allocate(captureSamples);
 	channel_a_i.allocate(captureSamples);
 	channel_b_v.allocate(captureSamples);
 	channel_b_i.allocate(captureSamples);
+	
+	incount = outcount = 0;
+	if (channel_a.source) channel_a.source->startSample=0;
+	if (channel_b.source) channel_b.source->startSample=0;
 }
 
 void CEE_device::on_start_capture(){
@@ -150,6 +154,7 @@ void CEE_device::setOutput(Channel* channel, OutputSource* source){
 		delete channel->source;
 	}
 	channel->source=source;
+	channel->source->startSample = capture_o;
 }
 
 inline float constrain(float val, float lo, float hi){
@@ -181,9 +186,10 @@ void CEE_device::fill_out_packet(unsigned char* buf){
 
 		for (int i=0; i<10; i++){
 			pkt->data[i].pack(
-				encode_out((CEE_chanmode)mode_a, channel_a.source->nextValue(outcount/CEE_sample_time)),
-				encode_out((CEE_chanmode)mode_b, channel_b.source->nextValue(outcount/CEE_sample_time))
+				encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, CEE_sample_time)),
+				encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, CEE_sample_time))
 			);
+			capture_o++;
 		}	
 	}else{
 		memset(buf, 0, 32);

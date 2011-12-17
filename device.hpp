@@ -65,7 +65,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 			captureSamples(0),
 			captureContinuous(false),
 			sampleTime(_sampleTime),
-			capture_i(0) {}
+			capture_i(0),
+			capture_o(0) {}
 		virtual ~Device(){};
 		
 		/// Allocate resources to capture the specified number of seconds of data
@@ -106,9 +107,12 @@ class Device: public boost::enable_shared_from_this<Device> {
 		/// Time of a sample
 		float sampleTime;
 		
-		/// monotonically increasing sample counter
+		/// IN sample counter
 	    /// index of next-written element is capture_i%captureSamples
 		unsigned capture_i; //TODO: what if it wraps (11 hours)
+		
+		/// OUT sample counter
+		unsigned capture_o;
 
 		std::vector<Channel*> channels;
 		
@@ -178,9 +182,13 @@ struct Channel{
 
 struct OutputSource{
 	virtual string displayName() = 0;
-	virtual float nextValue(float time) = 0;
+	
+	virtual float getValue(unsigned sample, float sampleTime) = 0;
 
 	const unsigned mode;
+	
+	/// The output sample number at which this source was added
+	unsigned startSample;
 
 	protected:
 		OutputSource(unsigned m): mode(m){};
@@ -189,7 +197,7 @@ struct OutputSource{
 struct ConstantOutputSource: public OutputSource{
 	ConstantOutputSource(unsigned m, float val): OutputSource(m), value(val){}
 	virtual string displayName(){return "Constant";};
-	virtual float nextValue(float time){
+	virtual float getValue(unsigned sample, float sampleTime){
 		return value;
 	}
 	float value;

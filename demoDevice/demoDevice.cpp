@@ -26,6 +26,7 @@ void DemoDevice::on_prepare_capture(){
 	std::cout << "Starting for " << captureSamples << " samples "<< captureContinuous <<std::endl;
 	channel_v.allocate(captureSamples);
 	channel_i.allocate(captureSamples);
+	if (channel.source) channel.source->startSample=0;
 }
 
 void DemoDevice::on_start_capture(){
@@ -53,7 +54,8 @@ void DemoDevice::sample(const boost::system::error_code& e){
 		float val = 0;
 		if (channel.source){
 			mode = channel.source->mode;
-			val = channel.source->nextValue(capture_i/sampleTime);
+			val = channel.source->getValue(capture_i, sampleTime);
+			capture_o++;
 		}
 	
 		float a=0, b=0;

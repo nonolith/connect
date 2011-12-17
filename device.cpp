@@ -14,6 +14,7 @@ void Device::prepare_capture(float seconds, bool continuous){
 	captureContinuous = continuous;
 	captureSamples = 0;
 	capture_i = 0;
+	capture_o = 0;
 	on_prepare_capture();
 	captureStateChanged.notify();
 }
@@ -50,6 +51,7 @@ void Device::setOutput(Channel* channel, OutputSource* source){
 		delete channel->source;
 	}
 	channel->source=source;
+	channel->source->startSample = capture_o;
 }
 
 device_ptr getDeviceById(string id){
