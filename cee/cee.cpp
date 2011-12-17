@@ -149,12 +149,15 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 }
 
 void CEE_device::setOutput(Channel* channel, OutputSource* source){
-	boost::mutex::scoped_lock lock(outputMutex);
-	if (channel->source){
-		delete channel->source;
+	{
+		boost::mutex::scoped_lock lock(outputMutex);
+		if (channel->source){
+			delete channel->source;
+		}
+		channel->source=source;
+		channel->source->startSample = capture_o;
 	}
-	channel->source=source;
-	channel->source->startSample = capture_o;
+	notifyOutputChanged(channel, source);
 }
 
 inline float constrain(float val, float lo, float hi){

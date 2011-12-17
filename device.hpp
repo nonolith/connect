@@ -5,7 +5,6 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/foreach.hpp>
 #include <set>
 
 struct Channel;
@@ -170,6 +169,7 @@ class Device: public boost::enable_shared_from_this<Device> {
 		virtual void on_pause_capture() = 0;
 		
 		void notifyCaptureState();
+		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
 		void done_capture();
 };
 
@@ -190,6 +190,7 @@ struct Channel{
 
 struct OutputSource{
 	virtual string displayName() = 0;
+	virtual float valueTarget(){ return NAN; }
 	
 	virtual float getValue(unsigned sample, float sampleTime) = 0;
 
@@ -204,10 +205,9 @@ struct OutputSource{
 
 struct ConstantOutputSource: public OutputSource{
 	ConstantOutputSource(unsigned m, float val): OutputSource(m), value(val){}
-	virtual string displayName(){return "Constant";};
-	virtual float getValue(unsigned sample, float sampleTime){
-		return value;
-	}
+	virtual string displayName(){return "Constant";}
+	virtual float getValue(unsigned sample, float sampleTime){ return value; }
+	virtual float valueTarget(){ return value; }
 	float value;
 };
 
@@ -217,6 +217,7 @@ struct DeviceEventListener{
 	virtual void on_capture_state_changed(){};
 	virtual void on_device_info_changed(){};
 	virtual void on_data_received() {};
+	virtual void on_output_changed(Channel *channel, OutputSource *outputSource) {};
 	
 	inline void _setDevice(device_ptr &dev){
 		device = dev;

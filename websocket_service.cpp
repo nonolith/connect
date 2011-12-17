@@ -261,6 +261,17 @@ class ClientConn: public DeviceEventListener{
 			sendJSON(message);
 		}
 	}
+	
+	void on_output_changed(Channel *channel, OutputSource *source){
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "outputChanged"));
+		n.push_back(JSONNode("channel", channel->id));
+		n.push_back(JSONNode("mode", source->mode));
+		n.push_back(JSONNode("description", source->displayName()));
+		n.push_back(JSONNode("startSample", source->startSample));
+		n.push_back(JSONNode("valueTarget", source->valueTarget()));
+		sendJSON(n);
+	}
 };
 
 std::map<websocketpp::session_ptr, ClientConn*> connections;

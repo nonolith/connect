@@ -67,6 +67,14 @@ void Device::setOutput(Channel* channel, OutputSource* source){
 	}
 	channel->source=source;
 	channel->source->startSample = capture_o;
+	
+	notifyOutputChanged(channel, source);
+}
+
+void Device::notifyOutputChanged(Channel *channel, OutputSource *source){
+	BOOST_FOREACH(DeviceEventListener *l, listeners){
+		l->on_output_changed(channel, source);
+	}
 }
 
 device_ptr getDeviceById(string id){
