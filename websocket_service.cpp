@@ -65,7 +65,7 @@ struct Listener{
 
 typedef std::pair<const string, Listener*> listener_pair;
 
-class ClientConn{
+class ClientConn: public DeviceEventListener{
 	public:
 	ClientConn(websocketpp::session_ptr c): client(c){
 		l_device_list_changed.subscribe(
@@ -82,19 +82,8 @@ class ClientConn{
 
 	void selectDevice(device_ptr dev){
 		clearAllListeners();
-
-		device = dev;
-
-		l_capture_state_changed.subscribe(
-			device->captureStateChanged,
-			boost::bind(&ClientConn::on_capture_state_changed, this)
-		);
-		l_data_received.subscribe(
-			device->dataReceived,
-			boost::bind(&ClientConn::on_data_received, this)
-		);
-		on_capture_state_changed();
-		on_device_info_changed();
+		
+		_setDevice(dev);
 	}
 
 	void listen(const string& id,
@@ -133,8 +122,6 @@ class ClientConn{
 	EventListener l_capture_state_changed;
 	EventListener l_data_received;
 	std::map<string, Listener*> listeners;
-
-	device_ptr device;
 
 	void on_message(const std::string &msg){
 		if (debugFlag){

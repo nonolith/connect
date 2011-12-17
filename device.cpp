@@ -16,7 +16,7 @@ void Device::prepare_capture(float seconds, bool continuous){
 	capture_i = 0;
 	capture_o = 0;
 	on_prepare_capture();
-	captureStateChanged.notify();
+	notifyCaptureState();
 }
 
 void Device::start_capture(){
@@ -24,7 +24,7 @@ void Device::start_capture(){
 		captureState = CAPTURE_ACTIVE;
 		std::cerr << "start capture" <<std::endl;
 		on_start_capture();
-		captureStateChanged.notify();
+		notifyCaptureState();
 	}
 }
 
@@ -33,7 +33,7 @@ void Device::pause_capture(){
 		captureState = CAPTURE_PAUSED;
 		std::cerr << "pause capture" <<std::endl;
 		on_pause_capture();
-		captureStateChanged.notify();
+		notifyCaptureState();
 	}
 }
 
@@ -42,7 +42,22 @@ void Device::done_capture(){
 		captureState = CAPTURE_DONE;
 		std::cerr << "done capture" <<std::endl;
 		on_pause_capture();
-		captureStateChanged.notify();
+		notifyCaptureState();
+	}
+}
+
+void Device::notifyCaptureState(){
+	BOOST_FOREACH(DeviceEventListener *l, listeners){
+		l->on_capture_state_changed();
+	}
+}
+
+void Device::packetDone(){
+	BOOST_FOREACH(DeviceEventListener *l, listeners){
+		l->on_data_received();
+	}
+	if (!captureContinuous && capture_i >= captureSamples){
+		done_capture();
 	}
 }
 

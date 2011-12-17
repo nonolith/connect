@@ -5,10 +5,13 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/foreach.hpp>
+#include <set>
 
 struct Channel;
 struct Stream;
 struct OutputSource;
+struct DeviceEventListener;
 
 enum CaptureState{
 	CAPTURE_INACTIVE,
@@ -69,6 +72,17 @@ class Device: public boost::enable_shared_from_this<Device> {
 			capture_o(0) {}
 		virtual ~Device(){};
 		
+		std::set<DeviceEventListener*> listeners;
+		
+		void addEventListener(DeviceEventListener *l){
+			listeners.insert(l);
+		}
+		
+		void removeEventListener(DeviceEventListener *l){
+			listeners.erase(l);
+		}
+		
+		
 		/// Allocate resources to capture the specified number of seconds of data
 		/// If continuoys, capture indefinitely, keeping seconds seconds of history.
 		/// Puts the device into captureState CAPTURE_READY
@@ -90,9 +104,6 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 		Channel* channelById(const std::string&);
 
-		Event dataReceived;
-
-		Event captureStateChanged;
 		CaptureState captureState;
 		
 		float captureLength;
@@ -151,17 +162,14 @@ class Device: public boost::enable_shared_from_this<Device> {
 			capture_i++;
 		}
 		
-		inline void packetDone(){
-			dataReceived.notify();
-			if (!captureContinuous && capture_i >= captureSamples){
-				done_capture();
-			}
-		}
+		void packetDone();
 
 	protected:
 		virtual void on_prepare_capture() = 0;
 		virtual void on_start_capture() = 0;
 		virtual void on_pause_capture() = 0;
+		
+		void notifyCaptureState();
 		void done_capture();
 };
 
@@ -201,6 +209,25 @@ struct ConstantOutputSource: public OutputSource{
 		return value;
 	}
 	float value;
+};
+
+struct DeviceEventListener{
+	device_ptr device;
+	
+	virtual void on_capture_state_changed(){};
+	virtual void on_device_info_changed(){};
+	virtual void on_data_received() {};
+	
+	inline void _setDevice(device_ptr &dev){
+		device = dev;
+		device->addEventListener(this);
+		on_device_info_changed();
+		on_capture_state_changed();
+	}
+	
+	virtual ~DeviceEventListener(){
+		if (device) device->removeEventListener(this);
+	}
 };
 
 device_ptr getDeviceById(string id);
