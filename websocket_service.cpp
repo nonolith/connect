@@ -134,7 +134,15 @@ class ClientConn: public DeviceEventListener{
 			if (cmd == "selectDevice"){
 				string id = n.at("id").as_string();
 				selectDevice(getDeviceById(id));
-			}else if (cmd == "listen"){
+				return;
+			}
+			
+			if (!device){
+				std::cerr<<"selectDevice before using other WS calls"<<std::endl;
+				return;
+			}
+				
+			if (cmd == "listen"){
 				string id = n.at("id").as_string();
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
@@ -143,9 +151,11 @@ class ClientConn: public DeviceEventListener{
 				
 				Stream* stream = device->findStream(channel, streamName); 
 				listen(id, stream, decimateFactor, startSample);
+				
 			}else if (cmd == "cancelListen"){
 				string id = n.at("id").as_string();
 				cancelListen(id);
+				
 			}else if (cmd == "prepareCapture"){
 				float length = n.at("length").as_float();
 				bool continuous = false;
@@ -153,10 +163,13 @@ class ClientConn: public DeviceEventListener{
 					continuous = n.at("continuous").as_bool();
 				}
 				if (device) device->prepare_capture(length, continuous);
+				
 			}else if (cmd == "startCapture"){
-				if (device) device->start_capture();
+				device->start_capture();
+				
 			}else if (cmd == "pauseCapture"){
-				if (device) device->pause_capture();
+				device->pause_capture();
+				
 			}else if (cmd == "set"){
 				string cId = n.at("channel").as_string();
 				Channel *channel = device->channelById(cId);
@@ -167,6 +180,7 @@ class ClientConn: public DeviceEventListener{
 					unsigned mode = n.at("mode").as_int(); //TODO: validate
 					device->setOutput(channel, new ConstantOutputSource(mode, val));
 				}
+				
 			}else{
 				std::cerr << "Unknown command " << cmd << std::endl;
 			}
