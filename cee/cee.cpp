@@ -71,6 +71,8 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 
 	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char *) serial, 32);
 	cerr << "Found a CEE: "<< serial << endl;
+	
+	prepare_capture(10, true);
 }
 
 CEE_device::~CEE_device(){
@@ -79,14 +81,16 @@ CEE_device::~CEE_device(){
 }
 
 void CEE_device::on_prepare_capture(){
-	boost::mutex::scoped_lock lock(outputMutex);
 	captureSamples = ceil(captureLength/CEE_sample_time);
 	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
 	channel_a_v.allocate(captureSamples);
 	channel_a_i.allocate(captureSamples);
 	channel_b_v.allocate(captureSamples);
 	channel_b_i.allocate(captureSamples);
-	
+}
+
+void CEE_device::on_reset_capture(){
+	boost::mutex::scoped_lock lock(outputMutex);
 	incount = outcount = 0;
 	if (channel_a.source) channel_a.source->startSample=0;
 	if (channel_b.source) channel_b.source->startSample=0;

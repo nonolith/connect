@@ -15,6 +15,8 @@ DemoDevice::DemoDevice():
 	channels.push_back(&channel);
 	channel.streams.push_back(&channel_v);
 	channel.streams.push_back(&channel_i);
+	
+	prepare_capture(10, true);
 }
 
 DemoDevice::~DemoDevice(){
@@ -26,6 +28,9 @@ void DemoDevice::on_prepare_capture(){
 	std::cout << "Starting for " << captureSamples << " samples "<< captureContinuous <<std::endl;
 	channel_v.allocate(captureSamples);
 	channel_i.allocate(captureSamples);
+}
+
+void DemoDevice::on_reset_capture(){
 	if (channel.source) channel.source->startSample=0;
 }
 
@@ -47,7 +52,7 @@ void DemoDevice::setTimer(){
 
 void DemoDevice::sample(const boost::system::error_code& e){
 	if (e) return;
-	setTimer();
+	if (captureState) setTimer();
 
 	for (int i=0; i<10; i++){	
 		unsigned mode = 0;

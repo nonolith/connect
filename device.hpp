@@ -12,16 +12,6 @@ struct Stream;
 struct OutputSource;
 struct DeviceEventListener;
 
-enum CaptureState{
-	CAPTURE_INACTIVE,
-	CAPTURE_READY,
-	CAPTURE_ACTIVE,
-	CAPTURE_PAUSED,
-	CAPTURE_DONE,
-};
-
-string captureStateToString(CaptureState s);
-
 struct Stream{
 	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0):
 		id(_id),
@@ -62,7 +52,8 @@ struct Stream{
 class Device: public boost::enable_shared_from_this<Device> {
 	public: 
 		Device(float _sampleTime):
-			captureState(CAPTURE_INACTIVE),
+			captureState(false),
+			captureDone(false),
 			captureLength(0),
 			captureSamples(0),
 			captureContinuous(false),
@@ -83,11 +74,13 @@ class Device: public boost::enable_shared_from_this<Device> {
 		
 		
 		/// Allocate resources to capture the specified number of seconds of data
-		/// If continuoys, capture indefinitely, keeping seconds seconds of history.
-		/// Puts the device into captureState CAPTURE_READY
+		/// If continuous, capture indefinitely, keeping seconds seconds of history.
 		void prepare_capture(float seconds, bool continuous);
+		
+		/// Set time = 0
+		void reset_capture();
 
-		/// Start a prepared or paused capture
+		/// Start capturing
 		void start_capture();
 
 		/// Pause capturing
@@ -103,7 +96,11 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 		Channel* channelById(const std::string&);
 
-		CaptureState captureState;
+		/// True if capturing
+		bool captureState;
+		
+		/// True if the capture is completed
+		bool captureDone;
 		
 		float captureLength;
 		
@@ -165,10 +162,13 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 	protected:
 		virtual void on_prepare_capture() = 0;
+		virtual void on_reset_capture() = 0;
 		virtual void on_start_capture() = 0;
 		virtual void on_pause_capture() = 0;
 		
 		void notifyCaptureState();
+		void notifyCaptureConfig();
+		void notifyCaptureReset();
 		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
 		void done_capture();
 };
@@ -214,6 +214,8 @@ struct ConstantOutputSource: public OutputSource{
 struct DeviceEventListener{
 	device_ptr device;
 	
+	virtual void on_capture_config(){};
+	virtual void on_capture_reset(){};
 	virtual void on_capture_state_changed(){};
 	virtual void on_device_info_changed(){};
 	virtual void on_data_received() {};

@@ -4,24 +4,28 @@
 
 
 void Device::prepare_capture(float seconds, bool continuous){
-	if (captureState == CAPTURE_ACTIVE){
-		pause_capture();
-	}
-
-	std::cerr << "prepare capture" <<std::endl;
-	captureState = CAPTURE_READY;
+	pause_capture();
 	captureLength = seconds;
 	captureContinuous = continuous;
 	captureSamples = 0;
+	on_prepare_capture();
+	notifyCaptureConfig();
+	
+	reset_capture();
+}
+
+void Device::reset_capture(){
+	captureDone = false;
 	capture_i = 0;
 	capture_o = 0;
-	on_prepare_capture();
-	notifyCaptureState();
+	on_reset_capture();
+	notifyCaptureReset();
 }
 
 void Device::start_capture(){
-	if (captureState == CAPTURE_PAUSED || captureState == CAPTURE_READY){
-		captureState = CAPTURE_ACTIVE;
+	if (!captureState){
+		if (captureDone) reset_capture();
+		captureState = true;
 		std::cerr << "start capture" <<std::endl;
 		on_start_capture();
 		notifyCaptureState();
@@ -29,8 +33,8 @@ void Device::start_capture(){
 }
 
 void Device::pause_capture(){
-	if (captureState == CAPTURE_ACTIVE){
-		captureState = CAPTURE_PAUSED;
+	if (captureState){
+		captureState = false;
 		std::cerr << "pause capture" <<std::endl;
 		on_pause_capture();
 		notifyCaptureState();
@@ -38,17 +42,30 @@ void Device::pause_capture(){
 }
 
 void Device::done_capture(){
-	if (captureState == CAPTURE_ACTIVE){
-		captureState = CAPTURE_DONE;
-		std::cerr << "done capture" <<std::endl;
+	captureDone = true;
+	std::cerr << "done capture" <<std::endl;
+	if (captureState){
+		captureState = false;
 		on_pause_capture();
-		notifyCaptureState();
 	}
+	notifyCaptureState();
 }
 
 void Device::notifyCaptureState(){
 	BOOST_FOREACH(DeviceEventListener *l, listeners){
 		l->on_capture_state_changed();
+	}
+}
+
+void Device::notifyCaptureReset(){
+	BOOST_FOREACH(DeviceEventListener *l, listeners){
+		l->on_capture_reset();
+	}
+}
+
+void Device::notifyCaptureConfig(){
+	BOOST_FOREACH(DeviceEventListener *l, listeners){
+		l->on_capture_config();
 	}
 }
 
@@ -127,21 +144,4 @@ bool Stream::allocate(unsigned size){
 	}
 	data = (float *) malloc(size*sizeof(float));
 	return !!data;
-}
-
-string captureStateToString(CaptureState s){
-	switch (s){
-		case CAPTURE_INACTIVE:
-			return "inactive";
-		case CAPTURE_READY:
-			return "ready";
-		case CAPTURE_ACTIVE:
-			return "active";
-		case CAPTURE_PAUSED:
-			return "paused";
-		case CAPTURE_DONE:
-			return "done";
-		default:
-			return "";
-	}
 }

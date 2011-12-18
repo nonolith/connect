@@ -212,17 +212,27 @@ class ClientConn: public DeviceEventListener{
 
 		sendJSON(n);
 	}
-
-	void on_capture_state_changed(){
-		if (device->captureState == CAPTURE_READY){
-			resetAllListeners();
-		}
-
+	
+	void on_capture_config(){
 		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "captureState"));
-		n.push_back(JSONNode("state", captureStateToString(device->captureState)));
+		n.push_back(JSONNode("_action", "captureConfigure"));
 		n.push_back(JSONNode("length", device->captureLength));
 		n.push_back(JSONNode("continuous", device->captureContinuous));
+		sendJSON(n);
+	}
+	
+	void on_capture_reset(){
+		resetAllListeners();
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "captureReset"));
+		sendJSON(n);
+	}
+
+	void on_capture_state_changed(){
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "captureState"));
+		n.push_back(JSONNode("state", device->captureState));
+		n.push_back(JSONNode("done", device->captureDone));
 		sendJSON(n);
 	}
 

@@ -87,6 +87,7 @@ class CEE_device: public Device{
 
 	protected:
 	virtual void on_prepare_capture();
+	virtual void on_reset_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
 };
