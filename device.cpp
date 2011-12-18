@@ -127,7 +127,11 @@ Stream* findStream(const string& deviceId, const string& channelId, const string
 	if (!d){
 		throw ErrorStringException("Device not found");
 	}
-	Channel* c = d->channelById(channelId);
+	return d->findStream(channelId, streamId);
+}
+
+Stream* Device::findStream(const string& channelId, const string& streamId){
+	Channel* c = channelById(channelId);
 	if (!c){
 		throw ErrorStringException("Channel not found");
 	}

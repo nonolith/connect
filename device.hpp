@@ -159,6 +159,9 @@ class Device: public boost::enable_shared_from_this<Device> {
 		}
 		
 		void packetDone();
+		
+		/// Find a stream by its channel id and stream id
+		Stream* findStream(const string& channelId, const string& streamId);
 
 	protected:
 		virtual void on_prepare_capture() = 0;

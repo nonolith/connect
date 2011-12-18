@@ -141,8 +141,7 @@ class ClientConn: public DeviceEventListener{
 				int decimateFactor = n.at("decimateFactor").as_int();
 				int startSample = n.at("start").as_int();
 				
-				//TODO: findStream of a particular device
-				Stream* stream = findStream(device->getId(), channel, streamName); 
+				Stream* stream = device->findStream(channel, streamName); 
 				listen(id, stream, decimateFactor, startSample);
 			}else if (cmd == "cancelListen"){
 				string id = n.at("id").as_string();
