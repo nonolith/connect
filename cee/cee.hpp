@@ -79,6 +79,7 @@ class CEE_device: public Device{
 	Stream channel_b_i;
 
 	boost::mutex outputMutex;
+	boost::mutex transfersMutex;
 	void fill_out_packet(unsigned char*);
 	void handle_in_packet(unsigned char*);
 

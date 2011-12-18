@@ -97,6 +97,7 @@ void CEE_device::on_reset_capture(){
 }
 
 void CEE_device::on_start_capture(){
+	boost::mutex::scoped_lock lock(transfersMutex);
 	for (int i=0; i<N_TRANSFERS; i++){
 		in_transfers[i] = libusb_alloc_transfer(0);
 		unsigned char* buf = (unsigned char*) malloc(sizeof(IN_packet));
@@ -115,9 +116,10 @@ void CEE_device::on_start_capture(){
 }
 
 void CEE_device::on_pause_capture(){
-	std::cerr << "on_pause_capture" <<std::endl;
+	boost::mutex::scoped_lock lock(transfersMutex);
 
-	libusb_lock_events(NULL);
+	std::cerr << "on_pause_capture" <<std::endl;
+	
 	for (int i=0; i<N_TRANSFERS; i++){
 		if (in_transfers[i]){
 			// zero user_data tells the callback to free on complete. this obj may be dead by then
@@ -135,7 +137,6 @@ void CEE_device::on_pause_capture(){
 			out_transfers[i] = 0;
 		}
 	}
-	libusb_unlock_events(NULL);
 }
 
 void CEE_device::handle_in_packet(unsigned char *buffer){
@@ -205,6 +206,7 @@ void CEE_device::fill_out_packet(unsigned char* buf){
 }
 
 void destroy_transfer(CEE_device *dev, libusb_transfer** list, libusb_transfer* t){
+	boost::mutex::scoped_lock lock(dev->transfersMutex);
 	t->user_data = 0;
 	for (int i=0; i<N_TRANSFERS; i++){
 		if (list[i] == t){
@@ -215,6 +217,8 @@ void destroy_transfer(CEE_device *dev, libusb_transfer** list, libusb_transfer* 
 	libusb_free_transfer(t);
 }
 
+
+#define DISABLE_SELF_STOP 1
 
 /// Runs in USB thread
 void in_transfer_callback(libusb_transfer *t){
@@ -231,7 +235,7 @@ void in_transfer_callback(libusb_transfer *t){
 		io.post(boost::bind(&CEE_device::handle_in_packet, dev, t->buffer));
 		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
 
-		if (dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->captureSamples){
+		if (DISABLE_SELF_STOP || dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->captureSamples){
 			dev->incount++;
 			libusb_submit_transfer(t);
 		}else{
@@ -258,7 +262,7 @@ void out_transfer_callback(libusb_transfer *t){
 	CEE_device *dev = (CEE_device *) t->user_data;
 
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
-		if (dev->captureContinuous || dev->outcount*OUT_SAMPLES_PER_PACKET < dev->captureSamples){
+		if (DISABLE_SELF_STOP || dev->captureContinuous || dev->outcount*OUT_SAMPLES_PER_PACKET < dev->captureSamples){
 			dev->fill_out_packet(t->buffer);
 			dev->outcount++;
 			libusb_submit_transfer(t);
