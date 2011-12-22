@@ -8,12 +8,13 @@
 #include "json.hpp"
 
 struct Listener{
-	Listener(const string& _id, device_ptr d, Stream *s, unsigned df, int startSample):
+	Listener(const string& _id, device_ptr d, Stream *s, unsigned df, int startSample, int _count=-1):
 		id(_id),
 		device(d),
 		stream(s),
 		decimateFactor(df),
-		outIndex(0)
+		outIndex(0),
+		count(_count)
 	{
 		unsigned m = d->buffer_min() + decimateFactor;
 		if (startSample < 0){
@@ -41,9 +42,14 @@ struct Listener{
 	unsigned index;
 
 	unsigned outIndex;
+	int count;
+
+	inline bool isComplete(){
+		return count>0 && (int) outIndex >= count;
+	}
 
 	inline bool isDataAvailable(){
-		return index < device->capture_i;
+		return index < device->capture_i && !isComplete();
 	}
 
 	inline float nextSample(){
@@ -88,9 +94,9 @@ class ClientConn: public DeviceEventListener{
 
 	void listen(const string& id,
 	           Stream *stream,
-	           unsigned decimateFactor, int start=-1){
+	           unsigned decimateFactor, int start=-1, int count=-1){
 		cancelListen(id);
-		Listener *w = new Listener(id, device, stream, decimateFactor, start);
+		Listener *w = new Listener(id, device, stream, decimateFactor, start, count);
 		listeners.insert(listener_pair(id, w));
 		on_data_received();
 	}
@@ -147,10 +153,15 @@ class ClientConn: public DeviceEventListener{
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
 				int decimateFactor = n.at("decimateFactor").as_int();
-				int startSample = n.at("start").as_int();
+				
+				int startSample = -1;
+				if (n.find("start") != n.end()) startSample = n.at("start").as_int();
+				
+				int count = -1;
+				if (n.find("count") != n.end()) count = n.at("count").as_int();
 				
 				Stream* stream = device->findStream(channel, streamName); 
-				listen(id, stream, decimateFactor, startSample);
+				listen(id, stream, decimateFactor, startSample, count);
 				
 			}else if (cmd == "cancelListen"){
 				string id = n.at("id").as_string();
@@ -254,8 +265,11 @@ class ClientConn: public DeviceEventListener{
 		JSONNode listenerJSON(JSON_ARRAY);
 		bool dataToSend = false;
 
-		BOOST_FOREACH(listener_pair &p, listeners){
-			Listener *w = p.second;
+		std::map<string, Listener*>::iterator it;
+		for (it=listeners.begin(); it!=listeners.end();){
+			// Increment before (potentially) deleting the watch, as that invalidates the iterator
+			std::map<string, Listener*>::iterator currentIt = it++;
+			Listener* w = currentIt->second;
 
 			if (!w->isDataAvailable()){
 				continue;
@@ -273,6 +287,11 @@ class ClientConn: public DeviceEventListener{
 				a.push_back(JSONNode("", w->nextSample()));
 			}
 			n.push_back(a);
+			
+			if (w->isComplete()){
+				n.push_back(JSONNode("done", true));
+				listeners.erase(currentIt);
+			}
 
 			listenerJSON.push_back(n);
 		}
