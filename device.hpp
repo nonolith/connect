@@ -75,7 +75,7 @@ class Device: public boost::enable_shared_from_this<Device> {
 		
 		/// Allocate resources to capture the specified number of seconds of data
 		/// If continuous, capture indefinitely, keeping seconds seconds of history.
-		void prepare_capture(float seconds, bool continuous);
+		void configure(float seconds, bool continuous);
 		
 		/// Set time = 0
 		void reset_capture();
@@ -171,7 +171,7 @@ class Device: public boost::enable_shared_from_this<Device> {
 		                            uint16_t wLength){return -128;};
 
 	protected:
-		virtual void on_prepare_capture() = 0;
+		virtual void on_configure() = 0;
 		virtual void on_reset_capture() = 0;
 		virtual void on_start_capture() = 0;
 		virtual void on_pause_capture() = 0;

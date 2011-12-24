@@ -16,14 +16,14 @@ DemoDevice::DemoDevice():
 	channel.streams.push_back(&channel_v);
 	channel.streams.push_back(&channel_i);
 	
-	prepare_capture(10, true);
+	configure(10, true);
 }
 
 DemoDevice::~DemoDevice(){
 	pause_capture();
 }
 
-void DemoDevice::on_prepare_capture(){
+void DemoDevice::on_configure(){
 	captureSamples = ceil(captureLength/sampleTime);
 	std::cout << "Starting for " << captureSamples << " samples "<< captureContinuous <<std::endl;
 	channel_v.allocate(captureSamples);

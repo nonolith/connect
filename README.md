@@ -35,11 +35,11 @@ For client->server messages, the `_cmd` field is one of the following:
 
 ### selectDevice
 
+### configure
+
 ### listen
 
 ### cancelListen
-
-### prepareCapture
 
 ### startCapture
 
@@ -59,7 +59,7 @@ For server -> client messages, the `_action` field is one of the following:
 
 ### captureState
 
-### captureConfig
+### configuration
 
 ### captureReset
 

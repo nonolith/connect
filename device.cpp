@@ -3,12 +3,12 @@
 #include <iostream>
 
 
-void Device::prepare_capture(float seconds, bool continuous){
+void Device::configure(float seconds, bool continuous){
 	pause_capture();
 	captureLength = seconds;
 	captureContinuous = continuous;
 	captureSamples = 0;
-	on_prepare_capture();
+	on_configure();
 	notifyCaptureConfig();
 	
 	reset_capture();

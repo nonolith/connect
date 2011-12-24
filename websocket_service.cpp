@@ -167,13 +167,13 @@ class ClientConn: public DeviceEventListener{
 				string id = n.at("id").as_string();
 				cancelListen(id);
 				
-			}else if (cmd == "prepareCapture"){
+			}else if (cmd == "configure"){
 				float length = n.at("length").as_float();
 				bool continuous = false;
 				if (n.find("continuous") != n.end()){
 					continuous = n.at("continuous").as_bool();
 				}
-				if (device) device->prepare_capture(length, continuous);
+				device->configure(length, continuous);
 				
 			}else if (cmd == "startCapture"){
 				device->start_capture();
@@ -277,7 +277,7 @@ class ClientConn: public DeviceEventListener{
 	
 	void on_capture_config(){
 		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "captureConfigure"));
+		n.push_back(JSONNode("_action", "configuration"));
 		n.push_back(JSONNode("length", device->captureLength));
 		n.push_back(JSONNode("continuous", device->captureContinuous));
 		sendJSON(n);

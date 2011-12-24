@@ -17,7 +17,7 @@ class DemoDevice: public Device{
 	Stream channel_i;
 
 private:
-	virtual void on_prepare_capture();
+	virtual void on_configure();
 	virtual void on_reset_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
