@@ -162,6 +162,13 @@ class Device: public boost::enable_shared_from_this<Device> {
 		
 		/// Find a stream by its channel id and stream id
 		Stream* findStream(const string& channelId, const string& streamId);
+		
+		virtual int controlTransfer(uint8_t bmRequestType,
+		                            uint8_t bRequest,
+		                            uint16_t wValue,
+		                            uint16_t wIndex,
+		                            uint8_t* data,
+		                            uint16_t wLength){return -128;};
 
 	protected:
 		virtual void on_prepare_capture() = 0;

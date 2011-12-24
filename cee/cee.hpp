@@ -85,6 +85,13 @@ class CEE_device: public Device{
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;
+	
+	virtual int controlTransfer(uint8_t bmRequestType,
+                            uint8_t bRequest,
+                            uint16_t wValue,
+                            uint16_t wIndex,
+                            uint8_t* data,
+                            uint16_t wLength);
 
 	protected:
 	virtual void on_prepare_capture();

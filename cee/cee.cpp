@@ -80,6 +80,15 @@ CEE_device::~CEE_device(){
 	libusb_close(handle);
 }
 
+int CEE_device::controlTransfer(uint8_t bmRequestType,
+                                uint8_t bRequest,
+                                uint16_t wValue,
+                                uint16_t wIndex,
+                                uint8_t* data,
+                                uint16_t wLength){
+	return libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, data, wLength, 100);
+};
+
 void CEE_device::on_prepare_capture(){
 	captureSamples = ceil(captureLength/CEE_sample_time);
 	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
