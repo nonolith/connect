@@ -168,12 +168,20 @@ class ClientConn: public DeviceEventListener{
 				cancelListen(id);
 				
 			}else if (cmd == "configure"){
-				float length = n.at("length").as_float();
+				int mode = n.at("mode").as_int();
+				unsigned samples = n.at("samples").as_int();
+				float sampleTime = n.at("sampleTime").as_float();
+				
 				bool continuous = false;
 				if (n.find("continuous") != n.end()){
 					continuous = n.at("continuous").as_bool();
 				}
-				device->configure(length, continuous);
+				
+				bool raw = false;
+				if (n.find("raw") != n.end()){
+					raw = n.at("raw").as_bool();
+				}
+				device->configure(mode, sampleTime, samples, continuous, raw);
 				
 			}else if (cmd == "startCapture"){
 				device->start_capture();

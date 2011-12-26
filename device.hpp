@@ -73,9 +73,12 @@ class Device: public boost::enable_shared_from_this<Device> {
 		}
 		
 		
-		/// Allocate resources to capture the specified number of seconds of data
-		/// If continuous, capture indefinitely, keeping seconds seconds of history.
-		void configure(float seconds, bool continuous);
+		/// Configure the device for the specified *mode* and allocate resources
+		/// to capture the specified number of samples and sample rate
+		/// If *continuous*, capture indefinitely, keeping the specified number
+		/// of samples of history. If *raw*, units will be device LSB rather
+		/// than converting to standard units.
+		virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw)=0;
 		
 		/// Set time = 0
 		void reset_capture();
@@ -96,6 +99,11 @@ class Device: public boost::enable_shared_from_this<Device> {
 
 		Channel* channelById(const std::string&);
 
+		unsigned devMode;
+		
+		bool rawMode;
+		
+		
 		/// True if capturing
 		bool captureState;
 		
@@ -171,7 +179,6 @@ class Device: public boost::enable_shared_from_this<Device> {
 		                            uint16_t wLength){return -128;};
 
 	protected:
-		virtual void on_configure() = 0;
 		virtual void on_reset_capture() = 0;
 		virtual void on_start_capture() = 0;
 		virtual void on_pause_capture() = 0;

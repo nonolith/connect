@@ -72,7 +72,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char *) serial, 32);
 	cerr << "Found a CEE: "<< serial << endl;
 	
-	configure(10, true);
+	configure(0, CEE_sample_time, 10.0/CEE_sample_time, true, false);
 }
 
 CEE_device::~CEE_device(){
@@ -89,13 +89,24 @@ int CEE_device::controlTransfer(uint8_t bmRequestType,
 	return libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, data, wLength, 100);
 };
 
-void CEE_device::on_configure(){
-	captureSamples = ceil(captureLength/CEE_sample_time);
+void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw){
+	pause_capture();
+	captureSamples = samples;
+	captureContinuous = continuous;
+	devMode = mode;
+	rawMode = raw;
+	captureLength = captureSamples * CEE_sample_time; //TODO: note sampleTime is currently ignored.
+	
+	//TODO: handle devMode, rawMode
+	
 	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
 	channel_a_v.allocate(captureSamples);
 	channel_a_i.allocate(captureSamples);
 	channel_b_v.allocate(captureSamples);
 	channel_b_i.allocate(captureSamples);
+	
+	notifyCaptureConfig();
+	reset_capture();
 }
 
 void CEE_device::on_reset_capture(){

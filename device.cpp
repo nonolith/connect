@@ -2,18 +2,6 @@
 #include "dataserver.hpp"
 #include <iostream>
 
-
-void Device::configure(float seconds, bool continuous){
-	pause_capture();
-	captureLength = seconds;
-	captureContinuous = continuous;
-	captureSamples = 0;
-	on_configure();
-	notifyCaptureConfig();
-	
-	reset_capture();
-}
-
 void Device::reset_capture(){
 	captureDone = false;
 	capture_i = 0;

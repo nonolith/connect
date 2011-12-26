@@ -56,6 +56,8 @@ class CEE_device: public Device{
 	public: 
 	CEE_device(libusb_device *dev, libusb_device_descriptor &desc);
 	virtual ~CEE_device();
+	
+	virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw);
 
 	virtual const string model(){return "com.nonolithlabs.cee";}
 	virtual const string hwversion(){return "unknown";}
@@ -94,7 +96,6 @@ class CEE_device: public Device{
                             uint16_t wLength);
 
 	protected:
-	virtual void on_configure();
 	virtual void on_reset_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
