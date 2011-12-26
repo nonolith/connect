@@ -1,6 +1,6 @@
 import sys, os
 
-sources = Glob('*.cpp') + ['cee/cee.cpp', 'demoDevice/demoDevice.cpp']
+sources = Glob('*.cpp') + ['cee/cee.cpp']
 
 json = Library('json', 
 	Glob('libjson/Source/*.cpp'),

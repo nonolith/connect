@@ -6,7 +6,6 @@
 
 #include "dataserver.hpp"
 #include "websocket_handler.hpp"
-#include "demoDevice/demoDevice.hpp"
 
 using boost::asio::ip::tcp;
 const unsigned short port = 9003;
@@ -25,11 +24,7 @@ int main(int argc, char* argv[]){
 	try {
 		usb_init();
 
-		if (argc==2 && string(argv[1])=="demo"){
-			device_ptr p = device_ptr(new DemoDevice());
-			devices.insert(p);
-			debugFlag = true;
-		}else if (argc==2 && string(argv[1])=="debug"){
+		if (argc==2 && string(argv[1])=="debug"){
 			debugFlag = true;
 		}
 		else{
