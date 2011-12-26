@@ -28,13 +28,12 @@ int main(int argc, char* argv[]){
 		if (argc==2 && string(argv[1])=="demo"){
 			device_ptr p = device_ptr(new DemoDevice());
 			devices.insert(p);
-		}
-
-		if (argc==2 && string(argv[1])=="debug"){
-			debugFlag = 1;
+			debugFlag = true;
+		}else if (argc==2 && string(argv[1])=="debug"){
+			debugFlag = true;
 		}
 		else{
-			debugFlag = 0;
+			debugFlag = false;
 		}
 		tcp::endpoint endpoint(tcp::v6(), port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
