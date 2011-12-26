@@ -270,24 +270,16 @@ class ClientConn: public DeviceEventListener{
 		sendJSON(n);
 	}
 
-	void on_device_info_changed(){
+	void on_config(){
 		if (!device) return;
 
 		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "deviceInfo"));
+		n.push_back(JSONNode("_action", "deviceConfig"));
 	
 		JSONNode d = toJSON(device, true);
 		d.set_name("device");
 		n.push_back(d);
 
-		sendJSON(n);
-	}
-	
-	void on_capture_config(){
-		JSONNode n(JSON_NODE);
-		n.push_back(JSONNode("_action", "configuration"));
-		n.push_back(JSONNode("length", device->captureLength));
-		n.push_back(JSONNode("continuous", device->captureContinuous));
 		sendJSON(n);
 	}
 	

@@ -51,9 +51,9 @@ void Device::notifyCaptureReset(){
 	}
 }
 
-void Device::notifyCaptureConfig(){
+void Device::notifyConfig(){
 	BOOST_FOREACH(DeviceEventListener *l, listeners){
-		l->on_capture_config();
+		l->on_config();
 	}
 }
 

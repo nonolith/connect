@@ -47,16 +47,6 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_b_i("bi", "Current B", "mA", I_min, I_max,  2)
 	{
 
-	channels.push_back(&channel_a);
-	channel_a.streams.push_back(&channel_a_v);
-	channel_a.streams.push_back(&channel_a_i);
-	channels.push_back(&channel_b);
-	channel_b.streams.push_back(&channel_b_v);
-	channel_b.streams.push_back(&channel_b_i);
-
-	channel_a.source = new ConstantOutputSource(0, 0);
-	channel_b.source = new ConstantOutputSource(0, 0);
-
 	int r = libusb_open(dev, &handle);
 	if (r != 0){
 		cerr << "Could not open device"<<endl;
@@ -78,6 +68,8 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 CEE_device::~CEE_device(){
 	pause_capture();
 	libusb_close(handle);
+	delete channel_a.source;
+	delete channel_b.source;
 }
 
 int CEE_device::controlTransfer(uint8_t bmRequestType,
@@ -91,21 +83,60 @@ int CEE_device::controlTransfer(uint8_t bmRequestType,
 
 void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw){
 	pause_capture();
+	
+	// Clean up previous configuration
+	delete channel_a.source;
+	delete channel_b.source;
+	channels.clear();
+	channel_a.streams.clear();
+	channel_b.streams.clear();
+	
+	// Store state
 	captureSamples = samples;
 	captureContinuous = continuous;
 	devMode = mode;
 	rawMode = raw;
 	captureLength = captureSamples * CEE_sample_time; //TODO: note sampleTime is currently ignored.
 	
-	//TODO: handle devMode, rawMode
-	
 	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
-	channel_a_v.allocate(captureSamples);
-	channel_a_i.allocate(captureSamples);
-	channel_b_v.allocate(captureSamples);
-	channel_b_i.allocate(captureSamples);
 	
-	notifyCaptureConfig();
+	// Configure
+	if (devMode == 0){
+		channels.push_back(&channel_a);
+		channel_a.source = new ConstantOutputSource(0, 0);
+		channel_a.streams.push_back(&channel_a_v);
+		channel_a.streams.push_back(&channel_a_i);
+		
+		channels.push_back(&channel_b);
+		channel_b.source = new ConstantOutputSource(0, 0);
+		channel_b.streams.push_back(&channel_b_v);
+		channel_b.streams.push_back(&channel_b_i);
+		
+		if (rawMode){
+			channel_a_v.units = channel_b_v.units = string("LSB");
+			channel_a_i.units = channel_b_i.units = string("LSB");
+			
+			channel_a_v.min = channel_b_v.min = -100;
+			channel_a_v.max = channel_b_v.max = 2047;
+			channel_a_i.min = channel_b_i.min = -2048;
+			channel_a_i.max = channel_b_i.max = 2047;
+		}else{
+			channel_a_v.units = channel_b_v.units = string("V");
+			channel_a_i.units = channel_b_i.units = string("mA");
+			
+			channel_a_v.min = channel_b_v.min = V_min;
+			channel_a_v.max = channel_b_v.max = V_max;
+			channel_a_i.min = channel_b_i.min = I_min;
+			channel_a_i.max = channel_b_i.max = I_max;
+		}
+		
+		channel_a_v.allocate(captureSamples);
+		channel_a_i.allocate(captureSamples);
+		channel_b_v.allocate(captureSamples);
+		channel_b_i.allocate(captureSamples);
+	}
+	
+	notifyConfig();
 	reset_capture();
 }
 

@@ -47,6 +47,13 @@ JSONNode toJSON(device_ptr d, bool includeChannels){
 			channels.push_back(toJSON(c));
 		}
 		n.push_back(channels);
+		
+		n.push_back(JSONNode("mode", d->devMode));
+		n.push_back(JSONNode("samples", d->captureSamples));
+		n.push_back(JSONNode("length", d->captureLength));
+		n.push_back(JSONNode("continuous", d->captureContinuous));
+		n.push_back(JSONNode("raw", d->rawMode));
+		
 	}
 
 	return n;

@@ -31,7 +31,7 @@ struct Stream{
 
 	const string id;
 	const string displayName;
-	const string units;
+	string units;
 
 	float min, max;
 
@@ -184,7 +184,7 @@ class Device: public boost::enable_shared_from_this<Device> {
 		virtual void on_pause_capture() = 0;
 		
 		void notifyCaptureState();
-		void notifyCaptureConfig();
+		void notifyConfig();
 		void notifyCaptureReset();
 		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
 		void done_capture();
@@ -231,7 +231,7 @@ struct ConstantOutputSource: public OutputSource{
 struct DeviceEventListener{
 	device_ptr device;
 	
-	virtual void on_capture_config(){};
+	virtual void on_config(){};
 	virtual void on_capture_reset(){};
 	virtual void on_capture_state_changed(){};
 	virtual void on_device_info_changed(){};
@@ -241,7 +241,7 @@ struct DeviceEventListener{
 	inline void _setDevice(device_ptr &dev){
 		device = dev;
 		device->addEventListener(this);
-		on_device_info_changed();
+		on_config();
 		on_capture_state_changed();
 	}
 	
