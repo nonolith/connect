@@ -193,10 +193,15 @@ void CEE_device::on_pause_capture(){
 void CEE_device::handle_in_packet(unsigned char *buffer){
 	IN_packet *pkt = (IN_packet*) buffer;
 	for (int i=0; i<10; i++){
-		put(channel_a_v, pkt->data[i].av()*5.0/2048.0);
-		put(channel_a_i, pkt->data[i].ai()*2.5/2048.0/CEE_I_gain*1000.0);
-		put(channel_b_v, pkt->data[i].bv()*5.0/2048.0);
-		put(channel_b_i, pkt->data[i].bi()*2.5/2048.0/CEE_I_gain*1000.0);
+		float v_factor = 5.0/2048.0;
+		float i_factor = 2.5/2048.0/CEE_I_gain*1000.0;
+		
+		if (rawMode) v_factor = i_factor = 1;
+	
+		put(channel_a_v, pkt->data[i].av()*v_factor);
+		put(channel_a_i, pkt->data[i].ai()*i_factor);
+		put(channel_b_v, pkt->data[i].bv()*v_factor);
+		put(channel_b_i, pkt->data[i].bi()*i_factor);
 		sampleDone();
 	}
 
@@ -223,14 +228,19 @@ inline float constrain(float val, float lo, float hi){
 }
 
 
-uint16_t encode_out(CEE_chanmode mode, float val){
-	if (mode == SVMI){
-		val = constrain(val, V_min, V_max);
-		return 4095*val/5.0;
-	}else if (mode == SIMV){
-		val = constrain(val, I_min, I_max);
-		return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
-	}else return 0;
+uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
+	if (rawMode){
+		return constrain(val, 0, 4095);
+	}else{
+		if (mode == SVMI){
+			val = constrain(val, V_min, V_max);
+			return 4095*val/5.0;
+		}else if (mode == SIMV){
+			val = constrain(val, I_min, I_max);
+			return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
+		}
+	}
+	return 0;
 }
 
 void CEE_device::fill_out_packet(unsigned char* buf){
