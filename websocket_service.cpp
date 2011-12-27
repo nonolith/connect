@@ -328,6 +328,7 @@ class ClientConn: public DeviceEventListener{
 			
 			if (w->isComplete()){
 				n.push_back(JSONNode("done", true));
+				delete w;
 				listeners.erase(currentIt);
 			}
 
