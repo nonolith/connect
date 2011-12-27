@@ -54,7 +54,7 @@ struct Listener{
 
 	inline float nextSample(){
 		float total=0;
-		for (unsigned i = (index-decimateFactor); i <= index; i++){
+		for (unsigned i = (index-decimateFactor+1); i <= index; i++){
 			total += device->get(*stream, i);
 		}
 		total /= decimateFactor;
