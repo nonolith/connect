@@ -318,6 +318,7 @@ class ClientConn: public DeviceEventListener{
 
 			n.push_back(JSONNode("id", w->id));
 			n.push_back(JSONNode("idx", w->outIndex));
+			n.push_back(JSONNode("sampleIndex", w->index));
 			
 			JSONNode a(JSON_ARRAY);
 			a.set_name("data");
@@ -350,6 +351,7 @@ class ClientConn: public DeviceEventListener{
 		n.push_back(JSONNode("mode", source->mode));
 		n.push_back(JSONNode("description", source->displayName()));
 		n.push_back(JSONNode("startSample", source->startSample));
+		n.push_back(JSONNode("effective", source->effective));
 		n.push_back(JSONNode("valueTarget", source->valueTarget()));
 		sendJSON(n);
 	}

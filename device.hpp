@@ -215,9 +215,12 @@ struct OutputSource{
 	
 	/// The output sample number at which this source was added
 	unsigned startSample;
+	
+	/// true if this source's effect has come back as input
+	bool effective;
 
 	protected:
-		OutputSource(unsigned m): mode(m){};
+		OutputSource(unsigned m): mode(m), effective(false){};
 };
 
 struct ConstantOutputSource: public OutputSource{

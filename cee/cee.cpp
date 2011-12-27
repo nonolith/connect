@@ -207,6 +207,9 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 
 	free(buffer);
 	packetDone();
+	
+	checkOutputEffective(channel_a);
+	checkOutputEffective(channel_b);
 }
 
 void CEE_device::setOutput(Channel* channel, OutputSource* source){
@@ -219,6 +222,13 @@ void CEE_device::setOutput(Channel* channel, OutputSource* source){
 		channel->source->startSample = capture_o;
 	}
 	notifyOutputChanged(channel, source);
+}
+
+inline void CEE_device::checkOutputEffective(Channel& channel){
+	if (!channel.source->effective && capture_i > channel.source->startSample){
+		channel.source->effective = true;
+		notifyOutputChanged(&channel, channel.source);
+	}
 }
 
 inline float constrain(float val, float lo, float hi){

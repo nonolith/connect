@@ -100,4 +100,5 @@ class CEE_device: public Device{
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
 	uint16_t encode_out(CEE_chanmode mode, float val);
+	void checkOutputEffective(Channel& channel);
 };
