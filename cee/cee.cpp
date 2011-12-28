@@ -17,6 +17,10 @@ using namespace std;
 #define EP_BULK_IN 0x81
 #define EP_BULK_OUT 0x02
 
+#define CMD_CONFIG_CAPTURE 0x80
+#define DEVMODE_OFF  0
+#define DEVMODE_2SMU 1
+
 long millis(){
 	struct timeb tp;
 	ftime(&tp);
@@ -149,6 +153,13 @@ void CEE_device::on_reset_capture(){
 
 void CEE_device::on_start_capture(){
 	boost::mutex::scoped_lock lock(transfersMutex);
+	
+	// Turn on the device
+	controlTransfer(0x40, CMD_CONFIG_CAPTURE, CEE_sample_per, DEVMODE_2SMU, 0, 0);
+	
+	// Ignore the effect of output samples we sent before pausing
+	capture_o = capture_i; 
+	
 	for (int i=0; i<N_TRANSFERS; i++){
 		in_transfers[i] = libusb_alloc_transfer(0);
 		unsigned char* buf = (unsigned char*) malloc(sizeof(IN_packet));
@@ -169,7 +180,9 @@ void CEE_device::on_start_capture(){
 void CEE_device::on_pause_capture(){
 	boost::mutex::scoped_lock lock(transfersMutex);
 
-	std::cerr << "on_pause_capture" <<std::endl;
+	std::cerr << "on_pause_capture " << capture_i << " " << capture_o <<std::endl;
+	
+	controlTransfer(0x40, CMD_CONFIG_CAPTURE, CEE_sample_per, DEVMODE_OFF, 0, 0);
 	
 	for (int i=0; i<N_TRANSFERS; i++){
 		if (in_transfers[i]){
