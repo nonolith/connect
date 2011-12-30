@@ -13,8 +13,8 @@ map <libusb_device *, device_ptr> active_libusb_devices;
 
 boost::thread* usb_thread;
 
-#define CEE_VID 0x9999
-#define CEE_PID 0xffff
+#define CEE_VID 0x59e3
+#define CEE_PID 0xCEE1
 
 void usb_init(){
 	int r = libusb_init(NULL);
