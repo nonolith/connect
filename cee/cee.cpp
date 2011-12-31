@@ -45,10 +45,10 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	Device(CEE_sample_time),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("av", "Voltage A", "V",  V_min, V_max,  1),
-	channel_a_i("ai", "Current A", "mA", I_min, I_max,  2),
-	channel_b_v("bv", "Voltage B", "V",  V_min, V_max,  1),
-	channel_b_i("bi", "Current B", "mA", I_min, I_max,  2)
+	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1),
+	channel_a_i("i", "Current A", "mA", I_min, I_max,  2),
+	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1),
+	channel_b_i("i", "Current B", "mA", I_min, I_max,  2)
 	{
 
 	int r = libusb_open(dev, &handle);
