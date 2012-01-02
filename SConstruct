@@ -27,7 +27,7 @@ libs = ['usb_nonolith', 'websocketpp', 'json']
 if sys.platform.startswith('linux'):
 	boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
 	frameworks = ['']
-	pass
+	libs += ['udev']
 elif sys.platform == 'darwin':
 	boostlibs = ['boost_system-mt','boost_date_time-mt', 'boost_regex-mt', 'boost_thread-mt']
 	libs += ['objc']

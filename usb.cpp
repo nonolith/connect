@@ -16,12 +16,17 @@ boost::thread* usb_thread;
 #define CEE_VID 0x59e3
 #define CEE_PID 0xCEE1
 
+extern "C" void device_added_usbthread(libusb_device *dev, void *user_data);
+extern "C" void device_removed_usbthread(libusb_device *dev, void *user_data);
+
 void usb_init(){
 	int r = libusb_init(NULL);
 	if (r < 0){
 		cerr << "Could not init libusb" << endl;
 		abort();
 	}
+	
+	libusb_register_hotplug_listeners(NULL, device_added_usbthread, device_removed_usbthread, 0);
 
 	usb_thread = new boost::thread(usb_thread_main);
 }
@@ -40,8 +45,44 @@ void usb_fini(){
 	libusb_exit(NULL);
 }
 
+void deviceAdded(libusb_device *dev){
+	libusb_device_descriptor desc;
+	int r = libusb_get_device_descriptor(dev, &desc);
+	if (r<0){
+		cerr << "Error in get_device_descriptor" << endl;
+		libusb_unref_device(dev);
+		return;
+	}
+	
+	if (desc.idVendor == CEE_VID && desc.idProduct == CEE_PID){
+		device_ptr p = device_ptr(new CEE_device(dev, desc));
+		devices.insert(p);
+
+		active_libusb_devices.insert(pair<libusb_device *, device_ptr>(dev, p));
+		device_list_changed.notify();
+	}
+	libusb_unref_device(dev);
+}
+
+void deviceRemoved(libusb_device *dev){
+	map <libusb_device *, device_ptr>::iterator it = active_libusb_devices.find(dev);
+	if (it == active_libusb_devices.end()) return;
+	cerr << "Device removed" <<std::endl;
+	devices.erase(it->second);
+	active_libusb_devices.erase(it);
+	device_list_changed.notify();
+}
+
+extern "C" void device_added_usbthread(libusb_device *dev, void *user_data){
+	libusb_ref_device(dev);
+	io.post(boost::bind(deviceAdded, dev));
+}
+
+extern "C" void device_removed_usbthread(libusb_device *dev, void *user_data){
+	io.post(boost::bind(deviceRemoved, dev));
+}
+
 void usb_scan_devices(){
-	//cerr << "Scanning" << endl;
 	libusb_device **devs;
 	
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
@@ -49,48 +90,11 @@ void usb_scan_devices(){
 		cerr << "Error in get_device_list" << endl;
 	}
 
-	// Copy the active device list. Remove devices from this copy that are still present,
-	// so it can be compared to detect removed devices.
-	map <libusb_device *, device_ptr> prev_devices = active_libusb_devices;
-	map <libusb_device *, device_ptr>::iterator it;
-
-	bool changed = 0;
-
 	for (ssize_t i=0; i<cnt; i++){
-		it = prev_devices.find(devs[i]);
-		if (it != prev_devices.end()){
-			prev_devices.erase(it);
-			continue; // Ignore device, as it's already in use
-		}
-
-		libusb_device_descriptor desc;
-		int r = libusb_get_device_descriptor(devs[i], &desc);
-		if (r<0){
-			cerr << "Error in get_device_descriptor" << endl;
-			continue;
-		}
-		if (desc.idVendor == CEE_VID && desc.idProduct == CEE_PID){
-			device_ptr p = device_ptr(new CEE_device(devs[i], desc));
-			devices.insert(p);
-
-			// Add the device to the active list so we don't re-add it
-			// This is safe because the Device holds a reference. Because known
-			// devices are at these addresses, they are guaranteed not to be allocated
-			// to another device object.
-			active_libusb_devices.insert(pair<libusb_device *, device_ptr>(devs[i], p));
-			changed = 1;
-		}
+		libusb_ref_device(devs[i]);
+		deviceAdded(devs[i]);
 	}
 
-	for (it=prev_devices.begin(); it != prev_devices.end(); ++it){
-		cerr << "Device removed" << endl;
-		// Iterate over devices that were not seen again and remove them
-		active_libusb_devices.erase(it->first);
-		devices.erase(it->second);
-		changed = 1;
-	}
 	libusb_free_device_list(devs, 1);
-
-	if (changed) device_list_changed.notify();
 }
 
