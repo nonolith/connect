@@ -30,7 +30,7 @@ int main(int argc, char* argv[]){
 		else{
 			debugFlag = false;
 		}
-		tcp::endpoint endpoint(tcp::v6(), port);
+		tcp::endpoint endpoint(boost::asio::ip::address_v4::loopback(), port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
 		
 		server->set_max_message_size(0xFFFF); // 64KiB

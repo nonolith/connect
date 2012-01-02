@@ -27,8 +27,8 @@ long millis(){
 	return tp.millitm;
 }
 
-void in_transfer_callback(libusb_transfer *t);
-void out_transfer_callback(libusb_transfer *t);
+extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t);
+extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t);
 
 const int CEE_sample_per = 160;
 const int CEE_timer_clock = 4e6; // 4 MHz
@@ -305,7 +305,7 @@ void destroy_transfer(CEE_device *dev, libusb_transfer** list, libusb_transfer* 
 #define DISABLE_SELF_STOP 1
 
 /// Runs in USB thread
-void in_transfer_callback(libusb_transfer *t){
+extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t){
 	if (!t->user_data){
 		//cerr << "Freeing in packet "<< t << " " << t->status << endl;
 		libusb_free_transfer(t); // user_data was zeroed out when device was deleted
@@ -336,7 +336,7 @@ void in_transfer_callback(libusb_transfer *t){
 
 
 /// Runs in USB thread
-void out_transfer_callback(libusb_transfer *t){
+extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t){
 	if (!t->user_data){
 		//cerr << "Freeing out packet "<< t << " " << t->status << endl;
 		libusb_free_transfer(t); // user_data was zeroed out when device was deleted
