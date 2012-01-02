@@ -68,7 +68,7 @@ def make_in_subdir(dir, libsrc, libdest):
 	return fn
 	
 			
-#env.Command('libusb_nonolith.a', [], make_in_subdir('libusb', 'libusb/.libs/libusb-1.0.a', '../libusb_nonolith.a'))
+env.Command('libusb_nonolith.a', [], make_in_subdir('libusb', 'libusb/.libs/libusb-1.0.a', '../libusb_nonolith.a'))
 
 libs += boostlibs
 

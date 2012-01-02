@@ -16,8 +16,8 @@ boost::thread* usb_thread;
 #define CEE_VID 0x59e3
 #define CEE_PID 0xCEE1
 
-extern "C" void device_added_usbthread(libusb_device *dev, void *user_data);
-extern "C" void device_removed_usbthread(libusb_device *dev, void *user_data);
+extern "C" void LIBUSB_CALL device_added_usbthread(libusb_device *dev, void *user_data);
+extern "C" void LIBUSB_CALL device_removed_usbthread(libusb_device *dev, void *user_data);
 
 void usb_init(){
 	int r = libusb_init(NULL);
@@ -75,12 +75,12 @@ void deviceRemoved(libusb_device *dev){
 	ds_dev->onDisconnect();
 }
 
-extern "C" void device_added_usbthread(libusb_device *dev, void *user_data){
+extern "C" void LIBUSB_CALL device_added_usbthread(libusb_device *dev, void *user_data){
 	libusb_ref_device(dev);
 	io.post(boost::bind(deviceAdded, dev));
 }
 
-extern "C" void device_removed_usbthread(libusb_device *dev, void *user_data){
+extern "C" void LIBUSB_CALL device_removed_usbthread(libusb_device *dev, void *user_data){
 	io.post(boost::bind(deviceRemoved, dev));
 }
 
