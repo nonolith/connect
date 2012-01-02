@@ -355,6 +355,12 @@ class ClientConn: public DeviceEventListener{
 		n.push_back(JSONNode("valueTarget", source->valueTarget()));
 		sendJSON(n);
 	}
+	
+	void on_disconnect(){
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "deviceDisconnected"));
+		sendJSON(n);
+	}
 };
 
 std::map<websocketpp::session_ptr, ClientConn*> connections;

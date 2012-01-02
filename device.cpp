@@ -57,6 +57,12 @@ void Device::notifyConfig(){
 	}
 }
 
+void Device::notifyDisconnect(){
+	BOOST_FOREACH(DeviceEventListener *l, listeners){
+		l->on_disconnect();
+	}
+}
+
 void Device::packetDone(){
 	BOOST_FOREACH(DeviceEventListener *l, listeners){
 		l->on_data_received();

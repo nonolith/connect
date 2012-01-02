@@ -68,9 +68,11 @@ void deviceRemoved(libusb_device *dev){
 	map <libusb_device *, device_ptr>::iterator it = active_libusb_devices.find(dev);
 	if (it == active_libusb_devices.end()) return;
 	cerr << "Device removed" <<std::endl;
-	devices.erase(it->second);
+	device_ptr ds_dev = it->second;
+	devices.erase(ds_dev);
 	active_libusb_devices.erase(it);
 	device_list_changed.notify();
+	ds_dev->onDisconnect();
 }
 
 extern "C" void device_added_usbthread(libusb_device *dev, void *user_data){

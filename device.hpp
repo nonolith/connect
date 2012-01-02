@@ -177,6 +177,8 @@ class Device: public boost::enable_shared_from_this<Device> {
 		                            uint16_t wIndex,
 		                            uint8_t* data,
 		                            uint16_t wLength){return -128;};
+		
+		virtual void onDisconnect(){ notifyDisconnect(); }
 
 	protected:
 		virtual void on_reset_capture() = 0;
@@ -186,6 +188,7 @@ class Device: public boost::enable_shared_from_this<Device> {
 		void notifyCaptureState();
 		void notifyConfig();
 		void notifyCaptureReset();
+		void notifyDisconnect();
 		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
 		void done_capture();
 };
@@ -240,8 +243,12 @@ struct DeviceEventListener{
 	virtual void on_device_info_changed(){};
 	virtual void on_data_received() {};
 	virtual void on_output_changed(Channel *channel, OutputSource *outputSource) {};
+	virtual void on_disconnect(){};
 	
 	inline void _setDevice(device_ptr &dev){
+		if (device){
+			device->removeEventListener(this);
+		}
 		device = dev;
 		device->addEventListener(this);
 		on_config();
