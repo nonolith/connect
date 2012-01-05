@@ -4,9 +4,15 @@ libs = ['usb_nonolith', 'websocketpp', 'json']
 boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
 
 if sys.platform.startswith('linux'):
+	env = Environment(
+		LIBPATH=['.']
+	)
 	frameworks = ['']
-	libs = ['udev']
+	libs += ['udev']
 elif sys.platform == 'darwin':
+	env = Environment(
+		LIBPATH=['.']
+	)
 	boostlibs = [i+'-mt' for i in boostlibs]
 	libs += ['objc']
 	frameworks = ['CoreFoundation', 'IOKit']
@@ -72,4 +78,4 @@ env.Command('libusb_nonolith.a', [], make_in_subdir('libusb', 'libusb/.libs/libu
 
 libs += boostlibs
 
-env.Program('server', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src'], FRAMEWORKS=frameworks)
+env.Program('server', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)
