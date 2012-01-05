@@ -16,20 +16,13 @@ struct Listener{
 		outIndex(0),
 		count(_count)
 	{
-		unsigned m = d->buffer_min() + decimateFactor;
 		if (startSample < 0){
 			// startSample -1 means start at current position
 			int i = (int)(d->buffer_max()) + startSample + 1;
-			if (i > (int) m + (int) decimateFactor) 
-				index = i - decimateFactor;
-			else if (i > (int) m)
-				index = i;
-			else
-				index = m;
+			if (i < 0) index = 0;
+			else       index = i;
 		}else{
 			index = startSample;
-			if (index < m)
-				index = m;
 		}
 	}
 
