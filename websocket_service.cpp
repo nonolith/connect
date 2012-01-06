@@ -64,6 +64,8 @@ struct Listener{
 
 typedef std::pair<const string, Listener*> listener_pair;
 
+OutputSource *makeSource(JSONNode& description);
+
 class ClientConn: public DeviceEventListener{
 	public:
 	ClientConn(websocketpp::session_ptr c): client(c){
@@ -186,12 +188,7 @@ class ClientConn: public DeviceEventListener{
 				string cId = n.at("channel").as_string();
 				Channel *channel = device->channelById(cId);
 				if (!channel) return; //TODO: exception
-				string source = n.at("source").as_string();
-				if (source == "constant"){
-					float val = n.at("value").as_float();
-					unsigned mode = n.at("mode").as_int(); //TODO: validate
-					device->setOutput(channel, new ConstantOutputSource(mode, val));
-				}
+				device->setOutput(channel, makeSource(n));
 				
 			}else if (cmd == "controlTransfer"){
 				//TODO: this is device-specific. Should it go elsewhere?
