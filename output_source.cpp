@@ -6,9 +6,14 @@
 
 struct ConstantSource: public OutputSource{
 	ConstantSource(unsigned m, float val): OutputSource(m), value(val){}
-	virtual string displayName(){return "Constant";}
+	virtual string displayName(){return "constant";}
 	virtual float getValue(unsigned sample, float sampleTime){ return value; }
-	virtual float valueTarget(){ return value; }
+	
+	virtual void describeJSON(JSONNode &n){
+		n.push_back(JSONNode("source", "constant"));
+		n.push_back(JSONNode("value", value));
+	}
+	
 	float value;
 };
 
@@ -19,12 +24,20 @@ OutputSource *makeConstantSource(unsigned m, int value){
 struct SquareWaveSource: public OutputSource{
 	SquareWaveSource(unsigned m, float _high, float _low, unsigned _highSamples, unsigned _lowSamples):
 		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples){}
-	virtual string displayName(){return "Square";}
+	virtual string displayName(){return "square";}
 	
 	virtual float getValue(unsigned sample, float sampleTime){
 		unsigned s = sample % (highSamples + lowSamples);
 		if (s < lowSamples) return low;
 		else                return high;
+	}
+	
+	virtual void describeJSON(JSONNode &n){
+		n.push_back(JSONNode("source", "square"));
+		n.push_back(JSONNode("high", high));
+		n.push_back(JSONNode("low", low));
+		n.push_back(JSONNode("highSamples", highSamples));
+		n.push_back(JSONNode("lowSamples", lowSamples));
 	}
 	
 	float high, low;
@@ -35,10 +48,17 @@ struct SineWaveSource: public OutputSource{
 	SineWaveSource(unsigned m, float _offset, float _amplitude, int _period):
 		OutputSource(m), offset(_offset), amplitude(_amplitude), period(_period){}
 		
-	virtual string displayName(){return "Sine";}
+	virtual string displayName(){return "sine";}
 	
 	virtual float getValue(unsigned sample, float SampleTime){
 		return sin(sample * 2 * M_PI / period)*amplitude + offset;
+	}
+	
+	virtual void describeJSON(JSONNode &n){
+		n.push_back(JSONNode("source", "sine"));
+		n.push_back(JSONNode("offset", offset));
+		n.push_back(JSONNode("amplitude", amplitude));
+		n.push_back(JSONNode("period", period));
 	}
 	
 	float offset, amplitude;

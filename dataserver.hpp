@@ -10,6 +10,8 @@ using std::string;
 #include <boost/asio.hpp>
 extern boost::asio::io_service io;
 
+#include "libjson/libjson.h"
+
 #include "event.hpp"
 #include "device.hpp"
 

@@ -339,10 +339,9 @@ class ClientConn: public DeviceEventListener{
 		n.push_back(JSONNode("_action", "outputChanged"));
 		n.push_back(JSONNode("channel", channel->id));
 		n.push_back(JSONNode("mode", source->mode));
-		n.push_back(JSONNode("description", source->displayName()));
 		n.push_back(JSONNode("startSample", source->startSample));
 		n.push_back(JSONNode("effective", source->effective));
-		n.push_back(JSONNode("valueTarget", source->valueTarget()));
+		source->describeJSON(n);
 		sendJSON(n);
 	}
 	

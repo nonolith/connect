@@ -210,9 +210,10 @@ struct Channel{
 
 struct OutputSource{
 	virtual string displayName() = 0;
-	virtual float valueTarget(){ return NAN; }
 	
 	virtual float getValue(unsigned sample, float sampleTime) = 0;
+	
+	virtual void describeJSON(JSONNode &n) = 0;
 
 	const unsigned mode;
 	
