@@ -136,3 +136,17 @@ bool Stream::allocate(unsigned size){
 	data = (float *) malloc(size*sizeof(float));
 	return !!data;
 }
+
+void DeviceEventListener::_setDevice(device_ptr &dev){
+	if (device){
+		device->removeEventListener(this);
+	}
+	device = dev;
+	device->addEventListener(this);
+	on_config();
+	on_capture_state_changed();
+	
+	BOOST_FOREACH(Channel *c, device->channels){
+		on_output_changed(c, c->source);
+	}
+}

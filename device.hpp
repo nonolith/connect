@@ -240,15 +240,7 @@ struct DeviceEventListener{
 	virtual void on_output_changed(Channel *channel, OutputSource *outputSource) {};
 	virtual void on_disconnect(){};
 	
-	inline void _setDevice(device_ptr &dev){
-		if (device){
-			device->removeEventListener(this);
-		}
-		device = dev;
-		device->addEventListener(this);
-		on_config();
-		on_capture_state_changed();
-	}
+	void _setDevice(device_ptr &dev);
 	
 	virtual ~DeviceEventListener(){
 		if (device) device->removeEventListener(this);
