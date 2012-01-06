@@ -22,3 +22,11 @@ extern Event device_list_changed;
 void usb_init();
 void usb_scan_devices();
 void usb_thread_main();
+
+struct ErrorStringException : public std::exception{
+   string s;
+   ErrorStringException (string ss) throw() : s(ss) {}
+   virtual const char* what() const throw() { return s.c_str(); }
+   virtual ~ErrorStringException() throw() {}
+};
+

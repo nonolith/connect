@@ -107,12 +107,12 @@ void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool co
 	// Configure
 	if (devMode == 0){
 		channels.push_back(&channel_a);
-		channel_a.source = new ConstantOutputSource(0, 0);
+		channel_a.source = makeConstantSource(0, 0);
 		channel_a.streams.push_back(&channel_a_v);
 		channel_a.streams.push_back(&channel_a_i);
 		
 		channels.push_back(&channel_b);
-		channel_b.source = new ConstantOutputSource(0, 0);
+		channel_b.source = makeConstantSource(0, 0);
 		channel_b.streams.push_back(&channel_b_v);
 		channel_b.streams.push_back(&channel_b_i);
 		

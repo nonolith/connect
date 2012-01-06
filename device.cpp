@@ -109,13 +109,6 @@ Stream* Channel::streamById(const string& id){
 	return 0;
 }
 
-struct ErrorStringException : public std::exception{
-   string s;
-   ErrorStringException (string ss) throw() : s(ss) {}
-   virtual const char* what() const throw() { return s.c_str(); }
-   virtual ~ErrorStringException() throw() {}
-};
-
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId){
 	device_ptr d = getDeviceById(deviceId);
 	if (!d){

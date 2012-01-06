@@ -4,6 +4,18 @@
 #include "dataserver.hpp"
 #include "json.hpp"
 
+struct ConstantSource: public OutputSource{
+	ConstantSource(unsigned m, float val): OutputSource(m), value(val){}
+	virtual string displayName(){return "Constant";}
+	virtual float getValue(unsigned sample, float sampleTime){ return value; }
+	virtual float valueTarget(){ return value; }
+	float value;
+};
+
+OutputSource *makeConstantSource(unsigned m, int value){
+	return new ConstantSource(m, value);
+}
+
 struct SquareWaveSource: public OutputSource{
 	SquareWaveSource(unsigned m, float _high, float _low, unsigned _highSamples, unsigned _lowSamples):
 		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples){}
@@ -40,7 +52,7 @@ OutputSource* makeSource(JSONNode& n){
 	unsigned mode = n.at("mode").as_int(); //TODO: validate
 	if (source == "constant"){
 		float val = n.at("value").as_float();
-		return new ConstantOutputSource(mode, val);
+		return new ConstantSource(mode, val);
 	}else if (source == "square"){
 		float high = n.at("high").as_float();
 		float low = n.at("low").as_float();
@@ -52,5 +64,7 @@ OutputSource* makeSource(JSONNode& n){
 		float amplitude = n.at("amplitude").as_float();
 		int period = n.at("period").as_int();
 		return new SineWaveSource(mode, offset, amplitude, period);
+	}else{
+		throw ErrorStringException("Invalid source");
 	}
 }

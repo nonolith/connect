@@ -226,13 +226,7 @@ struct OutputSource{
 		OutputSource(unsigned m): mode(m), effective(false){};
 };
 
-struct ConstantOutputSource: public OutputSource{
-	ConstantOutputSource(unsigned m, float val): OutputSource(m), value(val){}
-	virtual string displayName(){return "Constant";}
-	virtual float getValue(unsigned sample, float sampleTime){ return value; }
-	virtual float valueTarget(){ return value; }
-	float value;
-};
+OutputSource *makeConstantSource(unsigned m, int value);
 
 struct DeviceEventListener{
 	device_ptr device;
