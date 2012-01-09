@@ -131,7 +131,12 @@ void StreamingDevice::onClientDetach(ClientConn* client){
 
 void StreamingDevice::addListener(StreamListener *l){
 	cancelListen(l->id);
-	listeners.insert(listener_map_t::value_type(l->id, l));
+	
+	if (l->handleNewData()){
+		listeners.insert(listener_map_t::value_type(l->id, l));
+	}else{
+		delete l;
+	}
 }
 
 void StreamingDevice::cancelListen(ListenerId id){
@@ -161,38 +166,11 @@ void StreamingDevice::handleNewData(){
 		// Increment before (potentially) deleting the watch, as that invalidates the iterator
 		listener_map_t::iterator currentIt = it++;
 		StreamListener* w = currentIt->second;
-
-		if (!w->isDataAvailable()){
-			continue;
-		}
 		
-		JSONNode message(JSON_NODE);
-		JSONNode listenerJSON(JSON_ARRAY);
-
-		JSONNode n(JSON_NODE);
-
-		n.push_back(JSONNode("id", w->id.second));
-		n.push_back(JSONNode("idx", w->outIndex));
-		n.push_back(JSONNode("sampleIndex", w->index));
-		
-		JSONNode a(JSON_ARRAY);
-		a.set_name("data");
-		while (w->isDataAvailable()){
-			a.push_back(JSONNode("", w->nextSample()));
-		}
-		n.push_back(a);
-		
-		if (w->isComplete()){
-			n.push_back(JSONNode("done", true));
+		if (!w->handleNewData()){
 			delete w;
 			listeners.erase(currentIt);
 		}
-
-		listenerJSON.push_back(n);
-		message.push_back(JSONNode("_action", "update"));
-		listenerJSON.set_name("listeners");
-		message.push_back(listenerJSON);
-		w->client->sendJSON(message);
 	}
 }
 	

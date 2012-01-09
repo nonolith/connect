@@ -57,4 +57,37 @@ struct StreamListener{
 		index = decimateFactor;
 		outIndex = 0;
 	}
+	
+	bool handleNewData(){
+		bool keep = true;
+		if (isDataAvailable()){
+			JSONNode message(JSON_NODE);
+			JSONNode listenerJSON(JSON_ARRAY);
+
+			JSONNode n(JSON_NODE);
+
+			n.push_back(JSONNode("id", id.second));
+			n.push_back(JSONNode("idx", outIndex));
+			n.push_back(JSONNode("sampleIndex", index));
+		
+			JSONNode a(JSON_ARRAY);
+			a.set_name("data");
+			while (isDataAvailable()){
+				a.push_back(JSONNode("", nextSample()));
+			}
+			n.push_back(a);
+		
+			if (isComplete()){
+				n.push_back(JSONNode("done", true));
+				keep = false;
+			}
+
+			listenerJSON.push_back(n);
+			message.push_back(JSONNode("_action", "update"));
+			listenerJSON.set_name("listeners");
+			message.push_back(listenerJSON);
+			client->sendJSON(message);
+		}
+		return keep;
+	}
 };
