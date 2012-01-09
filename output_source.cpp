@@ -44,18 +44,12 @@ struct SquareWaveSource: public OutputSource{
 	unsigned highSamples, lowSamples;
 };
 
-struct SineWaveSource: public OutputSource{
-	SineWaveSource(unsigned m, float _offset, float _amplitude, int _period):
+struct PeriodicSource: public OutputSource{
+	PeriodicSource(unsigned m, float _offset, float _amplitude, int _period):
 		OutputSource(m), offset(_offset), amplitude(_amplitude), period(_period){}
-		
-	virtual string displayName(){return "sine";}
-	
-	virtual float getValue(unsigned sample, float SampleTime){
-		return sin(sample * 2 * M_PI / period)*amplitude + offset;
-	}
 	
 	virtual void describeJSON(JSONNode &n){
-		n.push_back(JSONNode("source", "sine"));
+		n.push_back(JSONNode("source", displayName()));
 		n.push_back(JSONNode("offset", offset));
 		n.push_back(JSONNode("amplitude", amplitude));
 		n.push_back(JSONNode("period", period));
@@ -63,6 +57,24 @@ struct SineWaveSource: public OutputSource{
 	
 	float offset, amplitude;
 	int period;
+};
+
+struct SineWaveSource: public PeriodicSource{
+	SineWaveSource(unsigned m, float _offset, float _amplitude, int _period):
+		PeriodicSource(m, _offset, _amplitude, _period) {}
+	virtual string displayName(){return "sine";}
+	virtual float getValue(unsigned sample, float SampleTime){
+		return sin(sample * 2 * M_PI / period)*amplitude + offset;
+	}
+};
+
+struct TriangleWaveSource: public PeriodicSource{
+	TriangleWaveSource(unsigned m, float _offset, float _amplitude, int _period):
+		PeriodicSource(m, _offset, _amplitude, _period) {}
+	virtual string displayName(){return "triangle";}
+	virtual float getValue(unsigned sample, float SampleTime){
+		return  (fabs(fmod(sample,period)/period*2-1)*2-1)*amplitude + offset;
+	}
 };
 
 
@@ -79,11 +91,14 @@ OutputSource* makeSource(JSONNode& n){
 		int highSamples = n.at("highSamples").as_int();
 		int lowSamples = n.at("lowSamples").as_int();
 		return new SquareWaveSource(mode, high, low, highSamples, lowSamples);
-	}else if (source == "sine"){
+	}else if (source == "sine" || source == "triangle"){
 		float offset = n.at("offset").as_float();
 		float amplitude = n.at("amplitude").as_float();
 		int period = n.at("period").as_int();
-		return new SineWaveSource(mode, offset, amplitude, period);
+		if (source == "sine")
+			return new SineWaveSource(mode, offset, amplitude, period);
+		else if (source == "triangle")
+			return new TriangleWaveSource(mode, offset, amplitude, period);
 	}else{
 		throw ErrorStringException("Invalid source");
 	}
