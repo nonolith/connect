@@ -42,7 +42,7 @@ const float I_max = 200;
 
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
-	Device(CEE_sample_time),
+	StreamingDevice(CEE_sample_time),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
 	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1),

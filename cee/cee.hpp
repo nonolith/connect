@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../dataserver.hpp"
+#include "../streaming_device.hpp"
 #include <boost/thread/mutex.hpp>
 
 enum CEE_chanmode{
@@ -52,7 +53,7 @@ class OutputPacketSource;
 #define N_TRANSFERS 128
 #define TRANSFER_SIZE 64
 
-class CEE_device: public Device{
+class CEE_device: public StreamingDevice{
 	public: 
 	CEE_device(libusb_device *dev, libusb_device_descriptor &desc);
 	virtual ~CEE_device();

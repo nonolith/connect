@@ -4,13 +4,22 @@
 #include "dataserver.hpp"
 #include "json.hpp"
 
+#include "streaming_device.hpp"
+
+inline void OutputSource::describeJSON(JSONNode &n){
+	n.push_back(JSONNode("mode", mode));
+	n.push_back(JSONNode("startSample", startSample));
+	n.push_back(JSONNode("effective", effective));
+	n.push_back(JSONNode("source", displayName()));
+}
+
 struct ConstantSource: public OutputSource{
 	ConstantSource(unsigned m, float val): OutputSource(m), value(val){}
 	virtual string displayName(){return "constant";}
 	virtual float getValue(unsigned sample, float sampleTime){ return value; }
 	
 	virtual void describeJSON(JSONNode &n){
-		n.push_back(JSONNode("source", "constant"));
+		OutputSource::describeJSON(n);
 		n.push_back(JSONNode("value", value));
 	}
 	
@@ -33,7 +42,7 @@ struct SquareWaveSource: public OutputSource{
 	}
 	
 	virtual void describeJSON(JSONNode &n){
-		n.push_back(JSONNode("source", "square"));
+		OutputSource::describeJSON(n);
 		n.push_back(JSONNode("high", high));
 		n.push_back(JSONNode("low", low));
 		n.push_back(JSONNode("highSamples", highSamples));
@@ -49,7 +58,7 @@ struct PeriodicSource: public OutputSource{
 		OutputSource(m), offset(_offset), amplitude(_amplitude), period(_period){}
 	
 	virtual void describeJSON(JSONNode &n){
-		n.push_back(JSONNode("source", displayName()));
+		OutputSource::describeJSON(n);
 		n.push_back(JSONNode("offset", offset));
 		n.push_back(JSONNode("amplitude", amplitude));
 		n.push_back(JSONNode("period", period));
