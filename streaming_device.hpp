@@ -7,14 +7,14 @@
 
 #include "device.hpp"
 
-typedef unsigned ListenerId;
+
+typedef std::pair<ClientConn*, unsigned> ListenerId;
 struct StreamListener;
 typedef std::map<ListenerId, StreamListener*> listener_map_t;
 
 struct Channel;
 struct Stream;
 struct OutputSource;
-struct DeviceEventListener;
 
 struct Stream{
 	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0):

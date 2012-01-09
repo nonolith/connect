@@ -22,7 +22,7 @@ struct StreamListener{
 		}
 	}
 
-	const unsigned id;
+	const ListenerId id;
 	ClientConn* client;
 	StreamingDevice *device;
 	Stream *stream;

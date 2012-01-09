@@ -9,7 +9,7 @@ OutputSource *makeSource(JSONNode& description);
 
 bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	if (cmd == "listen"){
-		unsigned id = n.at("id").as_int();
+		ListenerId id(&client, n.at("id").as_int());
 		string channel = n.at("channel").as_string();
 		string streamName = n.at("stream").as_string();
 		int decimateFactor = n.at("decimateFactor").as_int();
@@ -27,7 +27,7 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 		);
 	
 	}else if (cmd == "cancelListen"){
-		unsigned id = n.at("id").as_int();
+		ListenerId id(&client, n.at("id").as_int());
 		cancelListen(id);
 	
 	}else if (cmd == "configure"){
@@ -155,7 +155,7 @@ void StreamingDevice::handleNewData(){
 
 		JSONNode n(JSON_NODE);
 
-		n.push_back(JSONNode("id", w->id));
+		n.push_back(JSONNode("id", w->id.second));
 		n.push_back(JSONNode("idx", w->outIndex));
 		n.push_back(JSONNode("sampleIndex", w->index));
 		
