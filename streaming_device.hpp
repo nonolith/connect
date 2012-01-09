@@ -66,11 +66,12 @@ class StreamingDevice: public Device{
 			sampleTime(_sampleTime),
 			capture_i(0),
 			capture_o(0) {}
-		virtual ~StreamingDevice(){};
+		virtual ~StreamingDevice(){clearAllListeners();}
 		
 		virtual JSONNode stateToJSON();
 		
 		virtual void onClientAttach(ClientConn *c);
+		virtual void onClientDetach(ClientConn *c);
 		virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
 		
 		listener_map_t listeners;

@@ -113,6 +113,22 @@ void StreamingDevice::onClientAttach(ClientConn* client){
 	client->sendJSON(n);
 }
 
+void StreamingDevice::onClientDetach(ClientConn* client){
+	Device::onClientDetach(client);
+	
+	listener_map_t::iterator it;
+	for (it=listeners.begin(); it!=listeners.end();){
+		// Increment before deleting as that invalidates the iterator
+		listener_map_t::iterator currentIt = it++;
+		StreamListener* w = currentIt->second;
+		
+		if (w->client == client){
+			delete w;
+			listeners.erase(currentIt);
+		}
+	}
+}
+
 void StreamingDevice::addListener(StreamListener *l){
 	cancelListen(l->id);
 	listeners.insert(listener_map_t::value_type(l->id, l));
