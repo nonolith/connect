@@ -8,7 +8,7 @@
 #include "json.hpp"
 
 struct Listener{
-	Listener(const string& _id, device_ptr d, Stream *s, unsigned df, int startSample, int _count=-1):
+	Listener(unsigned _id, device_ptr d, Stream *s, unsigned df, int startSample, int _count=-1):
 		id(_id),
 		device(d),
 		stream(s),
@@ -26,7 +26,7 @@ struct Listener{
 		}
 	}
 
-	const string id;
+	const unsigned id;
 	device_ptr device;
 	Stream *stream;
 
@@ -62,7 +62,8 @@ struct Listener{
 	}
 };
 
-typedef std::pair<const string, Listener*> listener_pair;
+typedef std::map<unsigned, Listener*> listener_map_t;
+typedef std::pair<const unsigned, Listener*> listener_pair;
 
 OutputSource *makeSource(JSONNode& description);
 
@@ -87,7 +88,7 @@ class ClientConn: public DeviceEventListener{
 		_setDevice(dev);
 	}
 
-	void listen(const string& id,
+	void listen(unsigned id,
 	           Stream *stream,
 	           unsigned decimateFactor, int start=-1, int count=-1){
 		cancelListen(id);
@@ -96,8 +97,8 @@ class ClientConn: public DeviceEventListener{
 		on_data_received();
 	}
 
-	void cancelListen(const string& id){
-		std::map<string, Listener*>::iterator it = listeners.find(id);
+	void cancelListen(unsigned id){
+		listener_map_t::iterator it = listeners.find(id);
 		if (it != listeners.end()){
 			delete it->second;
 			listeners.erase(it);
@@ -122,7 +123,7 @@ class ClientConn: public DeviceEventListener{
 	EventListener l_device_list_changed;
 	EventListener l_capture_state_changed;
 	EventListener l_data_received;
-	std::map<string, Listener*> listeners;
+	listener_map_t listeners;
 
 	void on_message(const std::string &msg){
 		if (debugFlag){
@@ -144,7 +145,7 @@ class ClientConn: public DeviceEventListener{
 			}
 				
 			if (cmd == "listen"){
-				string id = n.at("id").as_string();
+				unsigned id = n.at("id").as_int();
 				string channel = n.at("channel").as_string();
 				string streamName = n.at("stream").as_string();
 				int decimateFactor = n.at("decimateFactor").as_int();
@@ -159,7 +160,7 @@ class ClientConn: public DeviceEventListener{
 				listen(id, stream, decimateFactor, startSample, count);
 				
 			}else if (cmd == "cancelListen"){
-				string id = n.at("id").as_string();
+				unsigned id = n.at("id").as_int();
 				cancelListen(id);
 				
 			}else if (cmd == "configure"){
@@ -293,10 +294,10 @@ class ClientConn: public DeviceEventListener{
 		JSONNode listenerJSON(JSON_ARRAY);
 		bool dataToSend = false;
 
-		std::map<string, Listener*>::iterator it;
+		listener_map_t::iterator it;
 		for (it=listeners.begin(); it!=listeners.end();){
 			// Increment before (potentially) deleting the watch, as that invalidates the iterator
-			std::map<string, Listener*>::iterator currentIt = it++;
+			listener_map_t::iterator currentIt = it++;
 			Listener* w = currentIt->second;
 
 			if (!w->isDataAvailable()){
