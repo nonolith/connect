@@ -45,7 +45,7 @@ struct SquareWaveSource: public OutputSource{
 };
 
 struct PeriodicSource: public OutputSource{
-	PeriodicSource(unsigned m, float _offset, float _amplitude, int _period):
+	PeriodicSource(unsigned m, float _offset, float _amplitude, float _period):
 		OutputSource(m), offset(_offset), amplitude(_amplitude), period(_period){}
 	
 	virtual void describeJSON(JSONNode &n){
@@ -55,12 +55,11 @@ struct PeriodicSource: public OutputSource{
 		n.push_back(JSONNode("period", period));
 	}
 	
-	float offset, amplitude;
-	int period;
+	float offset, amplitude, period;
 };
 
 struct SineWaveSource: public PeriodicSource{
-	SineWaveSource(unsigned m, float _offset, float _amplitude, int _period):
+	SineWaveSource(unsigned m, float _offset, float _amplitude, float _period):
 		PeriodicSource(m, _offset, _amplitude, _period) {}
 	virtual string displayName(){return "sine";}
 	virtual float getValue(unsigned sample, float SampleTime){
@@ -69,7 +68,7 @@ struct SineWaveSource: public PeriodicSource{
 };
 
 struct TriangleWaveSource: public PeriodicSource{
-	TriangleWaveSource(unsigned m, float _offset, float _amplitude, int _period):
+	TriangleWaveSource(unsigned m, float _offset, float _amplitude, float _period):
 		PeriodicSource(m, _offset, _amplitude, _period) {}
 	virtual string displayName(){return "triangle";}
 	virtual float getValue(unsigned sample, float SampleTime){
@@ -94,12 +93,11 @@ OutputSource* makeSource(JSONNode& n){
 	}else if (source == "sine" || source == "triangle"){
 		float offset = n.at("offset").as_float();
 		float amplitude = n.at("amplitude").as_float();
-		int period = n.at("period").as_int();
+		float period = n.at("period").as_float();
 		if (source == "sine")
 			return new SineWaveSource(mode, offset, amplitude, period);
 		else if (source == "triangle")
 			return new TriangleWaveSource(mode, offset, amplitude, period);
-	}else{
-		throw ErrorStringException("Invalid source");
 	}
+	throw ErrorStringException("Invalid source");
 }
