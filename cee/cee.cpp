@@ -53,13 +53,13 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 
 	int r = libusb_open(dev, &handle);
 	if (r != 0){
-		cerr << "Could not open device"<<endl;
+		cerr << "Could not open device; error "<< r <<endl;
 		return;
 	}
 	
 	r = libusb_claim_interface(handle, 0);
 	if (r != 0){
-		cerr << "Could not claim interface"<<endl;
+		cerr << "Could not claim interface; error "<<r<<endl;
 		return;
 	}
 
