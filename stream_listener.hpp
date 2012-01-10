@@ -4,31 +4,10 @@
 #include "streaming_device.hpp"
 
 struct StreamListener{
-	StreamListener(ListenerId _id, ClientConn* _client, StreamingDevice *d,
-		std::vector<Stream*> _streams, unsigned df, int startSample, int _count=-1):
-		
-		id(_id),
-		client(_client),
-		device(d),
-		streams(_streams),
-		decimateFactor(df),
-		outIndex(0),
-		count(_count)
-	{
-		if (startSample < 0){
-			// startSample -1 means start at current position
-			int i = (int)(d->buffer_max()) + startSample + 1;
-			if (i < 0) index = 0;
-			else       index = i;
-		}else{
-			index = startSample;
-		}
-	}
-
-	const ListenerId id;
+	ListenerId id;
 	ClientConn* client;
 	StreamingDevice* device;
-	const std::vector<Stream*> streams;
+	std::vector<Stream*> streams;
 
 	// stream sample index
 	unsigned decimateFactor;
@@ -46,7 +25,7 @@ struct StreamListener{
 	}
 
 	inline void reset(){
-		index = decimateFactor;
+		index = 0;
 		outIndex = 0;
 	}
 	

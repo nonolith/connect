@@ -1,29 +1,45 @@
 #include "stream_listener.hpp"
 #include <boost/foreach.hpp>
 #include <iostream>
+#include <memory>
 
 
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
-	ListenerId id(client, n.at("id").as_int());
-	int decimateFactor = n.at("decimateFactor").as_int();
+	std::auto_ptr<StreamListener> listener(new StreamListener());
 
-	int startSample = -1;
-	if (n.find("start") != n.end()) startSample = n.at("start").as_int();
-
-	int count = 0;
-	if (n.find("count") != n.end()) count = n.at("count").as_int();
+	listener->id = ListenerId(client, n.at("id").as_int());
+	listener->device = dev;
+	listener->client = client;
 	
-	std::vector<Stream*> streams;
+	listener->decimateFactor = n.at("decimateFactor").as_int();
+
+	if (n.find("start") != n.end()){
+		int start = n.at("start").as_int();
+		if (start < 0){ // Negative indexes are relative to latest sample
+			start = (dev->buffer_max()) + start + 1;
+		}
+		
+		if (start < 0) listener->index = 0;
+		else listener->index = start;
+	}else{
+		listener->index = dev->buffer_max();
+	}
+	
+	if (n.find("count") != n.end())
+		listener->count = n.at("count").as_int();
+	else
+		listener->count = 0;
+	
 	JSONNode j_streams = n.at("streams");
 	
 	for(JSONNode::iterator i=j_streams.begin(); i!=j_streams.end(); i++){
 		string channel = i->at("channel").as_string();
 		string streamName = i->at("stream").as_string();
 		Stream* stream = dev->findStream(channel, streamName);
-		streams.push_back(stream);
+		listener->streams.push_back(stream);
 	}
 		
-	return new StreamListener(id, client, dev, streams, decimateFactor, startSample, count);
+	return listener.release();
 }
 
 
@@ -34,7 +50,9 @@ bool StreamListener::handleNewData(){
 
 		n.push_back(JSONNode("id", id.second));
 		n.push_back(JSONNode("idx", outIndex));
-		n.push_back(JSONNode("sampleIndex", index));
+		
+		if (outIndex == 0)
+			n.push_back(JSONNode("sampleIndex", index));
 		
 		JSONNode streams_data(JSON_ARRAY);
 		streams_data.set_name("data");
