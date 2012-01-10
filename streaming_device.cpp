@@ -9,22 +9,7 @@ OutputSource *makeSource(JSONNode& description);
 
 bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	if (cmd == "listen"){
-		ListenerId id(&client, n.at("id").as_int());
-		string channel = n.at("channel").as_string();
-		string streamName = n.at("stream").as_string();
-		int decimateFactor = n.at("decimateFactor").as_int();
-	
-		int startSample = -1;
-		if (n.find("start") != n.end()) startSample = n.at("start").as_int();
-	
-		int count = -1;
-		if (n.find("count") != n.end()) count = n.at("count").as_int();
-	
-		Stream* stream = findStream(channel, streamName);
-		
-		addListener(
-			new StreamListener(id, client, this, stream, decimateFactor, startSample, count)
-		);
+		addListener(makeStreamListener(this, &client, n));
 	
 	}else if (cmd == "cancelListen"){
 		ListenerId id(&client, n.at("id").as_int());

@@ -1,13 +1,16 @@
 #include <map>
+#include <vector>
 
 #include "streaming_device.hpp"
 
 struct StreamListener{
-	StreamListener(ListenerId _id, ClientConn& _client, StreamingDevice *d, Stream *s, unsigned df, int startSample, int _count=-1):
+	StreamListener(ListenerId _id, ClientConn* _client, StreamingDevice *d,
+		std::vector<Stream*> _streams, unsigned df, int startSample, int _count=-1):
+		
 		id(_id),
-		client(&_client),
+		client(_client),
 		device(d),
-		stream(s),
+		streams(_streams),
 		decimateFactor(df),
 		outIndex(0),
 		count(_count)
@@ -24,8 +27,8 @@ struct StreamListener{
 
 	const ListenerId id;
 	ClientConn* client;
-	StreamingDevice *device;
-	Stream *stream;
+	StreamingDevice* device;
+	const std::vector<Stream*> streams;
 
 	// stream sample index
 	unsigned decimateFactor;
@@ -39,18 +42,7 @@ struct StreamListener{
 	}
 
 	inline bool isDataAvailable(){
-		return index < device->capture_i && !isComplete();
-	}
-
-	inline float nextSample(){
-		float total=0;
-		for (unsigned i = (index-decimateFactor+1); i <= index; i++){
-			total += device->get(*stream, i);
-		}
-		total /= decimateFactor;
-		index += decimateFactor;
-		outIndex++;
-		return total;
+		return index + decimateFactor < device->capture_i && !isComplete();
 	}
 
 	inline void reset(){
@@ -58,36 +50,7 @@ struct StreamListener{
 		outIndex = 0;
 	}
 	
-	bool handleNewData(){
-		bool keep = true;
-		if (isDataAvailable()){
-			JSONNode message(JSON_NODE);
-			JSONNode listenerJSON(JSON_ARRAY);
-
-			JSONNode n(JSON_NODE);
-
-			n.push_back(JSONNode("id", id.second));
-			n.push_back(JSONNode("idx", outIndex));
-			n.push_back(JSONNode("sampleIndex", index));
-		
-			JSONNode a(JSON_ARRAY);
-			a.set_name("data");
-			while (isDataAvailable()){
-				a.push_back(JSONNode("", nextSample()));
-			}
-			n.push_back(a);
-		
-			if (isComplete()){
-				n.push_back(JSONNode("done", true));
-				keep = false;
-			}
-
-			listenerJSON.push_back(n);
-			message.push_back(JSONNode("_action", "update"));
-			listenerJSON.set_name("listeners");
-			message.push_back(listenerJSON);
-			client->sendJSON(message);
-		}
-		return keep;
-	}
+	bool handleNewData();
 };
+
+StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);
