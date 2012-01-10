@@ -66,7 +66,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char *) serial, 32);
 	cerr << "Found a CEE: "<< serial << endl;
 	
-	configure(0, CEE_sample_time, 10.0/CEE_sample_time, true, false);
+	configure(0, CEE_sample_time, ceil(12.0/CEE_sample_time), true, false);
 }
 
 CEE_device::~CEE_device(){
