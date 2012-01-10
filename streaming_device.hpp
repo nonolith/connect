@@ -5,7 +5,7 @@
 #include <set>
 #include <map>
 
-#include "device.hpp"
+#include "dataserver.hpp"
 
 
 typedef std::pair<ClientConn*, unsigned> ListenerId;
