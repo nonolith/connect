@@ -3,7 +3,6 @@
 #include <iostream>
 #include <memory>
 
-
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
 	std::auto_ptr<StreamListener> listener(new StreamListener());
 
@@ -13,25 +12,17 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	
 	listener->decimateFactor = n.at("decimateFactor").as_int();
 
-	if (n.find("start") != n.end()){
-		int start = n.at("start").as_int();
-		if (start < 0){ // Negative indexes are relative to latest sample
-			start = (dev->buffer_max()) + start + 1;
-		}
-		
-		if (start < 0) listener->index = 0;
-		else listener->index = start;
-	}else{
-		listener->index = dev->buffer_max();
+	int start = jsonIntProp(n, "start", -1);
+	if (start < 0){ // Negative indexes are relative to latest sample
+		start = (dev->buffer_max()) + start + 1;
 	}
 	
-	if (n.find("count") != n.end())
-		listener->count = n.at("count").as_int();
-	else
-		listener->count = 0;
+	if (start < 0) listener->index = 0;
+	else listener->index = start;
+	
+	listener->count = jsonIntProp(n, "count");
 	
 	JSONNode j_streams = n.at("streams");
-	
 	for(JSONNode::iterator i=j_streams.begin(); i!=j_streams.end(); i++){
 		string channel = i->at("channel").as_string();
 		string streamName = i->at("stream").as_string();

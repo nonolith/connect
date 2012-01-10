@@ -12,23 +12,15 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 		addListener(makeStreamListener(this, &client, n));
 	
 	}else if (cmd == "cancelListen"){
-		ListenerId id(&client, n.at("id").as_int());
+		ListenerId id(&client, jsonIntProp(n, "id"));
 		cancelListen(id);
 	
 	}else if (cmd == "configure"){
-		int mode = n.at("mode").as_int();
-		unsigned samples = n.at("samples").as_int();
-		float sampleTime = n.at("sampleTime").as_float();
-	
-		bool continuous = false;
-		if (n.find("continuous") != n.end()){
-			continuous = n.at("continuous").as_bool();
-		}
-	
-		bool raw = false;
-		if (n.find("raw") != n.end()){
-			raw = n.at("raw").as_bool();
-		}
+		int      mode =       jsonIntProp(n,   "mode");
+		unsigned samples =    jsonIntProp(n,   "samples");
+		float    sampleTime = jsonFloatProp(n, "sampleTime");
+		bool     continuous = jsonBoolProp(n,  "continuous", false);
+		bool     raw =        jsonBoolProp(n,  "raw", false);
 		configure(mode, sampleTime, samples, continuous, raw);
 	
 	}else if (cmd == "startCapture"){
@@ -38,8 +30,7 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 		pause_capture();
 	
 	}else if (cmd == "set"){
-		string cId = n.at("channel").as_string();
-		Channel *channel = channelById(cId);
+		Channel *channel = channelById(jsonStringProp(n, "channel"));
 		if (!channel) throw ErrorStringException("Stream not found");
 		setOutput(channel, makeSource(n));
 	
