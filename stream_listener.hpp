@@ -15,21 +15,24 @@ struct StreamListener{
 
 	unsigned outIndex;
 	int count;
-
-	inline bool isComplete(){
-		return count>0 && (int) outIndex >= count;
-	}
-
-	inline bool isDataAvailable(){
-		return index + decimateFactor < device->capture_i && !isComplete();
-	}
+	
+	bool triggerMode;
+	bool triggered;
+	float triggerLevel;
+	Stream* triggerStream;
+	int triggerHoldoff;
 
 	inline void reset(){
 		index = 0;
 		outIndex = 0;
 	}
 	
+	// return true if listener is to be kept, false if it is to be destroyed
 	bool handleNewData();
+	
+	// return true if trigger was found
+	bool findTrigger();
+	
 };
 
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);
