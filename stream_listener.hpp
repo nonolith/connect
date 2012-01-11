@@ -21,6 +21,7 @@ struct StreamListener{
 	float triggerLevel;
 	Stream* triggerStream;
 	int triggerHoldoff;
+	int triggerOffset;
 
 	inline void reset(){
 		index = 0;
@@ -32,7 +33,6 @@ struct StreamListener{
 	
 	// return true if trigger was found
 	bool findTrigger();
-	
 };
 
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);

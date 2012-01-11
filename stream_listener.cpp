@@ -11,6 +11,9 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	listener->client = client;
 	
 	listener->decimateFactor = jsonIntProp(n, "decimateFactor", 1);
+	
+	// Prevent divide by 0
+	if (listener->decimateFactor == 0) listener->decimateFactor = 1; 
 
 	int start = jsonIntProp(n, "start", -1);
 	if (start < 0){ // Negative indexes are relative to latest sample
@@ -42,6 +45,12 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 			jsonStringProp(trigger, "channel"),
 			jsonStringProp(trigger, "stream"));
 		listener->triggerHoldoff = jsonIntProp(trigger, "holdoff", 0);
+		listener->triggerOffset = jsonIntProp(trigger, "offset", 0);
+		
+		if (listener->triggerOffset<0 && -listener->triggerOffset >= listener->triggerHoldoff){
+			// Prevent big negative offsets that could cause infinite loops
+			listener->triggerHoldoff = -listener->triggerOffset;
+		}
 		
 	}else{
 		listener->triggerMode = 0;
@@ -49,19 +58,20 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 		listener->triggerLevel = 0;
 		listener->triggerStream = 0;
 		listener->triggerHoldoff = 0;
+		listener->triggerOffset = 0;
 	}
 		
 	return listener.release();
 }
 
 
-bool StreamListener::handleNewData(){		
-	if (index + decimateFactor >= device->capture_i)
-		// The data for our next output sample hasn't been collected yet
-		return true;
-		
+bool StreamListener::handleNewData(){
 	if (triggerMode && !triggered && !findTrigger())
 		// Waiting for a trigger and haven't found it yet
+		return true;
+				
+	if (index + decimateFactor >= device->capture_i)
+		// The data for our next output sample hasn't been collected yet
 		return true;
 	
 	JSONNode n(JSON_NODE);
@@ -126,12 +136,12 @@ bool StreamListener::handleNewData(){
 
 bool StreamListener::findTrigger(){
 	bool state = device->get(*triggerStream, index) > triggerLevel;
-	while (index + 1 + decimateFactor < device->capture_i){
-		index++;
+	while (++index < device->capture_i){
 		bool newState = device->get(*triggerStream, index) > triggerLevel;
 		
 		if (newState == true && state == false){
-			//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
+			std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
+			index += triggerOffset;
 			triggered = true;
 			return true;
 		}
