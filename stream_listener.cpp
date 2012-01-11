@@ -84,6 +84,9 @@ bool StreamListener::handleNewData(){
 	n.push_back(JSONNode("idx", outIndex));
 	
 	if (outIndex == 0){
+		if (triggerForce && index > triggerForceIndex){
+			n.push_back(JSONNode("triggerForced", true));
+		}
 		n.push_back(JSONNode("sampleIndex", index));
 	}
 	
