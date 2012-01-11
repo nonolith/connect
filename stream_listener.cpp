@@ -39,6 +39,7 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	if (t != n.end() && (t->type()) == JSON_NODE){
 		JSONNode &trigger = *t;	 
 		listener->triggerMode = 1;
+		listener->triggerRepeat = jsonBoolProp(trigger, "repeat", true);
 		listener->triggerLevel = jsonFloatProp(trigger, "level");
 		listener->triggerStream = dev->findStream(
 			jsonStringProp(trigger, "channel"),
@@ -54,6 +55,7 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 		
 	}else{
 		listener->triggerMode = 0;
+		listener->triggerRepeat = false;
 		listener->triggerLevel = 0;
 		listener->triggerStream = 0;
 		listener->triggerHoldoff = 0;
@@ -118,14 +120,14 @@ bool StreamListener::handleNewData(){
 
 	bool done = (count>0 && (int) outIndex >= count);
 	
-	if (done && !triggerMode){
+	if (done && !triggerRepeat){
 		n.push_back(JSONNode("done", true));
 	}
 
 	n.push_back(JSONNode("_action", "update"));
 	client->sendJSON(n);
 	
-	if (done && triggerMode){
+	if (done && triggerRepeat){
 		//std::cout << "Trigger sweep end "<<index<<" "<<outIndex<<std::endl;
 		outIndex = 0;
 		triggered = false;

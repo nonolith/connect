@@ -18,6 +18,7 @@ struct StreamListener{
 	
 	bool triggerMode;
 	bool triggered;
+	bool triggerRepeat;
 	float triggerLevel;
 	Stream* triggerStream;
 	int triggerHoldoff;
