@@ -22,6 +22,8 @@ struct StreamListener{
 	Stream* triggerStream;
 	int triggerHoldoff;
 	int triggerOffset;
+	unsigned triggerForce;
+	unsigned triggerForceIndex;
 
 	inline void reset(){
 		index = 0;

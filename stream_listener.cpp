@@ -39,7 +39,6 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	if (t != n.end() && (t->type()) == JSON_NODE){
 		JSONNode &trigger = *t;	 
 		listener->triggerMode = 1;
-		listener->triggered = false;
 		listener->triggerLevel = jsonFloatProp(trigger, "level");
 		listener->triggerStream = dev->findStream(
 			jsonStringProp(trigger, "channel"),
@@ -51,15 +50,18 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 			// Prevent big negative offsets that could cause infinite loops
 			listener->triggerHoldoff = -listener->triggerOffset;
 		}
+		listener->triggerForce = jsonIntProp(trigger, "force", 0);
 		
 	}else{
 		listener->triggerMode = 0;
-		listener->triggered = false;
 		listener->triggerLevel = 0;
 		listener->triggerStream = 0;
 		listener->triggerHoldoff = 0;
 		listener->triggerOffset = 0;
+		listener->triggerForce = 0;
 	}
+	listener->triggered = false;
+	listener->triggerForceIndex = 0;
 		
 	return listener.release();
 }
@@ -128,6 +130,7 @@ bool StreamListener::handleNewData(){
 		outIndex = 0;
 		triggered = false;
 		index += triggerHoldoff;
+		triggerForceIndex = index + triggerForce;
 		return handleNewData(); // In case there's another packet in waiting
 	}
 	
@@ -140,12 +143,19 @@ bool StreamListener::findTrigger(){
 		bool newState = device->get(*triggerStream, index) > triggerLevel;
 		
 		if (newState == true && state == false){
-			std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
+			//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
 			index += triggerOffset;
 			triggered = true;
 			return true;
 		}
 		state = newState;
 	}
+	
+	if (triggerForce && index > triggerForceIndex){
+		//std::cout << "Forced trigger at " << index << std::endl;
+		triggered = true;
+		return true;
+	}
+	
 	return false;
 }
