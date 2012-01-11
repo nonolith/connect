@@ -6,11 +6,11 @@
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
 	std::auto_ptr<StreamListener> listener(new StreamListener());
 
-	listener->id = ListenerId(client, n.at("id").as_int());
+	listener->id = ListenerId(client, jsonIntProp(n, "id"));
 	listener->device = dev;
 	listener->client = client;
 	
-	listener->decimateFactor = n.at("decimateFactor").as_int();
+	listener->decimateFactor = jsonIntProp(n, "decimateFactor", 1);
 
 	int start = jsonIntProp(n, "start", -1);
 	if (start < 0){ // Negative indexes are relative to latest sample
@@ -19,6 +19,8 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	
 	if (start < 0) listener->index = 0;
 	else listener->index = start;
+	
+	listener->outIndex = 0;
 	
 	listener->count = jsonIntProp(n, "count");
 	
@@ -43,6 +45,10 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 		
 	}else{
 		listener->triggerMode = 0;
+		listener->triggered = false;
+		listener->triggerLevel = 0;
+		listener->triggerStream = 0;
+		listener->triggerHoldoff = 0;
 	}
 		
 	return listener.release();
