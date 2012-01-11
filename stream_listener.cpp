@@ -126,15 +126,15 @@ bool StreamListener::handleNewData(){
 
 bool StreamListener::findTrigger(){
 	bool state = device->get(*triggerStream, index) > triggerLevel;
-	while (index + decimateFactor < device->capture_i){
+	while (index + 1 + decimateFactor < device->capture_i){
+		index++;
 		bool newState = device->get(*triggerStream, index) > triggerLevel;
 		
 		if (newState == true && state == false){
-			//std::cout << "Trigger at " << index << std::endl;
+			//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
 			triggered = true;
 			return true;
 		}
-		index++;
 		state = newState;
 	}
 	return false;
