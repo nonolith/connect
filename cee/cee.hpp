@@ -2,6 +2,7 @@
 
 #include "../dataserver.hpp"
 #include "../streaming_device.hpp"
+#include "../usb_device.hpp"
 #include <boost/thread/mutex.hpp>
 
 enum CEE_chanmode{
@@ -53,7 +54,7 @@ class OutputPacketSource;
 #define N_TRANSFERS 128
 #define TRANSFER_SIZE 64
 
-class CEE_device: public StreamingDevice{
+class CEE_device: public StreamingDevice, USB_device{
 	public: 
 	CEE_device(libusb_device *dev, libusb_device_descriptor &desc);
 	virtual ~CEE_device();
@@ -65,10 +66,9 @@ class CEE_device: public StreamingDevice{
 	virtual const string fwversion(){return "unknown";}
 	virtual const string serialno(){return serial;}
 	
+	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
+	
 	virtual void setOutput(Channel* channel, OutputSource* source);
-
-	libusb_device_handle *handle;
-	char serial[32];
 
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
@@ -88,13 +88,6 @@ class CEE_device: public StreamingDevice{
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;
-	
-	virtual int controlTransfer(uint8_t bmRequestType,
-                            uint8_t bRequest,
-                            uint16_t wValue,
-                            uint16_t wIndex,
-                            uint8_t* data,
-                            uint16_t wLength);
 
 	protected:
 	virtual void on_reset_capture();

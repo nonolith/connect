@@ -33,43 +33,6 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 		Channel *channel = channelById(jsonStringProp(n, "channel"));
 		if (!channel) throw ErrorStringException("Stream not found");
 		setOutput(channel, makeSource(n));
-	
-	}else if (cmd == "controlTransfer"){
-		//TODO: this is device-specific. Should it go elsewhere?
-		string id = n.at("id").as_string();
-		uint8_t bmRequestType = n.at("bmRequestType").as_int();
-		uint8_t bRequest = n.at("bRequest").as_int();
-		uint16_t wValue = n.at("wValue").as_int();
-		uint16_t wIndex = n.at("wIndex").as_int();
-		uint16_t wLength = n.at("wLength").as_int();
-	
-		uint8_t data[wLength];
-	
-		bool isIn = bmRequestType & 0x80;
-	
-		if (!isIn){
-			//TODO: also handle array input
-			string datastr = n.at("data").as_string();
-			datastr.copy((char*)data, wLength);
-		}
-	
-		int ret = controlTransfer(bmRequestType, bRequest, wValue, wIndex, data, wLength);
-	
-		JSONNode reply(JSON_NODE);
-		reply.push_back(JSONNode("_action", "controlTransferReturn"));
-		reply.push_back(JSONNode("status", ret));
-		reply.push_back(JSONNode("id", id));
-	
-		if (isIn && ret>=0){
-			JSONNode data_arr(JSON_ARRAY);
-			for (int i=0; i<ret && i<wLength; i++){
-				data_arr.push_back(JSONNode("", data[i]));
-			}
-			data_arr.set_name("data");
-			reply.push_back(data_arr);
-		}
-	
-		client.sendJSON(reply);
 	}else{
 		return false;
 	}

@@ -43,6 +43,7 @@ const float I_max = 200;
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	StreamingDevice(CEE_sample_time),
+	USB_device(dev, desc),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
 	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1),
@@ -50,20 +51,6 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1),
 	channel_b_i("i", "Current B", "mA", I_min, I_max,  2)
 	{
-
-	int r = libusb_open(dev, &handle);
-	if (r != 0){
-		cerr << "Could not open device; error "<< r <<endl;
-		return;
-	}
-	
-	r = libusb_claim_interface(handle, 0);
-	if (r != 0){
-		cerr << "Could not claim interface; error "<<r<<endl;
-		return;
-	}
-
-	libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char *) serial, 32);
 	cerr << "Found a CEE: "<< serial << endl;
 	
 	configure(0, CEE_sample_time, ceil(12.0/CEE_sample_time), true, false);
@@ -71,19 +58,14 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 
 CEE_device::~CEE_device(){
 	pause_capture();
-	libusb_close(handle);
 	delete channel_a.source;
 	delete channel_b.source;
 }
 
-int CEE_device::controlTransfer(uint8_t bmRequestType,
-                                uint8_t bRequest,
-                                uint16_t wValue,
-                                uint16_t wIndex,
-                                uint8_t* data,
-                                uint16_t wLength){
-	return libusb_control_transfer(handle, bmRequestType, bRequest, wValue, wIndex, data, wLength, 100);
-};
+bool CEE_device::processMessage(ClientConn& session, string& cmd, JSONNode& n){
+	return USB_device::processMessage(session,cmd,n)
+	    || StreamingDevice::processMessage(session,cmd,n);
+}
 
 void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw){
 	pause_capture();

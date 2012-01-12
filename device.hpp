@@ -33,17 +33,9 @@ class Device: public boost::enable_shared_from_this<Device> {
 		
 		virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n){ return false; }
 		
-		virtual int controlTransfer(uint8_t bmRequestType,
-		                            uint8_t bRequest,
-		                            uint16_t wValue,
-		                            uint16_t wIndex,
-		                            uint8_t* data,
-		                            uint16_t wLength){return -128;};
-		
-		virtual void onDisconnect(){ notifyDisconnect(); }
+		virtual void onDisconnect();
 		
 		protected:
-			void notifyDisconnect();
 			void broadcastJSON(JSONNode &n);
 };
 

@@ -16,7 +16,7 @@ void Device::broadcastJSON(JSONNode& n){
 	}
 }
 
-void Device::notifyDisconnect(){
+void Device::onDisconnect(){
 	JSONNode n(JSON_NODE);
 	n.push_back(JSONNode("_action", "deviceDisconnected"));
 	broadcastJSON(n);

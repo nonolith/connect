@@ -39,7 +39,7 @@ elif sys.platform.startswith('win'):
 else:
     print "Unknown platform", sys.platform
 
-sources = Glob('*.cpp') + ['cee/cee.cpp']
+sources = Glob('*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
 
 json = env.Library('json', 
 	Glob('libjson/Source/*.cpp'),
