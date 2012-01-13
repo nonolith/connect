@@ -8,7 +8,16 @@ if sys.platform.startswith('linux'):
 		LIBPATH=['.']
 	)
 	frameworks = ['']
-	libs += ['udev']
+	
+	static = True
+	
+	if static:
+		boost_lib = '/usr/lib/'
+#		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in boostlibs]
+		libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
+		
+	libs += ['udev', 'pthread', 'rt']
+	
 elif sys.platform == 'darwin':
 	env = Environment(
 		LIBPATH=['.']
