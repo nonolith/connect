@@ -30,7 +30,10 @@ class USB_device{
 			return;
 		}
 
-		libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char*)serial, 32);
+		r = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char*)serial, 32);
+		if (r < 0){
+			std::cerr << "Could not read string descriptor; error " << r << std::endl;
+		}
 	}
 	
 	virtual ~USB_device(){
