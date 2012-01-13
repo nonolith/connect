@@ -23,6 +23,8 @@ Bootloader_device::Bootloader_device(libusb_device *dev, libusb_device_descripto
 	
 	cerr << "Found a bootloader: "<< serial << endl;
 	
+	memset(&info, 0, sizeof(info));
+	
 	getInfo();
 }
 

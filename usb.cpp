@@ -58,10 +58,10 @@ void deviceAdded(libusb_device *dev){
 	
 	device_ptr newDevice;
 	
-	if (desc.idVendor == NONOLITH_VID){
+	if (desc.idVendor == NONOLITH_VID || desc.idVendor == 0x9999){
 		if (desc.idProduct == CEE_PID){
 			newDevice = device_ptr(new CEE_device(dev, desc));
-		}else if (desc.idProduct == BOOTLOADER_PID){
+		}else if (desc.idProduct == BOOTLOADER_PID || desc.idProduct == 0xb003){
 			newDevice = device_ptr(new Bootloader_device(dev, desc));
 		}
 	}
