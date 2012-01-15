@@ -113,38 +113,43 @@ void usb_scan_devices(){
 
 bool USB_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	if (cmd == "controlTransfer"){
-		string id = n.at("id").as_string();
-		uint8_t bmRequestType = n.at("bmRequestType").as_int();
-		uint8_t bRequest = n.at("bRequest").as_int();
-		uint16_t wValue = n.at("wValue").as_int();
-		uint16_t wIndex = n.at("wIndex").as_int();
-		uint16_t wLength = n.at("wLength").as_int();
-	
-		uint8_t data[wLength];
+		unsigned id = jsonIntProp(n, "id", 0);
+		uint8_t bmRequestType = jsonIntProp(n, "bmRequestType", 0xC0);
+		uint8_t bRequest = jsonIntProp(n, "bRequest");
+		uint16_t wValue = jsonIntProp(n, "wValue", 0);
+		uint16_t wIndex = jsonIntProp(n, "wIndex", 0);
 	
 		bool isIn = bmRequestType & 0x80;
-	
-		if (!isIn){
-			//TODO: also handle array input
-			string datastr = n.at("data").as_string();
-			datastr.copy((char*)data, wLength);
-		}
-	
-		int ret = controlTransfer(bmRequestType, bRequest, wValue, wIndex, data, wLength);
-	
+		
 		JSONNode reply(JSON_NODE);
 		reply.push_back(JSONNode("_action", "return"));
-		reply.push_back(JSONNode("status", ret));
 		reply.push_back(JSONNode("id", id));
-	
-		if (isIn && ret>=0){
-			JSONNode data_arr(JSON_ARRAY);
-			for (int i=0; i<ret && i<wLength; i++){
-				data_arr.push_back(JSONNode("", data[i]));
+		
+		int ret = -1000;
+		
+		if (isIn){
+			uint16_t wLength = jsonIntProp(n, "wLength", 64);
+			if (wLength > 64) wLength = 64;
+			if (wLength < 0) wLength = 0;
+		
+			uint8_t data[wLength];
+			ret = controlTransfer(bmRequestType, bRequest, wValue, wIndex, data, wLength);
+			
+			if (ret >= 0){
+				JSONNode data_arr(JSON_ARRAY);
+				for (int i=0; i<ret && i<wLength; i++){
+					data_arr.push_back(JSONNode("", data[i]));
+				}
+				data_arr.set_name("data");
+				reply.push_back(data_arr);
 			}
-			data_arr.set_name("data");
-			reply.push_back(data_arr);
+		}else{
+			//TODO: also handle array input
+			string datastr = n.at("data").as_string();
+			ret = controlTransfer(bmRequestType, bRequest, wValue, wIndex, (uint8_t *)datastr.data(), datastr.size());
 		}
+		
+		reply.push_back(JSONNode("status", ret));
 	
 		client.sendJSON(reply);
 	}else if(cmd == "enterBootloader"){
