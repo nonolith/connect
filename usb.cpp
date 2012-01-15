@@ -133,7 +133,7 @@ bool USB_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 		int ret = controlTransfer(bmRequestType, bRequest, wValue, wIndex, data, wLength);
 	
 		JSONNode reply(JSON_NODE);
-		reply.push_back(JSONNode("_action", "controlTransferReturn"));
+		reply.push_back(JSONNode("_action", "return"));
 		reply.push_back(JSONNode("status", ret));
 		reply.push_back(JSONNode("id", id));
 	
