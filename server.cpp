@@ -3,6 +3,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include "dataserver.hpp"
 #include "websocket_handler.hpp"
@@ -49,6 +50,15 @@ int main(int argc, char* argv[]){
 void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session_ptr client);
 
 void data_server_handler::on_client_connect(websocketpp::session_ptr client){
+	static const boost::regex nonolith_domain("^https?://[[:w:]\\.-]*?nonolithlabs.com$");
+	const string origin = client->get_client_header("Origin");
+
+	if (origin!="" && origin!="null" && !regex_match(origin, nonolith_domain)){
+		client->start_http(403);
+		std::cerr << "Rejected client with unknown origin " << origin << std::endl;
+		return;
+	}
+	
 	const std::string resource = client->get_resource();
 
 	std::vector<std::string> pathparts;
@@ -61,7 +71,7 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 		handleJSONRequest(pathparts, client);
 	}else if (pathparts[1] == "ws"){
 		client->start_websocket();
-	}else if (pathparts[1] == "tcp"){
+	//}else if (pathparts[1] == "tcp"){
 		//TODO: start TCP	
 	}else{
 		client->start_http(404, "Not found");
