@@ -3,50 +3,82 @@ import sys, os, shutil
 libs = ['usb_nonolith', 'websocketpp', 'json']
 boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
 
+env = Environment()
+
+opts = Variables()
+opts.Add(BoolVariable("mingwcross", "Cross-compile with mingw for Win32", 0))
+opts.Add(BoolVariable("boost_static", "Statically link against Boost", 1))
+Help(opts.GenerateHelpText(env))
+opts.Update(env)
+
+platform = None
+target = None
+
+env.Append(LIBPATH=['.'])
+
 if sys.platform.startswith('linux'):
-	env = Environment(
-		LIBPATH=['.']
-	)
-	frameworks = ['']
+	platform = target = 'linux'
+elif sys.platform == 'darwin':
+	platform = target = 'osx'
+elif sys.platform.startswith('win'):
+	platform = target = 'windows'
+else:
+	print "Unknown platform"
+	exit()
+
 	
+if env['mingwcross']:
+	target = 'windows'
+	env.Platform('cygwin')
+	env['CC']  = 'i586-mingw32msvc-gcc'
+	env['CXX'] = 'i586-mingw32msvc-g++'
+	env['AR']  = 'i586-mingw32msvc-ar'
+	env['RANLIB'] = 'i586-mingw32msvc-ranlib'
+
+frameworks = []
+
+if target is 'linux':	
 	static = True
 	
 	if static:
 		boost_lib = '/usr/lib/'
-#		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in boostlibs]
+		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in boostlibs]
 		libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
 		
 	libs += ['udev', 'pthread', 'rt']
 	
-elif sys.platform == 'darwin':
-	env = Environment(
-		LIBPATH=['.']
-	)
+elif target is 'osx':
 	boostlibs = [i+'-mt' for i in boostlibs]
 	libs += ['objc']
 	frameworks = ['CoreFoundation', 'IOKit']
 	LIBPATH=['.']
-elif sys.platform.startswith('win'):
-	boost_dir='C:\\Program Files\\boost\\src\\'
-	boost_lib=boost_dir+'stage\\lib\\'
-	env = Environment(
+	
+elif target is 'windows':
+	if platform is 'windows':
+		boost_dir='C:\\Program Files\\boost\\src\\'
+		boost_lib=boost_dir+'stage\\lib\\'
+		env.Append(CPPPATH = boost_dir)
+	else:
+		boost_lib = '../lib/win/boost/lib/'
+		env.Append(CPPPATH = '../lib/win/boost/include')
+		
+	env.Append(
 		tools=['mingw'],
-		CPPPATH=boost_dir,
-		CPPFLAGS=["-D_WIN32_WINNT=0x0501", '-static'],
+		CPPFLAGS=["-D_WIN32_WINNT=0x0501", '-static', '-D BOOST_THREAD_USE_LIB'],
 		LIBPATH=[boost_lib, '.']
 	)
 	
-	static = False
-	
+	static = True
+	boostlibs.remove('boost_thread')
+	boostlibs.append('boost_thread_win32')
 	if static:
-		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+'-mgw46-mt-1_48'+env['LIBSUFFIX']) for i in boostlibs]
+		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+'-mt-s'+env['LIBSUFFIX']) for i in boostlibs]
 	else:
 		boostlibs = [i+'-mgw46-mt-1_48' for i in boostlibs]
 		
-	frameworks = ['']
 	libs += ['ws2_32', 'mswsock']
-else:
-    print "Unknown platform", sys.platform
+    
+
 
 sources = Glob('*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
 
@@ -66,24 +98,24 @@ websocketpp = env.Library('websocketpp', ['websocketpp/src/'+i for i in [
             ]], CCFLAGS=['-g', '-O3'])
 
 
-def make_in_subdir(dir, libsrc, libdest):
-	def fn(source, target, env, *args):
-		print "Making in subdir"
-		os.chdir(dir)
-		try:
-			r = os.system('sh autogen.sh')
-			if r: raise IOError("Autogen failed")
-			r = os.system('sh configure')
-			if r: raise IOError("Configure failed")
-			r = os.system('make')
-			if r: raise IOError("Make failed")
-			shutil.copy(libsrc, libdest)
-		finally:
-			os.chdir('..')
-	return fn
-	
-			
-env.Command('libusb_nonolith.a', [], make_in_subdir('libusb', 'libusb/.libs/libusb-1.0.a', '../libusb_nonolith.a'))
+libusb_cflags = []
+if target is 'linux':
+	libusb_os = ['os/linux_usbfs.c', 'os/threads_posix.c']
+	libusb_cflags += ['-D OS_LINUX', '-D USBI_TIMERFD_AVAILABLE', '-D THREADS_POSIX', '-DPOLL_NFDS_TYPE=nfds_t', '-D HAVE_POLL_H']
+elif target is 'osx':
+	libusb_os = ['os/darwin_usb.c']
+	libusb_cflags += ['-D OS_DARWIN', '-D THREADS_POSIX', '-DPOLL_NFDS_TYPE=nfds_t', '-D HAVE_POLL_H']
+elif target is 'windows':
+	libusb_os = ['os/poll_windows.c', 'os/windows_usb.c', 'os/threads_windows.c']
+	libusb_cflags += ['-D OS_WINDOWS', '-DPOLL_NFDS_TYPE=unsigned int', '-D WINVER=0x0501']
+
+libusb = env.Library('libusb_nonolith', ['libusb/libusb/'+i for i in [
+				'core.c',
+				'descriptor.c',
+				'io.c',
+				'sync.c',
+			]+libusb_os], CFLAGS=['-g', '-O3', '-Ilibusb', '-Ilibusb/libusb']+libusb_cflags) 
+
 
 libs += boostlibs
 
