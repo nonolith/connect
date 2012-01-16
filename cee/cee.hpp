@@ -62,8 +62,8 @@ class CEE_device: public StreamingDevice, USB_device{
 	virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw);
 
 	virtual const string model(){return "com.nonolithlabs.cee";}
-	virtual const string hwversion(){return "unknown";}
-	virtual const string fwversion(){return "unknown";}
+	virtual const string hwVersion(){return _hwversion;}
+	virtual const string fwVersion(){return _fwversion;}
 	virtual const string serialno(){return serial;}
 	
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
@@ -90,6 +90,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	unsigned incount, outcount;
 
 	protected:
+	string _hwversion, _fwversion;
 	virtual void on_reset_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();

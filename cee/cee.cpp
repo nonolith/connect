@@ -53,6 +53,18 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	{
 	cerr << "Found a CEE: "<< serial << endl;
 	
+	uint8_t buf[64];
+	int r;
+	r = controlTransfer(0xC0, 0x00, 0, 0, buf, 64);
+	if (r >= 0){
+		_hwversion = string((char*)buf, r);
+	}
+	
+	r = controlTransfer(0xC0, 0x00, 0, 1, buf, 64);
+	if (r >= 0){
+		_fwversion = string((char*)buf, r);
+	}
+	
 	configure(0, CEE_sample_time, ceil(12.0/CEE_sample_time), true, false);
 }
 
