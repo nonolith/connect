@@ -199,22 +199,34 @@ void CEE_device::on_pause_capture(){
 
 void CEE_device::handle_in_packet(unsigned char *buffer){
 	IN_packet *pkt = (IN_packet*) buffer;
+	
+	if (pkt->flags & FLAG_PACKET_DROPPED){
+		std::cerr << "Warning: dropped packet" << std::endl;
+	}
+	
 	for (int i=0; i<10; i++){
 		float v_factor = 5.0/2048.0;
 		float i_factor = 2.5/2048.0/CEE_I_gain*1000.0;
 		
 		if (rawMode) v_factor = i_factor = 1;
-	
+		
 		put(channel_a_v, pkt->data[i].av()*v_factor);
-		put(channel_a_i, pkt->data[i].ai()*i_factor);
+		if ((pkt->mode_a & 0x3) != DISABLED){
+			put(channel_a_i, pkt->data[i].ai()*i_factor);
+		}else{
+			put(channel_a_i, 0);
+		}
 		put(channel_b_v, pkt->data[i].bv()*v_factor);
-		put(channel_b_i, pkt->data[i].bi()*i_factor);
+		if ((pkt->mode_b & 0x3) != DISABLED){
+			put(channel_b_i, pkt->data[i].bi()*i_factor);
+		}else{
+			put(channel_b_i, 0);
+		}
 		sampleDone();
 	}
 
 	free(buffer);
 	packetDone();
-	
 	checkOutputEffective(channel_a);
 	checkOutputEffective(channel_b);
 }
@@ -262,13 +274,15 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 
 void CEE_device::fill_out_packet(unsigned char* buf){
 	boost::mutex::scoped_lock lock(outputMutex);
+	
+	uint8_t mode_a = channel_a.source->mode;;
+	uint8_t mode_b = channel_b.source->mode;
+	
 	if (channel_a.source && channel_b.source){
-		unsigned mode_a = channel_a.source->mode;
-		unsigned mode_b = channel_b.source->mode;
-
 		OUT_packet *pkt = (OUT_packet *)buf;
 
-		pkt->flags = (mode_b<<4) | mode_a;
+		pkt->mode_a = mode_a;
+		pkt->mode_b = mode_b;
 
 		for (int i=0; i<10; i++){
 			pkt->data[i].pack(

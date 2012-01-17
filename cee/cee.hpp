@@ -25,13 +25,15 @@ struct IN_sample{
 } __attribute__((packed));
 
 #define IN_SAMPLES_PER_PACKET 10
-struct IN_packet{
-	unsigned char seqno;
-	unsigned char flags;
-	unsigned char reserved[2];
-	IN_sample data[IN_SAMPLES_PER_PACKET];	
-} __attribute__((packed));
+#define FLAG_PACKET_DROPPED (1<<0)
 
+typedef struct IN_packet{
+	uint8_t mode_a;
+	uint8_t mode_b;
+	uint8_t flags;
+	uint8_t mode_seq;
+	IN_sample data[10];	
+} __attribute__((packed)) IN_packet;
 
 #define OUT_SAMPLES_PER_PACKET 10
 struct OUT_sample{
@@ -43,11 +45,11 @@ struct OUT_sample{
 	}
 } __attribute__((packed));
 
-struct OUT_packet{
-	unsigned char seqno;
-	unsigned char flags;
-	OUT_sample data[OUT_SAMPLES_PER_PACKET];
-} __attribute__((packed));
+typedef struct OUT_packet{
+	uint8_t mode_a;
+	uint8_t mode_b;
+	OUT_sample data[10];
+} __attribute__((packed)) OUT_packet;
 
 class OutputPacketSource;
 
