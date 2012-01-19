@@ -25,6 +25,7 @@ struct Stream{
 		max(_max),
 		
 		outputMode(_outputMode),
+		gain(1),
 		data(0){};
 
 	~Stream(){
@@ -49,6 +50,9 @@ struct Stream{
 	/// mode for output that "sources" this stream's variable
 	/// 0 if outputting this variable is not supported.
 	unsigned outputMode;
+	
+	// Gain factor
+	unsigned gain;
 
 	/// Raw data buffer
 	float* data;
@@ -99,6 +103,7 @@ class StreamingDevice: public Device{
 		void pause_capture();
 
 		virtual void setOutput(Channel* channel, OutputSource* source);
+		virtual void setGain(Channel* channel, Stream* stream, int gain){}
 
 		Channel* channelById(const std::string&);
 
@@ -180,6 +185,7 @@ class StreamingDevice: public Device{
 		void notifyCaptureReset();
 		void notifyDisconnect();
 		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
+		void notifyGainChanged(Channel* channel, Stream* stream, int gain);
 		void done_capture();
 		void handleNewData();
 

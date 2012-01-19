@@ -13,6 +13,7 @@ JSONNode Stream::toJSON(){
 	n.push_back(JSONNode("min", s->min));
 	n.push_back(JSONNode("max", s->max));
 	n.push_back(JSONNode("outputMode", s->outputMode));
+	n.push_back(JSONNode("gain", s->gain));
 	return n;
 }
 

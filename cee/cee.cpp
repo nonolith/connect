@@ -18,6 +18,7 @@ using namespace std;
 #define EP_BULK_OUT 0x02
 
 #define CMD_CONFIG_CAPTURE 0x80
+#define CMD_CONFIG_GAIN 0x65
 #define DEVMODE_OFF  0
 #define DEVMODE_2SMU 1
 
@@ -197,6 +198,62 @@ void CEE_device::on_pause_capture(){
 	}
 }
 
+void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
+	uint8_t streamval = 0, gainval=0;
+	
+	if (stream == &channel_a_i){
+		streamval = 0;
+	}else if(stream == &channel_a_v){
+		streamval = 1;
+	}else if(stream == &channel_b_v){
+		streamval = 2;
+	}else if(stream == &channel_b_i){
+		streamval = 3;
+	}else return;
+	
+	switch(gain){
+		case 1:
+			gainval = (0x00<<2);
+			break;
+		case 2:
+			gainval = (0x01<<2);  /* 2x gain */
+			break;
+		case 4:
+    		gainval = (0x02<<2);  /* 4x gain */
+    		break;
+    	case 8:
+    		gainval = (0x03<<2);  /* 8x gain */
+    		break;
+    	case 16:
+    		gainval = (0x04<<2);  /* 16x gain */
+    		break;
+    	case 32:
+    		gainval = (0x05<<2);  /* 32x gain */
+    		break;
+    	case 64:
+    		gainval = (0x06<<2);  /* 64x gain */
+    		break;
+    	default:
+    		return;
+	}
+	
+	stream->gain = gain;
+	
+	if (captureState){
+		on_pause_capture();
+	}
+	
+	controlTransfer(0x40, CMD_CONFIG_GAIN, gainval, streamval, 0, 0);
+	
+	if (captureState){
+		on_start_capture();
+	}
+	
+	std::cerr << "Set gain " << channel->id << " " << stream->id << " "
+	    << gain << " " << (int) streamval << " " << (int) gainval << std::endl;
+	notifyGainChanged(channel, stream, gain);
+}
+
 void CEE_device::handle_in_packet(unsigned char *buffer){
 	IN_packet *pkt = (IN_packet*) buffer;
 	
@@ -210,15 +267,15 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 		
 		if (rawMode) v_factor = i_factor = 1;
 		
-		put(channel_a_v, pkt->data[i].av()*v_factor);
+		put(channel_a_v, pkt->data[i].av()*v_factor/channel_a_v.gain);
 		if ((pkt->mode_a & 0x3) != DISABLED){
-			put(channel_a_i, pkt->data[i].ai()*i_factor);
+			put(channel_a_i, pkt->data[i].ai()*i_factor/channel_a_i.gain);
 		}else{
 			put(channel_a_i, 0);
 		}
-		put(channel_b_v, pkt->data[i].bv()*v_factor);
+		put(channel_b_v, pkt->data[i].bv()*v_factor/channel_b_v.gain);
 		if ((pkt->mode_b & 0x3) != DISABLED){
-			put(channel_b_i, pkt->data[i].bi()*i_factor);
+			put(channel_b_i, pkt->data[i].bi()*i_factor/channel_b_i.gain);
 		}else{
 			put(channel_b_i, 0);
 		}

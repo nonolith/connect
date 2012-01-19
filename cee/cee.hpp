@@ -71,6 +71,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
 	
 	virtual void setOutput(Channel* channel, OutputSource* source);
+	virtual void setGain(Channel* channel, Stream* stream, int gain);
 
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];

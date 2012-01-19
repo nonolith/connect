@@ -31,8 +31,19 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 	
 	}else if (cmd == "set"){
 		Channel *channel = channelById(jsonStringProp(n, "channel"));
-		if (!channel) throw ErrorStringException("Stream not found");
+		if (!channel) throw ErrorStringException("Channel not found");
 		setOutput(channel, makeSource(n));
+		
+	}else if (cmd == "setGain"){
+		Channel *channel = channelById(jsonStringProp(n, "channel"));
+		if (!channel) throw ErrorStringException("Channel not found");
+		Stream *stream = findStream(
+				jsonStringProp(n, "channel"),
+				jsonStringProp(n, "stream"));
+
+		unsigned gain = jsonIntProp(n, "gain", 1);
+		
+		setGain(channel, stream, gain);
 	}else{
 		return false;
 	}
@@ -55,6 +66,8 @@ void StreamingDevice::onClientAttach(ClientConn* client){
 void StreamingDevice::onClientDetach(ClientConn* client){
 	Device::onClientDetach(client);
 	
+	std::cout << "Client disconnected. " << listeners.size() << std::endl;
+	
 	listener_map_t::iterator it;
 	for (it=listeners.begin(); it!=listeners.end();){
 		// Increment before deleting as that invalidates the iterator
@@ -66,6 +79,8 @@ void StreamingDevice::onClientDetach(ClientConn* client){
 			listeners.erase(currentIt);
 		}
 	}
+	
+	std::cout << "L " << listeners.size() << std::endl;
 }
 
 void StreamingDevice::addListener(StreamListener *l){
@@ -200,6 +215,15 @@ void StreamingDevice::notifyOutputChanged(Channel *channel, OutputSource *source
 	n.push_back(JSONNode("_action", "outputChanged"));
 	n.push_back(JSONNode("channel", channel->id));
 	source->describeJSON(n);
+	broadcastJSON(n);
+}
+
+void StreamingDevice::notifyGainChanged(Channel* channel, Stream* stream, int gain){
+	JSONNode n(JSON_NODE);
+	n.push_back(JSONNode("_action", "gainChanged"));
+	n.push_back(JSONNode("channel", channel->id));
+	n.push_back(JSONNode("stream", stream->id));
+	n.push_back(JSONNode("gain", gain));
 	broadcastJSON(n);
 }
 
