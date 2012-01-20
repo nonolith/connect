@@ -53,7 +53,7 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 	static const boost::regex nonolith_domain("^https?://[[:w:]\\.-]*?nonolithlabs.com$");
 	const string origin = client->get_client_header("Origin");
 
-	if (origin!="" && origin!="null" && !regex_match(origin, nonolith_domain)){
+	if (origin!="" && origin!="null" && origin!="http://localhost:8000" && !regex_match(origin, nonolith_domain)){
 		client->start_http(403);
 		std::cerr << "Rejected client with unknown origin " << origin << std::endl;
 		return;
