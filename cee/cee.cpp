@@ -47,10 +47,10 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	USB_device(dev, desc),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1),
-	channel_a_i("i", "Current A", "mA", I_min, I_max,  2),
-	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1),
-	channel_b_i("i", "Current B", "mA", I_min, I_max,  2)
+	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1, V_max/4096),
+	channel_a_i("i", "Current A", "mA", I_min, I_max,  2, I_max*2/4096),
+	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1, V_max/4096),
+	channel_b_i("i", "Current B", "mA", I_min, I_max,  2, I_max*2/4096)
 	{
 	cerr << "Found a CEE: "<< serial << endl;
 	

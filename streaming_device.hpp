@@ -17,7 +17,7 @@ struct Stream;
 struct OutputSource;
 
 struct Stream{
-	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0):
+	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0, float _uncertainty=0):
 		id(_id),
 		displayName(_dn),
 		units(_units),
@@ -26,6 +26,7 @@ struct Stream{
 		
 		outputMode(_outputMode),
 		gain(1),
+		uncertainty(_uncertainty),
 		data(0){};
 
 	~Stream(){
@@ -53,6 +54,8 @@ struct Stream{
 	
 	// Gain factor
 	unsigned gain;
+	
+	float uncertainty;
 
 	/// Raw data buffer
 	float* data;
