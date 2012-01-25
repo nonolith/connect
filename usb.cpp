@@ -144,8 +144,15 @@ bool USB_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 				reply.push_back(data_arr);
 			}
 		}else{
-			//TODO: also handle array input
-			string datastr = n.at("data").as_string();
+			string datastr;
+			JSONNode data = n.at("data");
+			if (data.type() == JSON_ARRAY){
+				for(JSONNode::iterator i=data.begin(); i!=data.end(); i++){
+					datastr.push_back(i->as_int());
+				}
+			}else{
+				datastr = data.as_string();
+			}
 			ret = controlTransfer(bmRequestType, bRequest, wValue, wIndex, (uint8_t *)datastr.data(), datastr.size());
 		}
 		
