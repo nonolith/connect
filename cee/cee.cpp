@@ -79,10 +79,16 @@ CEE_device::~CEE_device(){
 }
 
 void CEE_device::readCalibration(){
-	int r = controlTransfer(0xC0, 0xE0, 0, 0, (uint8_t*)&cal, 64);
-	if (!r || cal.magic != EEPROM_VALID_MAGIC){
+	union{
+		uint8_t buf[64];
+		uint32_t magic;
+	};
+	int r = controlTransfer(0xC0, 0xE0, 0, 0, buf, 64);
+	if (!r || magic != EEPROM_VALID_MAGIC){
 		cerr << "Reading calibration data failed " << r << endl;
 		memset(&cal, 0, sizeof(cal));
+	}else{
+		memcpy((uint8_t*)&cal, buf, sizeof(cal));
 	}
 }
 
