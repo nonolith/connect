@@ -311,8 +311,10 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 }
 
 void CEE_device::setOutput(Channel* channel, OutputSource* source){
-	{
-		boost::mutex::scoped_lock lock(outputMutex);
+	{boost::mutex::scoped_lock lock(outputMutex);
+		
+		source->initialize(capture_o, channel->source);
+		
 		if (channel->source){
 			delete channel->source;
 		}

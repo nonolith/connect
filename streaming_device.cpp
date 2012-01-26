@@ -201,6 +201,8 @@ void StreamingDevice::packetDone(){
 }
 
 void StreamingDevice::setOutput(Channel* channel, OutputSource* source){
+	source->initialize(capture_o, channel->source);
+	
 	if (channel->source){
 		delete channel->source;
 	}

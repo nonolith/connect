@@ -227,6 +227,8 @@ struct OutputSource{
 	
 	/// true if this source's effect has come back as input
 	bool effective;
+	
+	virtual void initialize(unsigned sample, OutputSource* prevSrc){};
 
 	protected:
 		OutputSource(unsigned m): mode(m), effective(false){};
