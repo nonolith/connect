@@ -19,6 +19,7 @@ using namespace std;
 
 #define CMD_CONFIG_CAPTURE 0x80
 #define CMD_CONFIG_GAIN 0x65
+#define CMD_ISET_DAC 0x15
 #define DEVMODE_OFF  0
 #define DEVMODE_2SMU 1
 
@@ -66,6 +67,8 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 		_fwversion = string((char*)buf, r);
 	}
 	
+	readCalibration();
+	
 	configure(0, CEE_sample_time, ceil(12.0/CEE_sample_time), true, false);
 }
 
@@ -73,6 +76,14 @@ CEE_device::~CEE_device(){
 	pause_capture();
 	delete channel_a.source;
 	delete channel_b.source;
+}
+
+void CEE_device::readCalibration(){
+	int r = controlTransfer(0xC0, 0xE0, 0, 0, (uint8_t*)&cal, 64);
+	if (!r || cal.magic != EEPROM_VALID_MAGIC){
+		cerr << "Reading calibration data failed " << r << endl;
+		memset(&cal, 0, sizeof(cal));
+	}
 }
 
 bool CEE_device::processMessage(ClientConn& session, string& cmd, JSONNode& n){
@@ -133,6 +144,11 @@ void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool co
 		channel_a_i.allocate(captureSamples);
 		channel_b_v.allocate(captureSamples);
 		channel_b_i.allocate(captureSamples);
+		
+		// Write current-limit DAC
+		if (cal.magic == EEPROM_VALID_MAGIC){
+			controlTransfer(0xC0, CMD_ISET_DAC, cal.dac200_a, cal.dac200_b, NULL, 0);
+		}
 	}
 	
 	notifyConfig();
@@ -267,15 +283,15 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 		
 		if (rawMode) v_factor = i_factor = 1;
 		
-		put(channel_a_v, pkt->data[i].av()*v_factor/channel_a_v.gain);
+		put(channel_a_v, (cal.offset_a_v + pkt->data[i].av())*v_factor/channel_a_v.gain);
 		if ((pkt->mode_a & 0x3) != DISABLED){
-			put(channel_a_i, pkt->data[i].ai()*i_factor/channel_a_i.gain);
+			put(channel_a_i, (cal.offset_a_i + pkt->data[i].ai())*i_factor/channel_a_i.gain);
 		}else{
 			put(channel_a_i, 0);
 		}
-		put(channel_b_v, pkt->data[i].bv()*v_factor/channel_b_v.gain);
+		put(channel_b_v, (cal.offset_b_v + pkt->data[i].bv())*v_factor/channel_b_v.gain);
 		if ((pkt->mode_b & 0x3) != DISABLED){
-			put(channel_b_i, pkt->data[i].bi()*i_factor/channel_b_i.gain);
+			put(channel_b_i, (cal.offset_b_i + pkt->data[i].bi())*i_factor/channel_b_i.gain);
 		}else{
 			put(channel_b_i, 0);
 		}

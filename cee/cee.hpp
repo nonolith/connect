@@ -53,6 +53,15 @@ typedef struct OUT_packet{
 
 class OutputPacketSource;
 
+
+#define EEPROM_VALID_MAGIC 0x90e26cee
+
+struct EEPROM_cal{
+	uint32_t magic;
+	int8_t offset_a_v, offset_a_i, offset_b_v, offset_b_i;
+	int16_t dac200_a, dac200_b, dac400_a, dac400_b;
+} __attribute__((packed));
+
 #define N_TRANSFERS 128
 #define TRANSFER_SIZE 64
 
@@ -99,4 +108,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	virtual void on_pause_capture();
 	uint16_t encode_out(CEE_chanmode mode, float val);
 	void checkOutputEffective(Channel& channel);
+	
+	EEPROM_cal cal;
+	void readCalibration();
 };
