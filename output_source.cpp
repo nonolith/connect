@@ -31,10 +31,10 @@ OutputSource *makeConstantSource(unsigned m, int value){
 	return new ConstantSource(m, value);
 }
 
-struct SquareWaveSource: public OutputSource{
-	SquareWaveSource(unsigned m, float _high, float _low, unsigned _highSamples, unsigned _lowSamples):
-		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples), phase(0){}
-	virtual string displayName(){return "square";}
+struct AdvSquareWaveSource: public OutputSource{
+	AdvSquareWaveSource(unsigned m, float _high, float _low, unsigned _highSamples, unsigned _lowSamples, int _phase):
+		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples), phase(_phase){}
+	virtual string displayName(){return "adv_square";}
 	
 	virtual float getValue(unsigned sample, float sampleTime){
 		unsigned s = (sample + phase) % (highSamples + lowSamples);
@@ -96,21 +96,33 @@ struct TriangleWaveSource: public PeriodicSource{
 	}
 };
 
+struct SquareWaveSource: public PeriodicSource{
+	SquareWaveSource(unsigned m, float _offset, float _amplitude, float _period, float _phase, bool relPhase):
+		PeriodicSource(m, _offset, _amplitude, _period, _phase, relPhase) {}
+	virtual string displayName(){return "square";}
+	virtual float getValue(unsigned sample, float SampleTime){
+		unsigned s = fmod(sample + phase, period);
+		if (s < period/2) return offset+amplitude;
+		else              return offset-amplitude;
+	}
+};
+
 
 
 OutputSource* makeSource(JSONNode& n){
-	string source = n.at("source").as_string();
-	unsigned mode = n.at("mode").as_int(); //TODO: validate
+	string source = jsonStringProp(n, "source", "constant");
+	unsigned mode = jsonFloatProp(n, "mode"); //TODO: validate
 	if (source == "constant"){
-		float val = n.at("value").as_float();
+		float val = jsonFloatProp(n, "value");
 		return new ConstantSource(mode, val);
-	}else if (source == "square"){
-		float high = n.at("high").as_float();
-		float low = n.at("low").as_float();
-		int highSamples = n.at("highSamples").as_int();
+	}else if (source == "adv_square"){
+		float high = jsonFloatProp(n, "high");
+		float low = jsonFloatProp(n, "low");
+		int highSamples = jsonIntProp(n, "high");
 		int lowSamples = n.at("lowSamples").as_int();
-		return new SquareWaveSource(mode, high, low, highSamples, lowSamples);
-	}else if (source == "sine" || source == "triangle"){
+		int phase = jsonIntProp(n, "phase", 0);
+		return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
+	}else if (source == "sine" || source == "triangle" || source == "square"){
 		float offset = jsonFloatProp(n, "offset");
 		float amplitude = jsonFloatProp(n, "amplitude");
 		float period = jsonFloatProp(n, "period");
@@ -121,6 +133,8 @@ OutputSource* makeSource(JSONNode& n){
 			return new SineWaveSource(mode, offset, amplitude, period, phase, relPhase);
 		else if (source == "triangle")
 			return new TriangleWaveSource(mode, offset, amplitude, period, phase, relPhase);
+		else if (source == "square")
+			return new SquareWaveSource(mode, offset, amplitude, period, phase, relPhase);
 	}
 	throw ErrorStringException("Invalid source");
 }
