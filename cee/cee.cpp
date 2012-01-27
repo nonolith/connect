@@ -158,7 +158,6 @@ void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool co
 	}
 	
 	notifyConfig();
-	reset_capture();
 }
 
 void CEE_device::on_reset_capture(){

@@ -75,6 +75,7 @@ std::string toHex(unsigned val) {
 void Bootloader_device::onClientAttach(ClientConn *c){
 	JSONNode n;
 	n.push_back(JSONNode("_action", "info"));
+	n.push_back(JSONNode("serial", serial));
 	n.push_back(JSONNode("magic", toHex(ntohl(info.magic))));
 	n.push_back(JSONNode("version", info.version));
 	n.push_back(JSONNode("devid", toHex(ntohl(info.devid))));

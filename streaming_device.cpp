@@ -182,10 +182,12 @@ void StreamingDevice::notifyCaptureReset(){
 }
 
 void StreamingDevice::notifyConfig(){
+	clearAllListeners();
+	
 	JSONNode n(JSON_NODE);
 	n.push_back(JSONNode("_action", "deviceConfig"));
 
-	JSONNode d = toJSON();
+	JSONNode d = stateToJSON();
 	d.set_name("device");
 	n.push_back(d);
 
