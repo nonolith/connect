@@ -269,7 +269,7 @@ void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
 		streamval = 3;
 	}else return;
 	
-	switch(gain){
+	switch(effectiveGain){
 		case 1:
 			gainval = (0x00<<2);
 			break;
