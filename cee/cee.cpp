@@ -48,10 +48,10 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	USB_device(dev, desc),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1, V_max/4096),
-	channel_a_i("i", "Current A", "mA", I_min, I_max,  2, I_max*2/4096),
-	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1, V_max/4096),
-	channel_b_i("i", "Current B", "mA", I_min, I_max,  2, I_max*2/4096)
+	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1, V_max/2048),
+	channel_a_i("i", "Current A", "mA", I_min, I_max,  2, 1), // I_max*2/4096, reduced for 9919 bug
+	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1, V_max/2048),
+	channel_b_i("i", "Current B", "mA", I_min, I_max,  2, 1)
 	{
 	cerr << "Found a CEE: "<< serial << endl;
 	
@@ -92,9 +92,37 @@ void CEE_device::readCalibration(){
 	}
 }
 
-bool CEE_device::processMessage(ClientConn& session, string& cmd, JSONNode& n){
-	return USB_device::processMessage(session,cmd,n)
-	    || StreamingDevice::processMessage(session,cmd,n);
+bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
+	if (cmd == "writeCalibration"){
+		cal.offset_a_v = jsonIntProp(n, "offset_a_v");
+		cal.offset_a_i = jsonIntProp(n, "offset_a_i");
+		cal.offset_b_v = jsonIntProp(n, "offset_b_v");
+		cal.offset_b_i = jsonIntProp(n, "offset_b_i");
+		cal.dac200_a = jsonIntProp(n, "dac200_a");
+		cal.dac200_b = jsonIntProp(n, "dac200_b");
+		cal.dac400_a = jsonIntProp(n, "dac400_a");
+		cal.dac400_b = jsonIntProp(n, "dac400_b");
+		cal.magic = EEPROM_VALID_MAGIC;
+		
+		int r = controlTransfer(0x40, 0xE1, 0, 0, (uint8_t *)&cal, sizeof(cal));
+		
+		cerr << "Wrote calibration, " << r << std::endl;
+		
+		JSONNode reply(JSON_NODE);
+		reply.push_back(JSONNode("_action", "return"));
+		reply.push_back(JSONNode("id", jsonIntProp(n, "id", 0)));
+		reply.push_back(JSONNode("status", r));
+		client.sendJSON(reply);
+		return true;
+		
+	}else if (cmd == "disableCalibration"){
+		memset(&cal, 0, sizeof(cal));
+		return true;
+		
+	}else{
+		return USB_device::processMessage(client,cmd,n)
+			|| StreamingDevice::processMessage(client,cmd,n);
+	}
 }
 
 void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw){
@@ -222,13 +250,17 @@ void CEE_device::on_pause_capture(){
 void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
 	uint8_t streamval = 0, gainval=0;
 	
+	int effectiveGain = gain;
+	
 	if (stream == &channel_a_i){
 		streamval = 0;
+		effectiveGain *= 2;
 	}else if(stream == &channel_a_v){
 		streamval = 1;
 	}else if(stream == &channel_b_v){
 		streamval = 2;
 	}else if(stream == &channel_b_i){
+		effectiveGain *= 2;
 		streamval = 3;
 	}else return;
 	
