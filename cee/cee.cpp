@@ -284,7 +284,7 @@ void CEE_device::handle_in_packet(unsigned char *buffer){
 	
 	for (int i=0; i<10; i++){
 		float v_factor = 5.0/2048.0;
-		float i_factor = 2.5/2048.0/CEE_I_gain*1000.0;
+		float i_factor = 2.5/2048.0/CEE_I_gain*1000.0/2;
 		
 		if (rawMode) v_factor = i_factor = 1;
 		
