@@ -115,8 +115,13 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 		client.sendJSON(reply);
 		return true;
 		
-	}else if (cmd == "disableCalibration"){
+	}else if (cmd == "tempCalibration"){
 		memset(&cal, 0, sizeof(cal));
+		cal.offset_a_v = jsonIntProp(n, "offset_a_v", 0);
+		cal.offset_a_i = jsonIntProp(n, "offset_a_i", 0);
+		cal.offset_b_v = jsonIntProp(n, "offset_b_v", 0);
+		cal.offset_b_i = jsonIntProp(n, "offset_b_i", 0);
+		cerr << "Applied temporary calibration" << std::endl;
 		return true;
 		
 	}else{
