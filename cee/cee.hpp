@@ -62,8 +62,8 @@ struct EEPROM_cal{
 	int16_t dac200_a, dac200_b, dac400_a, dac400_b;
 } __attribute__((packed));
 
-#define N_TRANSFERS 128
-#define TRANSFER_SIZE 64
+#define N_TRANSFERS 16
+#define PACKETS_PER_TRANSFER 4
 
 class CEE_device: public StreamingDevice, USB_device{
 	public: 
@@ -95,8 +95,8 @@ class CEE_device: public StreamingDevice, USB_device{
 
 	boost::mutex outputMutex;
 	boost::mutex transfersMutex;
-	void fill_out_packet(unsigned char*);
-	void handle_in_packet(unsigned char*);
+	void fillOutTransfer(unsigned char*);
+	void handleInTransfer(unsigned char*);
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;

@@ -211,16 +211,18 @@ void CEE_device::on_start_capture(){
 	
 	for (int i=0; i<N_TRANSFERS; i++){
 		in_transfers[i] = libusb_alloc_transfer(0);
-		unsigned char* buf = (unsigned char*) malloc(sizeof(IN_packet));
-		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, 64, in_transfer_callback, this, 5000);
+		const int isize = sizeof(IN_packet)*PACKETS_PER_TRANSFER;
+		unsigned char* buf = (unsigned char*) malloc(isize);
+		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, isize, in_transfer_callback, this, 500);
 		in_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(in_transfers[i]);
 		
 		out_transfers[i] = libusb_alloc_transfer(0);
-		buf = (unsigned char *) malloc(sizeof(OUT_packet));
-		fill_out_packet(buf);
+		const int osize = sizeof(OUT_packet)*PACKETS_PER_TRANSFER;
+		buf = (unsigned char *) malloc(osize);
+		fillOutTransfer(buf);
 		outcount++;
-		libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, 32, out_transfer_callback, this, 5000);
+		libusb_fill_bulk_transfer(out_transfers[i], handle, EP_BULK_OUT, buf, osize, out_transfer_callback, this, 500);
 		out_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(out_transfers[i]);
 	}
@@ -229,7 +231,7 @@ void CEE_device::on_start_capture(){
 void CEE_device::on_pause_capture(){
 	boost::mutex::scoped_lock lock(transfersMutex);
 
-	std::cerr << "on_pause_capture " << capture_i << " " << capture_o <<std::endl;
+	//std::cerr << "on_pause_capture " << capture_i << " " << capture_o <<std::endl;
 	
 	controlTransfer(0x40, CMD_CONFIG_CAPTURE, CEE_sample_per, DEVMODE_OFF, 0, 0);
 	
@@ -312,32 +314,34 @@ void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
 	notifyGainChanged(channel, stream, gain);
 }
 
-void CEE_device::handle_in_packet(unsigned char *buffer){
-	IN_packet *pkt = (IN_packet*) buffer;
+void CEE_device::handleInTransfer(unsigned char *buffer){
+	for (int p=0; p<PACKETS_PER_TRANSFER; p++){
+		IN_packet *pkt = (IN_packet*)(buffer + sizeof(IN_packet)*p);
 	
-	if (pkt->flags & FLAG_PACKET_DROPPED){
-		std::cerr << "Warning: dropped packet" << std::endl;
-	}
+		if (pkt->flags & FLAG_PACKET_DROPPED){
+			std::cerr << "Warning: dropped packet" << std::endl;
+		}
 	
-	for (int i=0; i<10; i++){
-		float v_factor = 5.0/2048.0;
-		float i_factor = 2.5/2048.0/CEE_I_gain*1000.0/2;
+		for (int i=0; i<10; i++){
+			float v_factor = 5.0/2048.0;
+			float i_factor = 2.5/2048.0/CEE_I_gain*1000.0/2;
 		
-		if (rawMode) v_factor = i_factor = 1;
+			if (rawMode) v_factor = i_factor = 1;
 		
-		put(channel_a_v, (cal.offset_a_v + pkt->data[i].av())*v_factor/channel_a_v.gain);
-		if ((pkt->mode_a & 0x3) != DISABLED){
-			put(channel_a_i, (cal.offset_a_i + pkt->data[i].ai())*i_factor/channel_a_i.gain);
-		}else{
-			put(channel_a_i, 0);
+			put(channel_a_v, (cal.offset_a_v + pkt->data[i].av())*v_factor/channel_a_v.gain);
+			if ((pkt->mode_a & 0x3) != DISABLED){
+				put(channel_a_i, (cal.offset_a_i + pkt->data[i].ai())*i_factor/channel_a_i.gain);
+			}else{
+				put(channel_a_i, 0);
+			}
+			put(channel_b_v, (cal.offset_b_v + pkt->data[i].bv())*v_factor/channel_b_v.gain);
+			if ((pkt->mode_b & 0x3) != DISABLED){
+				put(channel_b_i, (cal.offset_b_i + pkt->data[i].bi())*i_factor/channel_b_i.gain);
+			}else{
+				put(channel_b_i, 0);
+			}
+			sampleDone();
 		}
-		put(channel_b_v, (cal.offset_b_v + pkt->data[i].bv())*v_factor/channel_b_v.gain);
-		if ((pkt->mode_b & 0x3) != DISABLED){
-			put(channel_b_i, (cal.offset_b_i + pkt->data[i].bi())*i_factor/channel_b_i.gain);
-		}else{
-			put(channel_b_i, 0);
-		}
-		sampleDone();
 	}
 
 	free(buffer);
@@ -389,27 +393,29 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 	return 0;
 }
 
-void CEE_device::fill_out_packet(unsigned char* buf){
+void CEE_device::fillOutTransfer(unsigned char* buf){
 	boost::mutex::scoped_lock lock(outputMutex);
 	
-	uint8_t mode_a = channel_a.source->mode;;
+	uint8_t mode_a = channel_a.source->mode;
 	uint8_t mode_b = channel_b.source->mode;
 	
 	if (channel_a.source && channel_b.source){
-		OUT_packet *pkt = (OUT_packet *)buf;
+		for (int p=0; p<PACKETS_PER_TRANSFER; p++){
+			OUT_packet *pkt = (OUT_packet *)(buf + sizeof(OUT_packet)*p);
 
-		pkt->mode_a = mode_a;
-		pkt->mode_b = mode_b;
+			pkt->mode_a = mode_a;
+			pkt->mode_b = mode_b;
 
-		for (int i=0; i<10; i++){
-			pkt->data[i].pack(
-				encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, CEE_sample_time)),
-				encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, CEE_sample_time))
-			);
-			capture_o++;
-		}	
+			for (int i=0; i<10; i++){
+				pkt->data[i].pack(
+					encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, CEE_sample_time)),
+					encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, CEE_sample_time))
+				);
+				capture_o++;
+			}	
+		}
 	}else{
-		memset(buf, 0, 32);
+		memset(buf, 0, sizeof(OUT_packet)*PACKETS_PER_TRANSFER);
 	}
 	
 }
@@ -424,8 +430,7 @@ void destroy_transfer(CEE_device *dev, libusb_transfer** list, libusb_transfer* 
 	}
 	//cerr << "Freeing lpacket "<< t << " " << t->status << endl;
 	libusb_free_transfer(t);
-}
-
+}	
 
 #define DISABLE_SELF_STOP 1
 
@@ -441,8 +446,8 @@ extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t){
 
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
 		//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
-		io.post(boost::bind(&CEE_device::handle_in_packet, dev, t->buffer));
-		t->buffer = (unsigned char*) malloc(sizeof(IN_packet));
+		io.post(boost::bind(&CEE_device::handleInTransfer, dev, t->buffer));
+		t->buffer = (unsigned char*) malloc(sizeof(IN_packet) * PACKETS_PER_TRANSFER);
 
 		if (DISABLE_SELF_STOP || dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->captureSamples){
 			dev->incount++;
@@ -472,7 +477,7 @@ extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t){
 
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
 		if (DISABLE_SELF_STOP || dev->captureContinuous || dev->outcount*OUT_SAMPLES_PER_PACKET < dev->captureSamples){
-			dev->fill_out_packet(t->buffer);
+			dev->fillOutTransfer(t->buffer);
 			dev->outcount++;
 			libusb_submit_transfer(t);
 		}
