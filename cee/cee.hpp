@@ -62,8 +62,7 @@ struct EEPROM_cal{
 	int16_t dac200_a, dac200_b, dac400_a, dac400_b;
 } __attribute__((packed));
 
-#define N_TRANSFERS 16
-#define PACKETS_PER_TRANSFER 4
+#define N_TRANSFERS 64
 
 class CEE_device: public StreamingDevice, USB_device{
 	public: 
@@ -100,6 +99,8 @@ class CEE_device: public StreamingDevice, USB_device{
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;
+	
+	int ntransfers, packets_per_transfer;
 
 	protected:
 	string _hwversion, _fwversion;
@@ -110,5 +111,6 @@ class CEE_device: public StreamingDevice, USB_device{
 	void checkOutputEffective(Channel& channel);
 	
 	EEPROM_cal cal;
+	int xmega_per;
 	void readCalibration();
 };

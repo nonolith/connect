@@ -32,9 +32,8 @@ long millis(){
 extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t);
 extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t);
 
-const int CEE_sample_per = 160;
 const int CEE_timer_clock = 4e6; // 4 MHz
-const float CEE_sample_time = CEE_sample_per / (float) CEE_timer_clock; // 40us
+const float CEE_default_sample_time = 1/10000.0;
 const float CEE_I_gain = 45*.07;
 
 const float V_min = 0;
@@ -44,7 +43,7 @@ const float I_max = 200;
 
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
-	StreamingDevice(CEE_sample_time),
+	StreamingDevice(CEE_default_sample_time),
 	USB_device(dev, desc),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
@@ -69,7 +68,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	
 	readCalibration();
 	
-	configure(0, CEE_sample_time, ceil(12.0/CEE_sample_time), true, false);
+	configure(0, CEE_default_sample_time, ceil(12.0/CEE_default_sample_time), true, false);
 }
 
 CEE_device::~CEE_device(){
@@ -130,7 +129,7 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	}
 }
 
-void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw){
+void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool continuous, bool raw){
 	pause_capture();
 	
 	// Clean up previous configuration
@@ -141,13 +140,27 @@ void CEE_device::configure(int mode, float sampleTime, unsigned samples, bool co
 	channel_b.streams.clear();
 	
 	// Store state
+	xmega_per = _sampleTime * (float) CEE_timer_clock; // floors to int
+	if (xmega_per < 80) xmega_per = 80;
+	sampleTime = xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
+	
 	captureSamples = samples;
 	captureContinuous = continuous;
 	devMode = mode;
 	rawMode = raw;
-	captureLength = captureSamples * CEE_sample_time; //TODO: note sampleTime is currently ignored.
+	sampleTime = _sampleTime;
+	captureLength = captureSamples * sampleTime;
 	
-	std::cerr << "CEE prepare "<< captureSamples <<" " << captureLength<<"/"<<CEE_sample_time<< std::endl;
+	packets_per_transfer = 0.020 / (sampleTime * 10);
+	if (packets_per_transfer > 5) packets_per_transfer = 5;
+	
+	ntransfers = 0.020 / (sampleTime * 10 * packets_per_transfer);
+	if (ntransfers > N_TRANSFERS) ntransfers = N_TRANSFERS;
+	if (ntransfers < 2) ntransfers = 2;
+	
+	capture_i = capture_o = 0;
+	
+	std::cerr << "CEE prepare "<< xmega_per << " " << ntransfers <<  " " << packets_per_transfer << " " << captureSamples<< std::endl;
 	
 	// Configure
 	if (devMode == 0){
@@ -204,21 +217,21 @@ void CEE_device::on_start_capture(){
 	boost::mutex::scoped_lock lock(transfersMutex);
 	
 	// Turn on the device
-	controlTransfer(0x40, CMD_CONFIG_CAPTURE, CEE_sample_per, DEVMODE_2SMU, 0, 0);
+	controlTransfer(0x40, CMD_CONFIG_CAPTURE, xmega_per, DEVMODE_2SMU, 0, 0);
 	
 	// Ignore the effect of output samples we sent before pausing
 	capture_o = capture_i; 
 	
-	for (int i=0; i<N_TRANSFERS; i++){
+	for (int i=0; i<ntransfers; i++){
 		in_transfers[i] = libusb_alloc_transfer(0);
-		const int isize = sizeof(IN_packet)*PACKETS_PER_TRANSFER;
+		const int isize = sizeof(IN_packet)*packets_per_transfer;
 		unsigned char* buf = (unsigned char*) malloc(isize);
 		libusb_fill_bulk_transfer(in_transfers[i], handle, EP_BULK_IN, buf, isize, in_transfer_callback, this, 500);
 		in_transfers[i]->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
 		libusb_submit_transfer(in_transfers[i]);
 		
 		out_transfers[i] = libusb_alloc_transfer(0);
-		const int osize = sizeof(OUT_packet)*PACKETS_PER_TRANSFER;
+		const int osize = sizeof(OUT_packet)*packets_per_transfer;
 		buf = (unsigned char *) malloc(osize);
 		fillOutTransfer(buf);
 		outcount++;
@@ -233,9 +246,9 @@ void CEE_device::on_pause_capture(){
 
 	//std::cerr << "on_pause_capture " << capture_i << " " << capture_o <<std::endl;
 	
-	controlTransfer(0x40, CMD_CONFIG_CAPTURE, CEE_sample_per, DEVMODE_OFF, 0, 0);
+	controlTransfer(0x40, CMD_CONFIG_CAPTURE, 0, DEVMODE_OFF, 0, 0);
 	
-	for (int i=0; i<N_TRANSFERS; i++){
+	for (int i=0; i<ntransfers; i++){
 		if (in_transfers[i]){
 			// zero user_data tells the callback to free on complete. this obj may be dead by then
 			in_transfers[i]->user_data=0;
@@ -315,7 +328,7 @@ void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
 }
 
 void CEE_device::handleInTransfer(unsigned char *buffer){
-	for (int p=0; p<PACKETS_PER_TRANSFER; p++){
+	for (int p=0; p<packets_per_transfer; p++){
 		IN_packet *pkt = (IN_packet*)(buffer + sizeof(IN_packet)*p);
 	
 		if (pkt->flags & FLAG_PACKET_DROPPED){
@@ -400,7 +413,7 @@ void CEE_device::fillOutTransfer(unsigned char* buf){
 	uint8_t mode_b = channel_b.source->mode;
 	
 	if (channel_a.source && channel_b.source){
-		for (int p=0; p<PACKETS_PER_TRANSFER; p++){
+		for (int p=0; p<packets_per_transfer; p++){
 			OUT_packet *pkt = (OUT_packet *)(buf + sizeof(OUT_packet)*p);
 
 			pkt->mode_a = mode_a;
@@ -408,14 +421,14 @@ void CEE_device::fillOutTransfer(unsigned char* buf){
 
 			for (int i=0; i<10; i++){
 				pkt->data[i].pack(
-					encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, CEE_sample_time)),
-					encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, CEE_sample_time))
+					encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, sampleTime)),
+					encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, sampleTime))
 				);
 				capture_o++;
 			}	
 		}
 	}else{
-		memset(buf, 0, sizeof(OUT_packet)*PACKETS_PER_TRANSFER);
+		memset(buf, 0, sizeof(OUT_packet)*packets_per_transfer);
 	}
 	
 }
@@ -447,7 +460,7 @@ extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t){
 	if (t->status == LIBUSB_TRANSFER_COMPLETED){
 		//cerr <<  millis() << " " << t << " complete " << t->actual_length << endl;
 		io.post(boost::bind(&CEE_device::handleInTransfer, dev, t->buffer));
-		t->buffer = (unsigned char*) malloc(sizeof(IN_packet) * PACKETS_PER_TRANSFER);
+		t->buffer = (unsigned char*) malloc(sizeof(IN_packet) * dev->packets_per_transfer);
 
 		if (DISABLE_SELF_STOP || dev->captureContinuous || dev->incount*IN_SAMPLES_PER_PACKET < dev->captureSamples){
 			dev->incount++;
