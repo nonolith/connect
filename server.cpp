@@ -14,7 +14,9 @@ const unsigned short port = 9003;
 std::set <device_ptr> devices;
 boost::asio::io_service io;
 
-bool debugFlag;
+bool debugFlag = false;
+bool allowRemote = false;
+bool allowAnyOrigin = false;
 
 Event device_list_changed;
 Event capture_state_changed;
@@ -24,14 +26,18 @@ int main(int argc, char* argv[]){
 	
 	try {
 		usb_init();
-
-		if (argc==2 && string(argv[1])=="debug"){
-			debugFlag = true;
+		
+		for (int i=1; i<argc; i++){
+			string arg(argv[i]);
+			if (arg=="debug") debugFlag = true;
+			if (arg=="allow-remote") allowRemote = true;
+			if (arg=="allow-any-origin") allowAnyOrigin = true;
 		}
-		else{
-			debugFlag = false;
-		}
-		tcp::endpoint endpoint(boost::asio::ip::address_v4::loopback(), port);
+		
+		boost::asio::ip::address_v4 bind_addr;
+		if (!allowRemote) bind_addr = boost::asio::ip::address_v4::loopback();
+		
+		tcp::endpoint endpoint(bind_addr, port);
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
 		
 		server->set_max_message_size(0xFFFF); // 64KiB
@@ -53,7 +59,8 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 	static const boost::regex nonolith_domain("^https?://[[:w:]\\.-]*?nonolithlabs.com$");
 	const string origin = client->get_client_header("Origin");
 
-	if (origin!="" && origin!="null" && origin!="http://localhost:8000" && !regex_match(origin, nonolith_domain)){
+	if (!allowAnyOrigin && origin!="" && origin!="null" && 
+	  origin!="http://localhost:8000" && !regex_match(origin, nonolith_domain)){
 		client->start_http(403);
 		std::cerr << "Rejected client with unknown origin " << origin << std::endl;
 		return;
