@@ -329,7 +329,7 @@ void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
 
 void CEE_device::handleInTransfer(unsigned char *buffer){
 	for (int p=0; p<packets_per_transfer; p++){
-		IN_packet *pkt = (IN_packet*)(buffer + sizeof(IN_packet)*p);
+		IN_packet *pkt = &((IN_packet*)buffer)[p];
 	
 		if (pkt->flags & FLAG_PACKET_DROPPED){
 			std::cerr << "Warning: dropped packet" << std::endl;
@@ -414,7 +414,7 @@ void CEE_device::fillOutTransfer(unsigned char* buf){
 	
 	if (channel_a.source && channel_b.source){
 		for (int p=0; p<packets_per_transfer; p++){
-			OUT_packet *pkt = (OUT_packet *)(buf + sizeof(OUT_packet)*p);
+			OUT_packet *pkt = &((OUT_packet *)buf)[p];
 
 			pkt->mode_a = mode_a;
 			pkt->mode_b = mode_b;

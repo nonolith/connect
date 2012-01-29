@@ -231,7 +231,7 @@ struct OutputSource{
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){};
 
 	protected:
-		OutputSource(unsigned m): mode(m), effective(false){};
+		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};
 };
 
 OutputSource *makeConstantSource(unsigned m, int value);
