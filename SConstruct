@@ -69,8 +69,9 @@ elif target is 'windows':
 		
 	env.Append(
 		tools=['mingw'],
-		CPPFLAGS=["-D_WIN32_WINNT=0x0501", '-static', '-D BOOST_THREAD_USE_LIB', '-Wl,-subsystem,windows'],
-		LIBPATH=[boost_lib, '.']
+		CPPFLAGS=["-D_WIN32_WINNT=0x0501", '-D BOOST_THREAD_USE_LIB'],
+		LIBPATH=[boost_lib, '.'],
+		LINKFLAGS=['-Wl,-subsystem,windows', '-mwindows'],
 	)
 	
 	static = True
