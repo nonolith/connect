@@ -1,4 +1,4 @@
-Nonolith Data Server
+Nonolith Connect
 ====================
 
 This server runs in the background and manages USB communication with Nonolith
@@ -11,7 +11,7 @@ monitoring and collecting data with
 Dependencies
 ------------
 
-`dataserver` is written in C++ and builds with `scons`. It needs several
+`nonolith-connect` is written in C++ and builds with `scons`. It needs several
 boost libraries: `asio`, `system`, `date_time`, `regex`, `thread`. It also uses 
 [libjson](http://sourceforge.net/projects/libjson/),
 [websocketpp](https://github.com/zaphoyd/websocketpp), and
@@ -22,8 +22,6 @@ contains bugfixes to the async API.
 
 Websocket Protocol (v0)
 -----------------------
-
-* Note that the protocol is still subject to change until standardized as v1 *
 
 Websocket endpoint is http://localhost:9003/ws/v0
 

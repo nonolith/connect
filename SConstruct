@@ -119,4 +119,4 @@ libusb = env.Library('libusb_nonolith', ['libusb/libusb/'+i for i in [
 
 libs += boostlibs
 
-env.Program('server', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)
+env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)
