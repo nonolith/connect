@@ -1,4 +1,5 @@
 *.o
 *.a
 .sconsign.dblite
-server
+nonolith-connect
+nonolith-connect.exe
