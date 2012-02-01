@@ -26,6 +26,11 @@ else:
 	print "Unknown platform"
 	exit()
 
+version = 'unknown'
+try:	
+	version = os.popen("git describe --always --dirty='*'").read().strip()
+except:
+	pass
 	
 if env['mingwcross']:
 	target = 'windows'
@@ -119,4 +124,4 @@ libusb = env.Library('libusb_nonolith', ['libusb/libusb/'+i for i in [
 
 libs += boostlibs
 
-env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)
+env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared', "-DVERSION='%s'"%version], FRAMEWORKS=frameworks)

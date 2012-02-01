@@ -7,6 +7,8 @@
 #include "dataserver.hpp"
 #include "json.hpp"
 
+#define xstringify(s) stringify(s)
+#define stringify(s) #s
 
 struct WebsocketClientConn: public ClientConn{
 	WebsocketClientConn(websocketpp::session_ptr c): client(c){
@@ -14,7 +16,13 @@ struct WebsocketClientConn: public ClientConn{
 			device_list_changed,
 			boost::bind(&WebsocketClientConn::on_device_list_changed, this)
 		);
-
+		
+		JSONNode n(JSON_NODE);
+		n.push_back(JSONNode("_action", "serverHello"));
+		n.push_back(JSONNode("server", "Nonolith Connect"));
+		n.push_back(JSONNode("version", xstringify(VERSION)));
+		sendJSON(n);
+		
 		on_device_list_changed();
 	}
 	
