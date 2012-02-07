@@ -1,3 +1,11 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// Streaming device base class
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 #include <iostream>
 #include <boost/foreach.hpp>
 

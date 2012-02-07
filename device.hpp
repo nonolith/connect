@@ -1,3 +1,11 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// Device header file
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 #pragma once
 #ifndef INCLUDE_FROM_DATASERVER_HPP
 #error "device.hpp should not be included directly"

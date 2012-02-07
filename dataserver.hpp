@@ -1,3 +1,11 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// Top level header
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 #pragma once
 
 #define INCLUDE_FROM_DATASERVER_HPP

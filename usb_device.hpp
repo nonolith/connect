@@ -1,3 +1,11 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// USB device mixin
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 #pragma once
 #include <iostream>
 #include <libusb/libusb.h>

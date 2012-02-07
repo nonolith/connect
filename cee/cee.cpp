@@ -1,7 +1,11 @@
-// USB data streaming
-// http://nonolithlabs.com/cee
-// (C) 2011 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// USB Data streaming for CEE
 // Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <kevin@nonolithlabs.com>
+//   Ian Daniher <ian@nonolithlabs.com>
 
 #include <stdlib.h>
 #include <iostream>

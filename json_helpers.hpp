@@ -1,3 +1,11 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// Helper functions for extracting typed data from JSON
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 struct ErrorStringException : public std::exception{
    string s;
    ErrorStringException (string ss) throw() : s(ss) {}

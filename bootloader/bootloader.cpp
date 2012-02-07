@@ -1,7 +1,10 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
 // Xmega bootloader driver
-// http://nonolithlabs.com/cee
-// (C) 2012 Kevin Mehall / Nonolith Labs <km@kevinmehall.net>
 // Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
 
 #include <stdlib.h>
 #include <iostream>
