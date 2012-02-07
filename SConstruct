@@ -54,6 +54,12 @@ if target is 'linux':
 	
 elif target is 'osx':
 	boostlibs = [i+'-mt' for i in boostlibs]
+	static = True
+	if static:
+		boost_lib = '/usr/local/lib/'
+		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in boostlibs]
+		libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
+
 	libs += ['objc']
 	frameworks = ['CoreFoundation', 'IOKit']
 	LIBPATH=['.']
