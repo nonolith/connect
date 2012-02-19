@@ -1,0 +1,30 @@
+#!/bin/sh -e
+# postinst script for nonolith-connect
+
+set -e
+
+# some variables
+GROUP=nonolithd
+USER=nonolithd
+HOME=/var/lib/nonolith-connect
+
+if [ ! -d $HOME ] ; then
+  # create $HOME
+  echo "Creating $HOME directory ..."
+  mkdir -p $HOME
+fi
+
+# create group
+echo "Creating $GROUP group ..."
+addgroup --quiet --system $GROUP
+
+# create user
+echo "Creating $USER user ..."
+adduser --quiet --system --ingroup $GROUP \
+--home $HOME --no-create-home $USER
+
+chown $USER:$GROUP $HOME
+
+#DEBHELPER#
+
+exit 0
