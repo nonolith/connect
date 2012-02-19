@@ -1,0 +1,37 @@
+#!/bin/sh
+# postrm script for nonolith-connect
+
+set -e
+
+# configure some variables
+GROUP=nonolithd
+USER=nonolithd
+
+case "$1" in
+	purge)
+		echo "Deleting $USER user ..."
+		if [ -x /usr/sbin/deluser ]; then
+			deluser --quiet --system $USER
+		fi
+
+		echo "Deleting $GROUP group ..."
+		if [ -x /usr/sbin/deluser ]; then
+			delgroup --quiet --system $GROUP || true
+		fi
+
+		echo "Deleting /var/lib/nonolith-connect ..."
+		rm -rf /var/lib/nonolith-connect
+		;;
+	remove)
+		;;
+	upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+		;;
+	*)
+		echo "postrm called with unknown argument \`$0'" >&2
+		exit 1
+		;;
+esac
+
+#DEBHELPER#
+
+exit 0
