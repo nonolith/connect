@@ -23,12 +23,14 @@ else:
 	print "Unknown platform"
 	exit()
 
-version = 'unknown'
-try:	
+
+if os.path.isdir(".git"):
 	version = os.popen("git describe --always --dirty='*'").read().strip()
-except:
-	pass
-	
+elif os.path.isfile('VERSION'):
+	version = open('VERSION').read().strip()
+else:
+	version = 'unknown'	
+
 if env['mingwcross']:
 	target = 'windows'
 	env.Platform('cygwin')
