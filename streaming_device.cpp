@@ -76,14 +76,7 @@ bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, StreamingDe
 	
 	if (client->get_method() == "POST"){
 		client->read_http_post_body(
-			boost::bind(
-				&handleRESTOutputCallback,
-				client,
-				device,
-				ptr, 
-				channel,
-				_1
-		));
+			boost::bind(&handleRESTOutputCallback, client, device, ptr, channel,_1));
 	}else{
 		RESTOutputRespond(client, channel);
 	}

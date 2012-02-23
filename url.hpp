@@ -1,24 +1,13 @@
 #pragma once
 #include <string>
-#include <boost/algorithm/string.hpp>
-
-
-typedef std::string::const_iterator iterator_t;
+#include <vector>
+#include <map>
 using std::string;
 
 struct Url{
-	Url(const string url){
-		iterator_t queryStart = std::find(url.begin(), url.end(), '?');
-		string path(url.begin(), queryStart);
-		boost::split(pathparts, path, boost::is_any_of("/"));
-		
-		if (pathparts.at(pathparts.size()-1) == "") pathparts.pop_back(); // Remove trailing /
-		
-		if (queryStart != url.end()) queryStart++; // skip '?'
-		string query(queryStart, url.end());
-	}
-	
+	Url(const string url);
 	std::vector<std::string> pathparts;
+	std::map<std::string, std::string> params;
 };
 
 struct UrlPath{
