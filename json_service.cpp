@@ -10,25 +10,50 @@
 #include <boost/foreach.hpp>
 
 #include "websocketpp.hpp"
-
+#include "url.hpp"
 #include "json.hpp"
 
-void devicesRequest(websocketpp::session_ptr client){
-	JSONNode n = jsonDevicesArray(true);
+void respondJSON(websocketpp::session_ptr client, JSONNode &n){
 	string jc = (string) n.write_formatted();
 	client->start_http(200, jc);
 }
 
+void deviceListRequest(websocketpp::session_ptr client){
+	JSONNode n = jsonDevicesArray(true);
+	respondJSON(client, n);
+}
 
-void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session_ptr client){
-	if (pathparts[2] != "v0"){
+bool deviceRequest(UrlPath path, websocketpp::session_ptr client){
+	device_ptr device = getDeviceById(path.get());
+	if (device)
+		return device->handleREST(path.sub(), client);
+	else
+		return false;
+}
+
+void handleJSONRequest(UrlPath path, websocketpp::session_ptr client){
+	if (path.leaf()){
+		client->start_http(404, "Nothing here. Try v0");
+		return;
+	}else if (path.matches("v0")){
+		UrlPath path1 = path.sub();
+		
+		if(path1.leaf()){
+			client->start_http(404, "Not found. Try devices.");
+			return;
+		}else if (path1.matches("devices")){
+			UrlPath path2 = path1.sub();
+			
+			if (path2.leaf()){
+				return deviceListRequest(client);
+			}else{
+				if (deviceRequest(path2, client)) return;
+			}
+		}
+	}else{
 		client->start_http(404, "API version not supported");
 		return;
 	}
-
-	if (pathparts[3] == "devices"){
-		devicesRequest(client);
-	}else{
-		client->start_http(404, "REST object not found");
-	}
+	
+	client->start_http(404, "REST object not found");
 }

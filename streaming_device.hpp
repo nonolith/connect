@@ -88,6 +88,7 @@ class StreamingDevice: public Device{
 		virtual void onClientAttach(ClientConn *c);
 		virtual void onClientDetach(ClientConn *c);
 		virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
+		virtual bool handleREST(UrlPath path, websocketpp::session_ptr client);
 		
 		listener_map_t listeners;
 		virtual void addListener(StreamListener *l);

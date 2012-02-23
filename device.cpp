@@ -12,8 +12,17 @@
 
 
 device_ptr getDeviceById(string id){
-	BOOST_FOREACH(device_ptr d, devices){
-		if (d->getId() == id) return d;
+	if (id.at(id.size()-1) == '*'){
+		// Match a device type
+		id.resize(id.size()-1);
+		BOOST_FOREACH(device_ptr d, devices){
+			if (d->model() == id) return d;
+		}
+	}else{
+		// Match a specific serial number
+		BOOST_FOREACH(device_ptr d, devices){
+			if (d->getId() == id) return d;
+		}
 	}
 	return device_ptr();
 }

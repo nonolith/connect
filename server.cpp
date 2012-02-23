@@ -10,11 +10,11 @@
 #include "websocketpp.hpp"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 
 #include "dataserver.hpp"
 #include "websocket_handler.hpp"
+#include "url.hpp"
 
 using boost::asio::ip::tcp;
 const unsigned short port = 9003;
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-void handleJSONRequest(std::vector<std::string> &pathparts, websocketpp::session_ptr client);
+void handleJSONRequest(UrlPath path, websocketpp::session_ptr client);
 
 void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 	static const boost::regex nonolith_domain("^https?://[[:w:]\\.-]*?nonolithlabs.com$");
@@ -75,20 +75,22 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 	}
 	
 	const std::string resource = client->get_resource();
+	Url url(resource);
+	UrlPath path(url, 1);
 
-	std::vector<std::string> pathparts;
-	boost::split(pathparts, resource, boost::is_any_of("/"));
-
-	if (resource == "/"){
-		client->set_header("Location", "/json/v0/devices");
-		client->start_http(301);
-	}else if (pathparts[1] == "json"){
-		handleJSONRequest(pathparts, client);
-	}else if (pathparts[1] == "ws"){
-		client->start_websocket();
-	//}else if (pathparts[1] == "tcp"){
-		//TODO: start TCP	
-	}else{
-		client->start_http(404, "Not found");
+	try{
+		if (path.leaf()){ // "/"
+			client->set_header("Location", "/json/v0/devices");
+			client->start_http(301);
+		}else if (path.matches("json")){
+			handleJSONRequest(path.sub(), client);
+		}else if (path.matches("ws")){
+			client->start_websocket();
+		}else{
+			client->start_http(404, "Not found");
+		}
+	}catch(std::exception e){
+		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+		client->start_http(500);
 	}
 }

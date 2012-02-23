@@ -19,6 +19,8 @@ using std::string;
 extern boost::asio::io_service io;
 
 #include "libjson/libjson.h"
+#include "websocketpp.hpp"
+void respondJSON(websocketpp::session_ptr client, JSONNode &n);
 
 #include "event.hpp"
 #include "device.hpp"
