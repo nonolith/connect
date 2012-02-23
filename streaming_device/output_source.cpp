@@ -10,8 +10,8 @@
 #include <cmath>
 #include <iostream>
 
-#include "dataserver.hpp"
-#include "json.hpp"
+#include "../dataserver.hpp"
+#include "../json.hpp"
 
 #include "streaming_device.hpp"
 

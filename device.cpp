@@ -39,3 +39,12 @@ void Device::onDisconnect(){
 	broadcastJSON(n);
 }
 
+JSONNode jsonDevicesArray(bool includeChannels){
+	JSONNode n(JSON_NODE);
+
+	BOOST_FOREACH (device_ptr d, devices){
+		n.push_back(d->toJSON());
+	}
+	return n;
+}
+

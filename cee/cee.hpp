@@ -9,7 +9,7 @@
 #pragma once
 
 #include "../dataserver.hpp"
-#include "../streaming_device.hpp"
+#include "../streaming_device/streaming_device.hpp"
 #include "../usb_device.hpp"
 #include <boost/thread/mutex.hpp>
 

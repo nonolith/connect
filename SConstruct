@@ -98,7 +98,7 @@ elif target is 'windows':
     
 
 
-sources = Glob('*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
+sources = Glob('*.cpp') +  Glob('streaming_device/*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
 
 json = env.Library('json', 
 	Glob('libjson/Source/*.cpp'),
