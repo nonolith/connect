@@ -39,6 +39,18 @@ void Device::onDisconnect(){
 	broadcastJSON(n);
 }
 
+JSONNode Device::toJSON(){
+	Device* d = this;
+	JSONNode n(JSON_NODE);
+	n.set_name(d->getId());
+	n.push_back(JSONNode("id", getId()));
+	n.push_back(JSONNode("model", model()));
+	n.push_back(JSONNode("hwVersion", hwVersion()));
+	n.push_back(JSONNode("fwVersion", fwVersion()));
+	n.push_back(JSONNode("serial", serialno()));
+	return n;
+}
+
 JSONNode jsonDevicesArray(bool includeChannels){
 	JSONNode n(JSON_NODE);
 

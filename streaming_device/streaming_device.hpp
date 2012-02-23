@@ -244,5 +244,6 @@ struct OutputSource{
 };
 
 OutputSource *makeConstantSource(unsigned m, int value);
+OutputSource *makeSource(JSONNode& description);
 
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);

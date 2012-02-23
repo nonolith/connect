@@ -1,0 +1,82 @@
+#include "streaming_device.hpp"
+#include "stream_listener.hpp"
+
+bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& n){
+	if (cmd == "listen"){
+		addListener(makeStreamListener(this, &client, n));
+	
+	}else if (cmd == "cancelListen"){
+		ListenerId id(&client, jsonIntProp(n, "id"));
+		cancelListen(id);
+	
+	}else if (cmd == "configure"){
+		int      mode =       jsonIntProp(n,   "mode");
+		unsigned samples =    jsonIntProp(n,   "samples");
+		float    sampleTime = jsonFloatProp(n, "sampleTime");
+		bool     continuous = jsonBoolProp(n,  "continuous", false);
+		bool     raw =        jsonBoolProp(n,  "raw", false);
+		configure(mode, sampleTime, samples, continuous, raw);
+	
+	}else if (cmd == "startCapture"){
+		start_capture();
+	
+	}else if (cmd == "pauseCapture"){
+		pause_capture();
+	
+	}else if (cmd == "set"){
+		Channel *channel = channelById(jsonStringProp(n, "channel"));
+		if (!channel) throw ErrorStringException("Channel not found");
+		setOutput(channel, makeSource(n));
+		
+	}else if (cmd == "setGain"){
+		Channel *channel = channelById(jsonStringProp(n, "channel"));
+		if (!channel) throw ErrorStringException("Channel not found");
+		Stream *stream = findStream(
+				jsonStringProp(n, "channel"),
+				jsonStringProp(n, "stream"));
+
+		unsigned gain = jsonIntProp(n, "gain", 1);
+		
+		setGain(channel, stream, gain);
+	}else{
+		return false;
+	}
+	return true;
+}
+
+
+void StreamingDevice::onClientAttach(ClientConn* client){
+	Device::onClientAttach(client);
+	
+	JSONNode n(JSON_NODE);
+	n.push_back(JSONNode("_action", "deviceConfig"));
+
+	JSONNode jstate = stateToJSON();
+	jstate.set_name("device");
+	n.push_back(jstate);
+	
+	client->sendJSON(n);
+}
+
+void StreamingDevice::onClientDetach(ClientConn* client){
+	Device::onClientDetach(client);
+	
+	std::cout << "Client disconnected. " << listeners.size() << std::endl;
+	
+	listener_map_t::iterator it;
+	for (it=listeners.begin(); it!=listeners.end();){
+		// Increment before deleting as that invalidates the iterator
+		listener_map_t::iterator currentIt = it++;
+		StreamListener* w = currentIt->second;
+		
+		if (w->client == client){
+			delete w;
+			listeners.erase(currentIt);
+		}
+	}
+	
+	std::cout << "L " << listeners.size() << std::endl;
+}
+
+
+

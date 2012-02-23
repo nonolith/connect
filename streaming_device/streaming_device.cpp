@@ -9,141 +9,10 @@
 #include <iostream>
 #include <boost/foreach.hpp>
 
-#include "../dataserver.hpp"
 #include "streaming_device.hpp"
 #include "stream_listener.hpp"
 
-OutputSource *makeSource(JSONNode& description);
-
-bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& n){
-	if (cmd == "listen"){
-		addListener(makeStreamListener(this, &client, n));
-	
-	}else if (cmd == "cancelListen"){
-		ListenerId id(&client, jsonIntProp(n, "id"));
-		cancelListen(id);
-	
-	}else if (cmd == "configure"){
-		int      mode =       jsonIntProp(n,   "mode");
-		unsigned samples =    jsonIntProp(n,   "samples");
-		float    sampleTime = jsonFloatProp(n, "sampleTime");
-		bool     continuous = jsonBoolProp(n,  "continuous", false);
-		bool     raw =        jsonBoolProp(n,  "raw", false);
-		configure(mode, sampleTime, samples, continuous, raw);
-	
-	}else if (cmd == "startCapture"){
-		start_capture();
-	
-	}else if (cmd == "pauseCapture"){
-		pause_capture();
-	
-	}else if (cmd == "set"){
-		Channel *channel = channelById(jsonStringProp(n, "channel"));
-		if (!channel) throw ErrorStringException("Channel not found");
-		setOutput(channel, makeSource(n));
-		
-	}else if (cmd == "setGain"){
-		Channel *channel = channelById(jsonStringProp(n, "channel"));
-		if (!channel) throw ErrorStringException("Channel not found");
-		Stream *stream = findStream(
-				jsonStringProp(n, "channel"),
-				jsonStringProp(n, "stream"));
-
-		unsigned gain = jsonIntProp(n, "gain", 1);
-		
-		setGain(channel, stream, gain);
-	}else{
-		return false;
-	}
-	return true;
-}
-
-void RESTOutputRespond(websocketpp::session_ptr client, Channel *channel){
-	JSONNode n;
-	channel->source->describeJSON(n);
-	respondJSON(client, n);
-}
-
-void handleRESTOutputCallback(websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel, string postdata){
-	std::cerr<< "Got POST data:" << postdata << std::endl;
-	JSONNode n = libjson::parse(postdata);
-	device->setOutput(channel, makeSource(n));
-	RESTOutputRespond(client, channel);
-}
-
-bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel){
-	if (!channel->source) return false;
-	
-	if (client->get_method() == "POST"){
-		client->read_http_post_body(
-			boost::bind(&handleRESTOutputCallback, client, device, ptr, channel,_1));
-	}else{
-		RESTOutputRespond(client, channel);
-	}
-
-	return true;
-}
-
-bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel){
-	JSONNode j;
-	respondJSON(client, j);
-	return true;
-}
-
-bool StreamingDevice::handleREST(UrlPath path, websocketpp::session_ptr client){
-	if (path.leaf()){
-		JSONNode jstate = stateToJSON();
-		respondJSON(client, jstate);
-		return true;
-	}else{
-		Channel *channel = channelById(path.get());
-		if (!channel) return false;
-		
-		UrlPath spath = path.sub();
-		if (spath.leaf()) return false;
-		
-		if (spath.matches("output")){
-			return handleRESTOutput(spath.sub(), client, this, shared_from_this(), channel);
-		}else if (spath.matches("input")){
-			return handleRESTInput(spath.sub(), client, this, shared_from_this(), channel);
-		}	
-		
-		return false;
-	}
-}
-
-void StreamingDevice::onClientAttach(ClientConn* client){
-	Device::onClientAttach(client);
-	
-	JSONNode n(JSON_NODE);
-	n.push_back(JSONNode("_action", "deviceConfig"));
-
-	JSONNode jstate = stateToJSON();
-	jstate.set_name("device");
-	n.push_back(jstate);
-	
-	client->sendJSON(n);
-}
-
-void StreamingDevice::onClientDetach(ClientConn* client){
-	Device::onClientDetach(client);
-	
-	std::cout << "Client disconnected. " << listeners.size() << std::endl;
-	
-	listener_map_t::iterator it;
-	for (it=listeners.begin(); it!=listeners.end();){
-		// Increment before deleting as that invalidates the iterator
-		listener_map_t::iterator currentIt = it++;
-		StreamListener* w = currentIt->second;
-		
-		if (w->client == client){
-			delete w;
-			listeners.erase(currentIt);
-		}
-	}
-	
-	std::cout << "L " << listeners.size() << std::endl;
-}
+//// Serialization functions
 
 JSONNode Stream::toJSON(){
 	Stream *s = this;
@@ -181,18 +50,6 @@ JSONNode Channel::toJSON(){
 	}
 	n.push_back(streams);
 
-	return n;
-}
-
-JSONNode Device::toJSON(){
-	Device* d = this;
-	JSONNode n(JSON_NODE);
-	n.set_name(d->getId());
-	n.push_back(JSONNode("id", getId()));
-	n.push_back(JSONNode("model", model()));
-	n.push_back(JSONNode("hwVersion", hwVersion()));
-	n.push_back(JSONNode("fwVersion", fwVersion()));
-	n.push_back(JSONNode("serial", serialno()));
 	return n;
 }
 
