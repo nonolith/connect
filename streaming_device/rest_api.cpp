@@ -1,6 +1,8 @@
 #include "streaming_device.hpp"
 #include "stream_listener.hpp"
 
+//// device/channel/output resource
+
 void RESTOutputRespond(websocketpp::session_ptr client, Channel *channel){
 	JSONNode n;
 	channel->source->describeJSON(n);
@@ -8,7 +10,6 @@ void RESTOutputRespond(websocketpp::session_ptr client, Channel *channel){
 }
 
 void handleRESTOutputCallback(websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel, string postdata){
-	std::cerr<< "Got POST data:" << postdata << std::endl;
 	JSONNode n = libjson::parse(postdata);
 	device->setOutput(channel, makeSource(n));
 	RESTOutputRespond(client, channel);
@@ -26,6 +27,8 @@ bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, StreamingDe
 
 	return true;
 }
+
+//// device/channel/input resource
 
 bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel){
 	JSONNode j;

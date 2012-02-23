@@ -49,6 +49,7 @@ int main(int argc, char* argv[]){
 		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
 		
 		server->set_max_message_size(0xFFFF); // 64KiB
+		//server->set_elog_level(0);
 		server->start_accept();
 
 		usb_scan_devices();

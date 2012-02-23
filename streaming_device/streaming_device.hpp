@@ -168,6 +168,19 @@ class StreamingDevice: public Device{
 			else
 				return s.data[i%captureSamples];
 		}
+		
+		
+		inline float resample(Stream& s, unsigned start, unsigned count){
+			if (   !s.data || !captureSamples   // not prepared
+				|| start+count >= capture_i             // not yet collected
+				|| (capture_i>captureSamples && start<=capture_i-captureSamples)) // overwritten
+				return NAN;
+			float total = 0;
+			for (unsigned i=0; i<count; i++){
+				total += s.data[(start+i)%captureSamples];
+			}
+			return total/count;
+		}
 
 		/// Returns the lowest buffer index currently available
 		inline unsigned buffer_min(){

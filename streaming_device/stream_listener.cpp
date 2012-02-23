@@ -76,15 +76,28 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	return listener.release();
 }
 
-
-bool StreamListener::handleNewData(){
+unsigned StreamListener::howManySamples(){
 	if (triggerMode && !triggered && !findTrigger())
 		// Waiting for a trigger and haven't found it yet
-		return true;
+		return 0;
 				
 	if (index + decimateFactor >= device->capture_i)
 		// The data for our next output sample hasn't been collected yet
-		return true;
+		return 0;
+
+	// Calulate number of decimateFactor-sized chunks are available
+	unsigned nchunks = (device->capture_i - index)/decimateFactor;
+	
+	// But if it's more than the remaining number of output samples, clamp it
+	if (count > 0 && (count - outIndex) < nchunks)
+		nchunks = count - outIndex;	
+
+	return nchunks;
+}
+
+bool StreamListener::handleNewData(){
+	unsigned nchunks = howManySamples();
+	if (!nchunks) return true;
 	
 	JSONNode n(JSON_NODE);
 
@@ -101,24 +114,13 @@ bool StreamListener::handleNewData(){
 	JSONNode streams_data(JSON_ARRAY);
 	streams_data.set_name("data");
 	
-	// Calulate number of decimateFactor-sized chunks are available
-	unsigned nchunks = (device->capture_i - index)/decimateFactor;
-	
-	// But if it's more than the remaining number of output samples, clamp it
-	if (count > 0 && (count - outIndex) < nchunks)
-		nchunks = count - outIndex;	
-	
 	BOOST_FOREACH(Stream* stream, streams){
 		JSONNode a(JSON_ARRAY);
 		
-		unsigned i = index;
-		
 		for (unsigned chunk = 0; chunk < nchunks; chunk++){
-			float total = 0;
-			for (unsigned chunk_i=0; chunk_i < decimateFactor; chunk_i++){
-				total += device->get(*stream, i++);
-			}
-			a.push_back(JSONNode("", total/decimateFactor));
+			a.push_back(JSONNode("", 
+				device->resample(*stream, index+chunk*decimateFactor, decimateFactor)
+			));
 		}
 		
 		streams_data.push_back(a);

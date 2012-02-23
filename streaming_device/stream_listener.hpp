@@ -39,6 +39,8 @@ struct StreamListener{
 		outIndex = 0;
 	}
 	
+	unsigned howManySamples();
+	
 	// return true if listener is to be kept, false if it is to be destroyed
 	bool handleNewData();
 	
