@@ -55,4 +55,4 @@ struct WSStreamListener: public StreamListener{
 	virtual bool handleNewData();
 };
 
-StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);
+listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);

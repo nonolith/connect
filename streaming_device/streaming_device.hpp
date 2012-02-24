@@ -16,7 +16,8 @@
 #include "../dataserver.hpp"
 
 struct StreamListener;
-typedef std::set<StreamListener*> listener_set_t;
+typedef boost::shared_ptr<StreamListener> listener_ptr;
+typedef std::set<listener_ptr> listener_set_t;
 
 struct Channel;
 struct Stream;
@@ -79,7 +80,6 @@ class StreamingDevice: public Device{
 			sampleTime(_sampleTime),
 			capture_i(0),
 			capture_o(0) {}
-		virtual ~StreamingDevice(){clearAllListeners();}
 		
 		virtual JSONNode stateToJSON();
 		
@@ -89,9 +89,9 @@ class StreamingDevice: public Device{
 		virtual bool handleREST(UrlPath path, websocketpp::session_ptr client);
 		
 		listener_set_t listeners;
-		virtual void addListener(StreamListener *l);
-		virtual void cancelListen(StreamListener *l);
-		virtual StreamListener* findListener(ClientConn* c, unsigned id);
+		virtual void addListener(listener_ptr l);
+		virtual void cancelListen(listener_ptr l);
+		virtual listener_ptr findListener(ClientConn* c, unsigned id);
 		virtual void clearAllListeners();
 		virtual void resetAllListeners();
 		

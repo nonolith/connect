@@ -67,10 +67,9 @@ void StreamingDevice::onClientDetach(ClientConn* client){
 	for (it=listeners.begin(); it!=listeners.end();){
 		// Increment before deleting as that invalidates the iterator
 		listener_set_t::iterator currentIt = it++;
-		StreamListener* w = *currentIt;
+		listener_ptr w = *currentIt;
 		
 		if (w->isFromClient(client)){
-			delete w;
 			listeners.erase(currentIt);
 		}
 	}

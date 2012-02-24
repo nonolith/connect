@@ -11,7 +11,7 @@
 #include <iostream>
 #include <memory>
 
-StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
+listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
 	std::auto_ptr<WSStreamListener> listener(new WSStreamListener());
 
 	listener->id = jsonIntProp(n, "id");
@@ -73,7 +73,7 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	listener->triggered = false;
 	listener->triggerForceIndex = 0;
 		
-	return listener.release();
+	return listener_ptr(listener.release());
 }
 
 unsigned StreamListener::howManySamples(){
