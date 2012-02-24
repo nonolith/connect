@@ -77,42 +77,47 @@ JSONNode StreamingDevice::stateToJSON(){
 }
 
 void StreamingDevice::addListener(StreamListener *l){
-	cancelListen(l->id);
-	
 	if (l->handleNewData()){
-		listeners.insert(listener_map_t::value_type(l->id, l));
+		listeners.insert(l);
 	}else{
 		delete l;
 	}
 }
 
-void StreamingDevice::cancelListen(ListenerId id){
-	listener_map_t::iterator it = listeners.find(id);
+StreamListener* StreamingDevice::findListener(ClientConn* c, unsigned id){
+	BOOST_FOREACH(StreamListener *w, listeners){
+		if (w->isFromClient(c) && w->id == id) return w;
+	}
+	return NULL;
+}
+
+void StreamingDevice::cancelListen(StreamListener *c){
+	listener_set_t::iterator it = listeners.find(c);
 	if (it != listeners.end()){
-		delete it->second;
+		delete *it;
 		listeners.erase(it);
 	}
 }
 
 void StreamingDevice::clearAllListeners(){
-	BOOST_FOREACH(listener_map_t::value_type &p, listeners){
-		delete p.second;
+	BOOST_FOREACH(StreamListener *w, listeners){
+		delete w;
 	}
 	listeners.clear();
 }
 
 void StreamingDevice::resetAllListeners(){
-	BOOST_FOREACH(listener_map_t::value_type &p, listeners){
-		p.second->reset();
+	BOOST_FOREACH(StreamListener *w, listeners){
+		w->reset();
 	}
 }
 
 void StreamingDevice::handleNewData(){
-	listener_map_t::iterator it;
+	listener_set_t::iterator it;
 	for (it=listeners.begin(); it!=listeners.end();){
 		// Increment before (potentially) deleting the watch, as that invalidates the iterator
-		listener_map_t::iterator currentIt = it++;
-		StreamListener* w = currentIt->second;
+		listener_set_t::iterator currentIt = it++;
+		StreamListener* w = *currentIt;
 		
 		if (!w->handleNewData()){
 			delete w;

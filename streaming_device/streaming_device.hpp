@@ -15,10 +15,8 @@
 
 #include "../dataserver.hpp"
 
-
-typedef std::pair<ClientConn*, unsigned> ListenerId;
 struct StreamListener;
-typedef std::map<ListenerId, StreamListener*> listener_map_t;
+typedef std::set<StreamListener*> listener_set_t;
 
 struct Channel;
 struct Stream;
@@ -90,9 +88,10 @@ class StreamingDevice: public Device{
 		virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
 		virtual bool handleREST(UrlPath path, websocketpp::session_ptr client);
 		
-		listener_map_t listeners;
+		listener_set_t listeners;
 		virtual void addListener(StreamListener *l);
-		virtual void cancelListen(ListenerId lid);
+		virtual void cancelListen(StreamListener *l);
+		virtual StreamListener* findListener(ClientConn* c, unsigned id);
 		virtual void clearAllListeners();
 		virtual void resetAllListeners();
 		
@@ -172,7 +171,7 @@ class StreamingDevice: public Device{
 		
 		inline float resample(Stream& s, unsigned start, unsigned count){
 			if (   !s.data || !captureSamples   // not prepared
-				|| start+count >= capture_i             // not yet collected
+				|| start+count > capture_i             // not yet collected
 				|| (capture_i>captureSamples && start<=capture_i-captureSamples)) // overwritten
 				return NAN;
 			float total = 0;

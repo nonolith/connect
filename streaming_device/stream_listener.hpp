@@ -12,8 +12,9 @@
 #include "streaming_device.hpp"
 
 struct StreamListener{
-	ListenerId id;
-	ClientConn* client;
+	unsigned id;
+	virtual bool isFromClient(ClientConn* c){return false;}
+	
 	StreamingDevice* device;
 	std::vector<Stream*> streams;
 
@@ -42,10 +43,16 @@ struct StreamListener{
 	unsigned howManySamples();
 	
 	// return true if listener is to be kept, false if it is to be destroyed
-	bool handleNewData();
+	virtual bool handleNewData(){return false;}
 	
 	// return true if trigger was found
 	bool findTrigger();
+};
+
+struct WSStreamListener: public StreamListener{
+	ClientConn* client;
+	virtual bool isFromClient(ClientConn* c){return c == client;}
+	virtual bool handleNewData();
 };
 
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);

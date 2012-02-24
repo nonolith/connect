@@ -16,12 +16,12 @@ void handleRESTOutputCallback(websocketpp::session_ptr client, StreamingDevice* 
 }
 
 bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel){
-	if (!channel->source) return false;
-	
+
 	if (client->get_method() == "POST"){
 		client->read_http_post_body(
 			boost::bind(&handleRESTOutputCallback, client, device, ptr, channel,_1));
 	}else{
+		if (!channel->source) return false;
 		RESTOutputRespond(client, channel);
 	}
 
@@ -29,6 +29,10 @@ bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, StreamingDe
 }
 
 //// device/channel/input resource
+
+struct RESTListener: public StreamListener{
+
+};
 
 bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, StreamingDevice* device, device_ptr ptr, Channel* channel){
 	JSONNode j;

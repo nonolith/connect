@@ -12,9 +12,9 @@
 #include <memory>
 
 StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
-	std::auto_ptr<StreamListener> listener(new StreamListener());
+	std::auto_ptr<WSStreamListener> listener(new WSStreamListener());
 
-	listener->id = ListenerId(client, jsonIntProp(n, "id"));
+	listener->id = jsonIntProp(n, "id");
 	listener->device = dev;
 	listener->client = client;
 	
@@ -95,13 +95,13 @@ unsigned StreamListener::howManySamples(){
 	return nchunks;
 }
 
-bool StreamListener::handleNewData(){
+bool WSStreamListener::handleNewData(){
 	unsigned nchunks = howManySamples();
 	if (!nchunks) return true;
 	
 	JSONNode n(JSON_NODE);
 
-	n.push_back(JSONNode("id", id.second));
+	n.push_back(JSONNode("id", id));
 	n.push_back(JSONNode("idx", outIndex));
 	
 	if (outIndex == 0){

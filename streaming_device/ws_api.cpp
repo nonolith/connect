@@ -3,11 +3,11 @@
 
 bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	if (cmd == "listen"){
+		cancelListen(findListener(&client, jsonIntProp(n, "id")));
 		addListener(makeStreamListener(this, &client, n));
 	
 	}else if (cmd == "cancelListen"){
-		ListenerId id(&client, jsonIntProp(n, "id"));
-		cancelListen(id);
+		cancelListen(findListener(&client, jsonIntProp(n, "id")));
 	
 	}else if (cmd == "configure"){
 		int      mode =       jsonIntProp(n,   "mode");
@@ -63,19 +63,17 @@ void StreamingDevice::onClientDetach(ClientConn* client){
 	
 	std::cout << "Client disconnected. " << listeners.size() << std::endl;
 	
-	listener_map_t::iterator it;
+	listener_set_t::iterator it;
 	for (it=listeners.begin(); it!=listeners.end();){
 		// Increment before deleting as that invalidates the iterator
-		listener_map_t::iterator currentIt = it++;
-		StreamListener* w = currentIt->second;
+		listener_set_t::iterator currentIt = it++;
+		StreamListener* w = *currentIt;
 		
-		if (w->client == client){
+		if (w->isFromClient(client)){
 			delete w;
 			listeners.erase(currentIt);
 		}
 	}
-	
-	std::cout << "L " << listeners.size() << std::endl;
 }
 
 
