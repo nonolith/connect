@@ -212,7 +212,12 @@ class StreamingDevice: public Device{
 		void notifyGainChanged(Channel* channel, Stream* stream, int gain);
 		void done_capture();
 		void handleNewData();
-
+		
+		void RESTOutputRespond(websocketpp::session_ptr client, Channel *channel);
+		void handleRESTOutputCallback(websocketpp::session_ptr client, Channel* channel, string postdata);
+		bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
+		bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
+		
 		virtual void on_reset_capture() = 0;
 		virtual void on_start_capture() = 0;
 		virtual void on_pause_capture() = 0;
