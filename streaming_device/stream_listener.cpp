@@ -11,6 +11,20 @@
 #include <iostream>
 #include <memory>
 
+StreamListener::StreamListener():
+	id(0),
+	index(0),
+	outIndex(0),
+	triggerMode(0),
+	triggered(false),
+	triggerRepeat(false),
+	triggerLevel(0),
+	triggerStream(0),
+	triggerHoldoff(0),
+	triggerOffset(0),
+	triggerForce(0),
+	triggerForceIndex(0){}
+
 listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
 	std::auto_ptr<WSStreamListener> listener(new WSStreamListener());
 
@@ -30,8 +44,6 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 	
 	if (start < 0) listener->index = 0;
 	else listener->index = start;
-	
-	listener->outIndex = 0;
 	
 	listener->count = jsonIntProp(n, "count");
 	
@@ -60,18 +72,8 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 			listener->triggerHoldoff = -listener->triggerOffset;
 		}
 		listener->triggerForce = jsonIntProp(trigger, "force", 0);
-		
-	}else{
-		listener->triggerMode = 0;
-		listener->triggerRepeat = false;
-		listener->triggerLevel = 0;
-		listener->triggerStream = 0;
-		listener->triggerHoldoff = 0;
-		listener->triggerOffset = 0;
-		listener->triggerForce = 0;
 	}
-	listener->triggered = false;
-	listener->triggerForceIndex = 0;
+		
 		
 	return listener_ptr(listener.release());
 }

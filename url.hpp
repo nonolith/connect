@@ -31,4 +31,13 @@ struct UrlPath{
 	bool leaf(){
 		return url.pathparts.size() <= level;
 	}
+	
+	string param(string key, string def=""){
+		std::map<std::string, std::string>::iterator it = url.params.find(key);
+		if (it != url.params.end()){
+			return it->second;
+		}else{
+			return def;
+		}
+	}
 };

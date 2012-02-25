@@ -114,6 +114,7 @@ void StreamingDevice::handleNewData(){
 		listener_ptr w = *currentIt;
 		
 		if (!w->handleNewData()){
+			std::cout << "Listener done" << std::endl;
 			listeners.erase(currentIt);
 		}
 	}

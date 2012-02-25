@@ -12,6 +12,8 @@
 #include "streaming_device.hpp"
 
 struct StreamListener{
+	StreamListener();
+
 	unsigned id;
 	virtual bool isFromClient(ClientConn* c){return false;}
 	
