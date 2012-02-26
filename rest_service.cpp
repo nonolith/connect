@@ -32,6 +32,7 @@ bool deviceRequest(UrlPath path, websocketpp::session_ptr client){
 }
 
 void handleJSONRequest(UrlPath path, websocketpp::session_ptr client){
+	client->set_header("Access-Control-Allow-Origin", client->get_client_header("Origin"));
 	if (path.leaf()){
 		client->start_http(404, "Nothing here. Try v0");
 		return;
