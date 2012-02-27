@@ -13,9 +13,14 @@ void StreamingDevice::RESTOutputRespond(websocketpp::session_ptr client, Channel
 }
 
 void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, Channel* channel, string postdata){
-	JSONNode n = libjson::parse(postdata);
-	setOutput(channel, makeSource(n));
-	RESTOutputRespond(client, channel);
+	try{
+		JSONNode n = libjson::parse(postdata);
+		setOutput(channel, makeSource(n));
+		RESTOutputRespond(client, channel);
+	}catch(std::exception e){
+		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+		client->start_http(402);
+	}
 }
 
 bool StreamingDevice::handleRESTOutput(UrlPath path, websocketpp::session_ptr client, Channel* channel){

@@ -119,9 +119,9 @@ struct SquareWaveSource: public PeriodicSource{
 
 OutputSource* makeSource(JSONNode& n){
 	string source = jsonStringProp(n, "source", "constant");
-	unsigned mode = jsonFloatProp(n, "mode"); //TODO: validate
+	unsigned mode = jsonFloatProp(n, "mode", 0); //TODO: validate
 	if (source == "constant"){
-		float val = jsonFloatProp(n, "value");
+		float val = jsonFloatProp(n, "value", 0);
 		return new ConstantSource(mode, val);
 	}else if (source == "adv_square"){
 		float high = jsonFloatProp(n, "high");
