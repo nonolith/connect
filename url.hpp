@@ -4,6 +4,9 @@
 #include <map>
 using std::string;
 
+void parse_query(const string& query, std::map<string, string>& map);
+string map_get(std::map<string, string>& map, const string key, const string def="");
+
 struct Url{
 	Url(const string url);
 	std::vector<std::string> pathparts;
@@ -33,11 +36,6 @@ struct UrlPath{
 	}
 	
 	string param(string key, string def=""){
-		std::map<std::string, std::string>::iterator it = url.params.find(key);
-		if (it != url.params.end()){
-			return it->second;
-		}else{
-			return def;
-		}
+		return map_get(url.params, key, def);
 	}
 };

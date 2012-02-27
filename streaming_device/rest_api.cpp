@@ -1,6 +1,7 @@
 #include "streaming_device.hpp"
 #include "stream_listener.hpp"
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include <sstream>
 #include <boost/foreach.hpp>
 
@@ -14,8 +15,25 @@ void StreamingDevice::RESTOutputRespond(websocketpp::session_ptr client, Channel
 
 void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, Channel* channel, string postdata){
 	try{
-		JSONNode n = libjson::parse(postdata);
-		setOutput(channel, makeSource(n));
+		if (postdata[0] == '{'){
+			JSONNode n = libjson::parse(postdata);
+			setOutput(channel, makeSource(n));
+		}else{
+			std::map<string, string> map;
+			parse_query(postdata, map);
+			float value = boost::lexical_cast<float>(map_get(map, "value", "0"));
+			string mode = map_get(map, "mode", "0");
+			boost::algorithm::to_lower(mode);
+			unsigned modeval = 0;
+			if (mode == "0" || mode == "disabled"){ // Note: cee-specific
+				modeval = 0;
+			}else if (mode == "1" || mode == "svmi"){
+				modeval = 1;
+			}else if (mode == "2" || mode == "simv"){
+				modeval = 2;
+			}
+			setOutput(channel, makeConstantSource(modeval, value));
+		}
 		RESTOutputRespond(client, channel);
 	}catch(std::exception e){
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
@@ -107,10 +125,49 @@ bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr cli
 	return true;
 }
 
+/// Device resource
+
+void StreamingDevice::RESTDeviceRespond(websocketpp::session_ptr client){
+	JSONNode jstate = stateToJSON();
+	respondJSON(client, jstate);
+}
+
+void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, string postdata){
+	try{
+		if (postdata[0] == '{'){
+			//TODO: json
+		}else{
+			std::map<string, string> map;
+			parse_query(postdata, map);
+			
+			string captureState = map_get(map, "capture");
+			if (captureState == "true" || captureState == "on"){
+				start_capture();
+			}else if (captureState == "false" || captureState == "off"){
+				pause_capture();
+			}
+
+		}
+		RESTDeviceRespond(client);
+	}catch(std::exception e){
+		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+		client->start_http(402);
+	}
+}
+
+/// Dispatch
+
 bool StreamingDevice::handleREST(UrlPath path, websocketpp::session_ptr client){
 	if (path.leaf()){
-		JSONNode jstate = stateToJSON();
-		respondJSON(client, jstate);
+		if (client->get_method() == "POST"){
+			client->read_http_post_body(
+				boost::bind(
+					&StreamingDevice::handleRESTDeviceCallback,
+					boost::static_pointer_cast<StreamingDevice>(shared_from_this()),
+					client,  _1));
+		}else{
+			RESTDeviceRespond(client);
+		}
 		return true;
 	}else{
 		Channel *channel = channelById(path.get());

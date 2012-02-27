@@ -5,6 +5,15 @@
 typedef std::string::const_iterator iterator_t;
 using std::string;
 
+string map_get(std::map<string, string>& map, const string key, const string def){
+	std::map<std::string, std::string>::iterator it = map.find(key);
+	if (it != map.end()){
+		return it->second;
+	}else{
+		return def;
+	}
+}
+
 void parse_query(const string& query, std::map<string, string>& map){
 		std::vector<std::string> vars;
 		boost::split(vars, query, boost::is_any_of("&"));
