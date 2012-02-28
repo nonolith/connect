@@ -87,11 +87,9 @@ bool StreamingDevice::handleRESTOutput(UrlPath path, websocketpp::session_ptr cl
 
 struct RESTListener: public StreamListener{
 	websocketpp::session_ptr client;
-	bool csv;
 	
 	virtual bool handleNewData(){
 		if (client->is_closed()){
-			std::cout << "socket is closed" << std::endl;
 			return false;
 		}
 	
@@ -130,7 +128,6 @@ bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr cli
 	l->client = client;
 	l->device = this;
 	l->streams = channel->streams;
-	l->csv = 1;
 	
 	float resample_s = boost::lexical_cast<float>(path.param("resample", "0.01"));
 	l->decimateFactor = round(resample_s / sampleTime);
@@ -145,7 +142,7 @@ bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr cli
 	if (start < 0) l->index = 0;
 	else l->index = start;
 	
-	l->count = boost::lexical_cast<unsigned>(path.param("count", "0"));
+	l->count = boost::lexical_cast<unsigned>(path.param("count", "1"));
 	bool header = (path.param("header", "1") == "1");
 	addListener(l);
 	

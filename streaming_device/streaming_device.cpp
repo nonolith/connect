@@ -114,7 +114,6 @@ void StreamingDevice::handleNewData(){
 		listener_ptr w = *currentIt;
 		
 		if (!w->handleNewData()){
-			std::cout << "Listener done" << std::endl;
 			listeners.erase(currentIt);
 		}
 	}
@@ -133,7 +132,7 @@ void StreamingDevice::start_capture(){
 	if (!captureState){
 		if (captureDone) reset_capture();
 		captureState = true;
-		std::cerr << "start capture" <<std::endl;
+		std::cerr << "Start capture" <<std::endl;
 		on_start_capture();
 		notifyCaptureState();
 	}
@@ -142,7 +141,7 @@ void StreamingDevice::start_capture(){
 void StreamingDevice::pause_capture(){
 	if (captureState){
 		captureState = false;
-		std::cerr << "pause capture" <<std::endl;
+		std::cerr << "Pause capture" <<std::endl;
 		on_pause_capture();
 		notifyCaptureState();
 	}
@@ -150,7 +149,7 @@ void StreamingDevice::pause_capture(){
 
 void StreamingDevice::done_capture(){
 	captureDone = true;
-	std::cerr << "done capture" <<std::endl;
+	std::cerr << "Done capture" <<std::endl;
 	if (captureState){
 		captureState = false;
 		on_pause_capture();
