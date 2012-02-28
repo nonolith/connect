@@ -125,6 +125,10 @@ OutputSource* makeSource(unsigned mode, const string& source, float offset, floa
 	throw ErrorStringException("Invalid source");
 }
 
+OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase){
+	return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
+}
+
 OutputSource* makeSource(JSONNode& n){
 	string source = jsonStringProp(n, "source", "constant");
 	unsigned mode = jsonFloatProp(n, "mode", 0); //TODO: validate

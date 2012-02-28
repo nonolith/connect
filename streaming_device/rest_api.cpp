@@ -38,6 +38,16 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			
 			if (source == "constant"){
 				sourceObj = makeConstantSource(modeval, value);
+			}else if (source == "adv_square"){
+				float value1 = boost::lexical_cast<float>(map_get(map, "value1", "0"));
+				float value2 = boost::lexical_cast<float>(map_get(map, "value2", "0"));
+				int time1 = boost::lexical_cast<float>(map_get(map, "time1", "0.5"))/sampleTime;
+				if (time1 <= 0) time1 = 1;
+				int time2 = boost::lexical_cast<float>(map_get(map, "time2", "0.5"))/sampleTime;
+				if (time2 <= 0) time2 = 1;
+				int phase = boost::lexical_cast<float>(map_get(map, "phase", "0"))/sampleTime;
+				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase);
+				
 			}else{
 				float amplitude = boost::lexical_cast<float>(map_get(map, "amplitude", "0"));
 				float freq = boost::lexical_cast<float>(map_get(map, "frequency", "1"));
