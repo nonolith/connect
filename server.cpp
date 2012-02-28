@@ -70,7 +70,7 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 
 	if (!allowAnyOrigin && origin!="" && origin!="null" && 
 	  origin!="http://localhost:8000" && !regex_match(origin, nonolith_domain)){
-		client->start_http(403);
+		client->start_http(403, "Origin not allowed");
 		std::cerr << "Rejected client with unknown origin " << origin << std::endl;
 		return;
 	}
@@ -81,9 +81,9 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 
 	try{
 		if (path.leaf()){ // "/"
-			client->set_header("Location", "/json/v0/devices");
+			client->set_header("Location", "http://www.nonolithlabs.com/connect/server");
 			client->start_http(301);
-		}else if (path.matches("json")){
+		}else if (path.matches("rest")){
 			handleJSONRequest(path.sub(), client);
 		}else if (path.matches("ws")){
 			client->start_websocket();
