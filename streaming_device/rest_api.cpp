@@ -32,7 +32,24 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			}else if (mode == "2" || mode == "simv"){
 				modeval = 2;
 			}
-			setOutput(channel, makeConstantSource(modeval, value));
+			
+			string source = map_get(map, "wave", "constant");
+			OutputSource* sourceObj;
+			
+			if (source == "constant"){
+				sourceObj = makeConstantSource(modeval, value);
+			}else{
+				float amplitude = boost::lexical_cast<float>(map_get(map, "amplitude", "0"));
+				float freq = boost::lexical_cast<float>(map_get(map, "frequency", "1"));
+				if (freq <= 0){freq = 0.001;}
+				float period = 1/sampleTime/freq;
+				float phase = boost::lexical_cast<float>(map_get(map, "phase", "0"))/sampleTime;
+				bool relPhase = (map_get(map, "relPhase", "1") == "1");
+		
+				sourceObj = makeSource(modeval, source, value, amplitude, period, phase, relPhase);
+			}
+			
+			setOutput(channel, sourceObj);
 		}
 		RESTOutputRespond(client, channel);
 	}catch(std::exception e){

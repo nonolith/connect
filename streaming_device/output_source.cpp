@@ -115,7 +115,15 @@ struct SquareWaveSource: public PeriodicSource{
 	}
 };
 
-
+OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, float period, float phase, bool relPhase){
+	if (source == "sine")
+			return new SineWaveSource(mode, offset, amplitude, period, phase, relPhase);
+	else if (source == "triangle")
+		return new TriangleWaveSource(mode, offset, amplitude, period, phase, relPhase);
+	else if (source == "square")
+		return new SquareWaveSource(mode, offset, amplitude, period, phase, relPhase);
+	throw ErrorStringException("Invalid source");
+}
 
 OutputSource* makeSource(JSONNode& n){
 	string source = jsonStringProp(n, "source", "constant");
@@ -137,12 +145,7 @@ OutputSource* makeSource(JSONNode& n){
 		float phase = jsonFloatProp(n, "phase", 0);
 		bool relPhase = jsonBoolProp(n, "relPhase", true);
 		
-		if (source == "sine")
-			return new SineWaveSource(mode, offset, amplitude, period, phase, relPhase);
-		else if (source == "triangle")
-			return new TriangleWaveSource(mode, offset, amplitude, period, phase, relPhase);
-		else if (source == "square")
-			return new SquareWaveSource(mode, offset, amplitude, period, phase, relPhase);
+		makeSource(mode, source, offset, amplitude, period, phase, relPhase);
 	}
 	throw ErrorStringException("Invalid source");
 }

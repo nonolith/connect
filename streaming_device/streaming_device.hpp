@@ -265,5 +265,6 @@ struct OutputSource{
 
 OutputSource *makeConstantSource(unsigned m, int value);
 OutputSource *makeSource(JSONNode& description);
+OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, float period, float phase, bool relPhase);
 
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);
