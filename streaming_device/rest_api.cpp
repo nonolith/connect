@@ -146,9 +146,23 @@ bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr cli
 	else l->index = start;
 	
 	l->count = boost::lexical_cast<unsigned>(path.param("count", "0"));
-	
+	bool header = (path.param("header", "1") == "1");
 	addListener(l);
-	client->start_http(200, "#csv header\n", false);
+	
+	std::ostringstream o(std::ostringstream::out);
+	
+	if (header){
+		bool first = true;
+		BOOST_FOREACH(Stream* s, l->streams){
+			if (!first){
+				o << ",";
+			}else first = false;
+			o << s->displayName << " (" << s->units << ")" ;
+		}
+		o<<"\n";
+	}
+	
+	client->start_http(200, o.str(), false);
 	return true;
 }
 
