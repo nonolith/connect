@@ -40,7 +40,10 @@ void handleJSONRequest(UrlPath path, websocketpp::session_ptr client){
 		UrlPath path1 = path.sub();
 		
 		if(path1.leaf()){
-			client->start_http(404, "Not found. Try devices.");
+			JSONNode n(JSON_NODE);
+			n.push_back(JSONNode("server", "Nonolith Connect"));
+			n.push_back(JSONNode("version", server_version));
+			respondJSON(client, n);
 			return;
 		}else if (path1.matches("devices")){
 			UrlPath path2 = path1.sub();

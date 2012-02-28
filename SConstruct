@@ -26,10 +26,9 @@ else:
 
 if os.path.isdir(".git"):
 	version = os.popen("git describe --always --dirty='*'").read().strip()
-elif os.path.isfile('VERSION'):
-	version = open('VERSION').read().strip()
-else:
-	version = 'unknown'	
+	f = open("version.cpp", 'wt')
+	f.write('const char* server_version="%s";\n'%version)
+	f.close()
 
 if env['mingwcross']:
 	target = 'windows'
@@ -137,4 +136,4 @@ libusb = env.Library('libusb_nonolith', ['libusb/libusb/'+i for i in [
 
 libs += boostlibs
 
-env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared', "-DVERSION='%s'"%version], FRAMEWORKS=frameworks)
+env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)
