@@ -66,10 +66,15 @@ void handleJSONRequest(UrlPath path, websocketpp::session_ptr client);
 
 void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 	static const boost::regex nonolith_domain("^https?://[[:w:]\\.-]*?nonolithlabs.com$");
+	static const boost::regex localhost_domain("^https?://localhost(:[[:d:]]+)?$");
 	const string origin = client->get_client_header("Origin");
 
-	if (!allowAnyOrigin && origin!="" && origin!="null" && 
-	  origin!="http://localhost:8000" && !regex_match(origin, nonolith_domain)){
+	if (!allowAnyOrigin 
+			&& origin!=""
+			&& origin!="null"
+			&& !regex_match(origin, localhost_domain) 
+			&& !regex_match(origin, nonolith_domain)
+			){
 		client->start_http(403, "Origin not allowed");
 		std::cerr << "Rejected client with unknown origin " << origin << std::endl;
 		return;
