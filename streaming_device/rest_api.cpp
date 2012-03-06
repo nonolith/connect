@@ -197,6 +197,11 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 	}
 }
 
+void handleRESTChannel(websocketpp::session_ptr client, Channel* channel){
+	JSONNode n = channel->toJSON();
+	respondJSON(client, n);
+}
+
 /// Dispatch
 
 bool StreamingDevice::handleREST(UrlPath path, websocketpp::session_ptr client){
@@ -216,7 +221,10 @@ bool StreamingDevice::handleREST(UrlPath path, websocketpp::session_ptr client){
 		if (!channel) return false;
 		
 		UrlPath spath = path.sub();
-		if (spath.leaf()) return false;
+		if (spath.leaf()){
+			handleRESTChannel(client, channel);
+			return true;
+		};
 		
 		if (spath.matches("output")){
 			return handleRESTOutput(spath.sub(), client, channel);
