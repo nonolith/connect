@@ -53,14 +53,20 @@ JSONNode Channel::toJSON(){
 	return n;
 }
 
-JSONNode StreamingDevice::stateToJSON(){
-	JSONNode n = toJSON();
+JSONNode StreamingDevice::stateToJSON(bool configOnly){
+	JSONNode n;
+	if (!configOnly){
+		n = toJSON();
+	}
+	
 	n.push_back(JSONNode("sampleTime", sampleTime));
 	n.push_back(JSONNode("mode", devMode));
 	n.push_back(JSONNode("samples", captureSamples));
 	n.push_back(JSONNode("length", captureLength));
 	n.push_back(JSONNode("continuous", captureContinuous));
 	n.push_back(JSONNode("raw", rawMode));
+	
+	if  (configOnly) return n;
 	
 	n.push_back(JSONNode("captureState", captureState));
 	n.push_back(JSONNode("captureDone", captureDone));

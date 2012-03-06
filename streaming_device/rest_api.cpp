@@ -21,7 +21,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 		}else{
 			std::map<string, string> map;
 			parse_query(postdata, map);
-			float value = boost::lexical_cast<float>(map_get(map, "value", "0"));
+			float value = map_get_num(map, "value", 0.0);
 			string mode = map_get(map, "mode", "0");
 			boost::algorithm::to_lower(mode);
 			unsigned modeval = 0;
@@ -39,21 +39,21 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			if (source == "constant"){
 				sourceObj = makeConstantSource(modeval, value);
 			}else if (source == "adv_square"){
-				float value1 = boost::lexical_cast<float>(map_get(map, "value1", "0"));
-				float value2 = boost::lexical_cast<float>(map_get(map, "value2", "0"));
-				int time1 = boost::lexical_cast<float>(map_get(map, "time1", "0.5"))/sampleTime;
+				float value1 = map_get_num(map, "value1", 0.0);
+				float value2 = map_get_num(map, "value2", 0.0);
+				int time1 = map_get_num(map, "time1", 0.5)/sampleTime;
 				if (time1 <= 0) time1 = 1;
-				int time2 = boost::lexical_cast<float>(map_get(map, "time2", "0.5"))/sampleTime;
+				int time2 = map_get_num(map, "time2", 0.5)/sampleTime;
 				if (time2 <= 0) time2 = 1;
-				int phase = boost::lexical_cast<float>(map_get(map, "phase", "0"))/sampleTime;
+				int phase = map_get_num(map, "phase", 0)/sampleTime;
 				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase);
 				
 			}else{
-				float amplitude = boost::lexical_cast<float>(map_get(map, "amplitude", "0"));
-				float freq = boost::lexical_cast<float>(map_get(map, "frequency", "1"));
+				float amplitude = map_get_num(map, "amplitude", 0.0);
+				float freq = map_get_num(map, "frequency", 1.0);
 				if (freq <= 0){freq = 0.001;}
 				float period = 1/sampleTime/freq;
-				float phase = boost::lexical_cast<float>(map_get(map, "phase", "0"))/sampleTime;
+				float phase = map_get_num(map, "phase", 1.0)/sampleTime;
 				bool relPhase = (map_get(map, "relPhase", "1") == "1");
 		
 				sourceObj = makeSource(modeval, source, value, amplitude, period, phase, relPhase);
@@ -180,8 +180,6 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 			std::map<string, string> map;
 			parse_query(postdata, map);
 			
-			
-			
 			string captureState = map_get(map, "capture");
 			if (captureState == "true" || captureState == "on"){
 				start_capture();
@@ -197,9 +195,40 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 	}
 }
 
+/// Channel resource
+
 void handleRESTChannel(websocketpp::session_ptr client, Channel* channel){
 	JSONNode n = channel->toJSON();
 	respondJSON(client, n);
+}
+
+/// Configuration resource
+
+void StreamingDevice::RESTConfigurationRespond(websocketpp::session_ptr client){
+	JSONNode jstate = stateToJSON(true);
+	respondJSON(client, jstate);
+}
+
+void StreamingDevice::handleRESTConfigurationCallback(websocketpp::session_ptr client, string postdata){
+	try{
+		if (postdata[0] == '{'){
+			//TODO: json
+		}else{
+			std::map<string, string> map;
+			parse_query(postdata, map);
+			
+			unsigned samples =    map_get_num(map, "samples", captureSamples);
+			float    _sampleTime = map_get_num(map, "sampleTime", sampleTime);
+			if (_sampleTime <= 0 || _sampleTime > 0.01) _sampleTime = sampleTime;
+			
+			configure(devMode, _sampleTime, samples, captureContinuous, rawMode);
+		
+		}
+		RESTDeviceRespond(client);
+	}catch(std::exception e){
+		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+		client->start_http(402);
+	}
 }
 
 /// Dispatch
@@ -217,21 +246,34 @@ bool StreamingDevice::handleREST(UrlPath path, websocketpp::session_ptr client){
 		}
 		return true;
 	}else{
-		Channel *channel = channelById(path.get());
-		if (!channel) return false;
-		
-		UrlPath spath = path.sub();
-		if (spath.leaf()){
-			handleRESTChannel(client, channel);
+		if (path.matches("configuration")){
+			if (client->get_method() == "POST"){
+				client->read_http_post_body(
+					boost::bind(
+						&StreamingDevice::handleRESTConfigurationCallback,
+						boost::static_pointer_cast<StreamingDevice>(shared_from_this()),
+						client,  _1));
+			}else{
+				RESTConfigurationRespond(client);
+			}
 			return true;
-		};
 		
-		if (spath.matches("output")){
-			return handleRESTOutput(spath.sub(), client, channel);
-		}else if (spath.matches("input")){
-			return handleRESTInput(spath.sub(), client, channel);
-		}	
+		}else{
+			Channel *channel = channelById(path.get());
+			if (!channel) return false;
 		
+			UrlPath spath = path.sub();
+			if (spath.leaf()){
+				handleRESTChannel(client, channel);
+				return true;
+			};
+		
+			if (spath.matches("output")){
+				return handleRESTOutput(spath.sub(), client, channel);
+			}else if (spath.matches("input")){
+				return handleRESTInput(spath.sub(), client, channel);
+			}
+		}		
 		return false;
 	}
 }

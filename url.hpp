@@ -2,10 +2,21 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <boost/lexical_cast.hpp>
 using std::string;
 
 void parse_query(const string& query, std::map<string, string>& map);
 string map_get(std::map<string, string>& map, const string key, const string def="");
+
+template <class T>
+T map_get_num(std::map<string, string>& map, const string key, const T def){
+	std::map<std::string, std::string>::iterator it = map.find(key);
+	if (it != map.end()){
+		return boost::lexical_cast<T>(it->second);
+	}else{
+		return def;
+	}
+}
 
 struct Url{
 	Url(const string url);

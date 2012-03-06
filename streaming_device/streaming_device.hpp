@@ -81,7 +81,7 @@ class StreamingDevice: public Device{
 			capture_i(0),
 			capture_o(0) {}
 		
-		virtual JSONNode stateToJSON();
+		virtual JSONNode stateToJSON(bool onlyConfig=true);
 		
 		virtual void onClientAttach(ClientConn *c);
 		virtual void onClientDetach(ClientConn *c);
@@ -219,7 +219,8 @@ class StreamingDevice: public Device{
 		bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
 		void handleRESTDeviceCallback(websocketpp::session_ptr client, string postdata);
 		void RESTDeviceRespond(websocketpp::session_ptr client);
-		
+		void handleRESTConfigurationCallback(websocketpp::session_ptr client, string postdata);
+		void RESTConfigurationRespond(websocketpp::session_ptr client);
 		
 		virtual void on_reset_capture() = 0;
 		virtual void on_start_capture() = 0;
