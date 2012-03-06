@@ -263,7 +263,7 @@ struct OutputSource{
 		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};
 };
 
-OutputSource *makeConstantSource(unsigned m, int value);
+OutputSource *makeConstantSource(unsigned m, float value);
 OutputSource *makeSource(JSONNode& description);
 OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, float period, float phase, bool relPhase);
 OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase);

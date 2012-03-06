@@ -35,7 +35,7 @@ struct ConstantSource: public OutputSource{
 	float value;
 };
 
-OutputSource *makeConstantSource(unsigned m, int value){
+OutputSource *makeConstantSource(unsigned m, float value){
 	return new ConstantSource(m, value);
 }
 

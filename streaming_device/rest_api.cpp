@@ -29,7 +29,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				modeval = 0;
 			}else if (mode == "1" || mode == "svmi" || mode == "v"){
 				modeval = 1;
-			}else if (mode == "2" || mode == "simv" || mode ="i"){
+			}else if (mode == "2" || mode == "simv" || mode == "i"){
 				modeval = 2;
 			}
 			
