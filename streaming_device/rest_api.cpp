@@ -25,11 +25,11 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			string mode = map_get(map, "mode", "0");
 			boost::algorithm::to_lower(mode);
 			unsigned modeval = 0;
-			if (mode == "0" || mode == "disabled"){ // Note: cee-specific
+			if (mode == "0" || mode == "disabled" || mode == "d"){ // Note: cee-specific
 				modeval = 0;
-			}else if (mode == "1" || mode == "svmi"){
+			}else if (mode == "1" || mode == "svmi" || mode == "v"){
 				modeval = 1;
-			}else if (mode == "2" || mode == "simv"){
+			}else if (mode == "2" || mode == "simv" || mode ="i"){
 				modeval = 2;
 			}
 			
@@ -119,6 +119,8 @@ struct RESTListener: public StreamListener{
 		client->http_write(o.str(), done);
 		return !done;
 	}
+	
+	// TODO: close in destructor
 };
 
 bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel){
@@ -177,6 +179,8 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 		}else{
 			std::map<string, string> map;
 			parse_query(postdata, map);
+			
+			
 			
 			string captureState = map_get(map, "capture");
 			if (captureState == "true" || captureState == "on"){
