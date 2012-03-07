@@ -82,6 +82,10 @@ struct PeriodicSource: public OutputSource{
 		}
 	}
 	
+	virtual float getPhaseZeroAfterSample(unsigned sample){
+		return sample + period - fmod((sample+phase-period/2),period)+period/2;
+	}
+	
 	float offset, amplitude, period, phase;
 	bool relativePhase;
 };
@@ -100,7 +104,7 @@ struct TriangleWaveSource: public PeriodicSource{
 		PeriodicSource(m, _offset, _amplitude, _period, _phase, relPhase) {}
 	virtual string displayName(){return "triangle";}
 	virtual float getValue(unsigned sample, float SampleTime){
-		return  (fabs(fmod((sample+phase),period)/period*2-1)*2-1)*amplitude + offset;
+		return  (fabs(fmod((sample+phase+period/4),period)/period*2-1)*2-1)*amplitude + offset;
 	}
 };
 

@@ -259,6 +259,8 @@ struct OutputSource{
 	bool effective;
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){};
+	
+	virtual float getPhaseZeroAfterSample(unsigned sample){return INFINITY;}
 
 	protected:
 		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};

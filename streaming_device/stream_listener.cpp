@@ -42,6 +42,8 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 		start = (dev->buffer_max()) + start + 1;
 	}
 	
+	std::cout << "Listener start " << start << std::endl;
+	
 	if (start < 0) listener->index = 0;
 	else listener->index = start;
 	
@@ -57,13 +59,24 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 	
 	JSONNode::iterator t = n.find("trigger");
 	if (t != n.end() && (t->type()) == JSON_NODE){
-		JSONNode &trigger = *t;	 
-		listener->triggerType = INSTREAM;
+		JSONNode &trigger = *t;
+		
+		string type = jsonStringProp(trigger, "type", "in");
+		if (type == "in"){
+			listener->triggerType = INSTREAM;
+			listener->triggerLevel = jsonFloatProp(trigger, "level");
+			listener->triggerStream = dev->findStream(
+				jsonStringProp(trigger, "channel"),
+				jsonStringProp(trigger, "stream"));
+		}else if (type == "out"){
+			listener->triggerType = OUTSOURCE;
+			listener->triggerChannel = dev->channelById(jsonStringProp(trigger, "channel"));
+			if (!listener->triggerChannel) throw ErrorStringException("Trigger channel not found");
+		}else{
+			throw ErrorStringException("Invalid trigger type");
+		}
+			
 		listener->triggerRepeat = jsonBoolProp(trigger, "repeat", true);
-		listener->triggerLevel = jsonFloatProp(trigger, "level");
-		listener->triggerStream = dev->findStream(
-			jsonStringProp(trigger, "channel"),
-			jsonStringProp(trigger, "stream"));
 		listener->triggerHoldoff = jsonIntProp(trigger, "holdoff", 0);
 		listener->triggerOffset = jsonIntProp(trigger, "offset", 0);
 		
@@ -155,17 +168,30 @@ bool WSStreamListener::handleNewData(){
 }
 
 bool StreamListener::findTrigger(){
-	bool state = device->get(*triggerStream, index) > triggerLevel;
-	while (++index < device->capture_i){
-		bool newState = device->get(*triggerStream, index) > triggerLevel;
+	if (triggerType == INSTREAM){
+		bool state = device->get(*triggerStream, index) > triggerLevel;
+		while (++index < device->capture_i){
+			bool newState = device->get(*triggerStream, index) > triggerLevel;
 		
-		if (newState == true && state == false){
-			//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
-			index += triggerOffset;
-			triggered = true;
-			return true;
+			if (newState == true && state == false){
+				//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
+				index += triggerOffset;
+				triggered = true;
+				return true;
+			}
+			state = newState;
 		}
-		state = newState;
+	}else if (triggerType == OUTSOURCE){
+		float zero = triggerChannel->source->getPhaseZeroAfterSample(index);
+		std::cout << "oTrigger at " << index << " " << zero << " " << triggerForceIndex << std::endl;
+		if (zero <= triggerForceIndex){
+			index = round(zero) + triggerOffset;
+			std::cout << "moved index "<< index<<std::endl;
+		}else if (triggerForceIndex > index){
+			index = triggerForceIndex;
+		}
+		triggered = true;
+		return true;
 	}
 	
 	if (triggerForce && index > triggerForceIndex){

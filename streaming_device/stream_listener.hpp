@@ -35,8 +35,12 @@ struct StreamListener{
 	TriggerType triggerType;
 	bool triggered;
 	bool triggerRepeat;
+	
+	Channel* triggerChannel;
+	
 	float triggerLevel;
 	Stream* triggerStream;
+	
 	int triggerHoldoff;
 	int triggerOffset;
 	unsigned triggerForce;
