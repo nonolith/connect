@@ -149,7 +149,7 @@ OutputSource* makeSource(JSONNode& n){
 		float phase = jsonFloatProp(n, "phase", 0);
 		bool relPhase = jsonBoolProp(n, "relPhase", true);
 		
-		makeSource(mode, source, offset, amplitude, period, phase, relPhase);
+		return makeSource(mode, source, offset, amplitude, period, phase, relPhase);
 	}
 	throw ErrorStringException("Invalid source");
 }
