@@ -81,7 +81,7 @@ class StreamingDevice: public Device{
 			capture_i(0),
 			capture_o(0) {}
 		
-		virtual JSONNode stateToJSON(bool onlyConfig=true);
+		virtual JSONNode stateToJSON(bool configOnly=false);
 		
 		virtual void onClientAttach(ClientConn *c);
 		virtual void onClientDetach(ClientConn *c);
