@@ -11,6 +11,11 @@
 
 #include "streaming_device.hpp"
 
+enum TriggerType {NONE=0, // No trigger
+                  INSTREAM, // Trigger on a level crossing of an input stream
+                  OUTSOURCE // Trigger relative to the phase of an output source
+};
+
 struct StreamListener{
 	StreamListener();
 
@@ -27,7 +32,7 @@ struct StreamListener{
 	unsigned outIndex;
 	int count;
 	
-	bool triggerMode;
+	TriggerType triggerType;
 	bool triggered;
 	bool triggerRepeat;
 	float triggerLevel;

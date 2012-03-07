@@ -15,7 +15,7 @@ StreamListener::StreamListener():
 	id(0),
 	index(0),
 	outIndex(0),
-	triggerMode(0),
+	triggerType(NONE),
 	triggered(false),
 	triggerRepeat(false),
 	triggerLevel(0),
@@ -58,7 +58,7 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 	JSONNode::iterator t = n.find("trigger");
 	if (t != n.end() && (t->type()) == JSON_NODE){
 		JSONNode &trigger = *t;	 
-		listener->triggerMode = 1;
+		listener->triggerType = INSTREAM;
 		listener->triggerRepeat = jsonBoolProp(trigger, "repeat", true);
 		listener->triggerLevel = jsonFloatProp(trigger, "level");
 		listener->triggerStream = dev->findStream(
@@ -79,7 +79,7 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 }
 
 unsigned StreamListener::howManySamples(){
-	if (triggerMode && !triggered && !findTrigger())
+	if (triggerType != NONE && !triggered && !findTrigger())
 		// Waiting for a trigger and haven't found it yet
 		return 0;
 				
