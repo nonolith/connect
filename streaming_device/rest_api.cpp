@@ -103,6 +103,7 @@ struct RESTListener: public StreamListener{
 			BOOST_FOREACH(Stream* s, streams){
 				if (!first){
 					o << ", ";
+					std::cout << "Data from " << index+chunk*decimateFactor <<std::endl;
 				}else{
 					first = false;
 				}
@@ -146,7 +147,6 @@ bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr cli
 	
 	l->count = boost::lexical_cast<unsigned>(path.param("count", "1"));
 	bool header = (path.param("header", "1") == "1");
-	addListener(l);
 	
 	std::ostringstream o(std::ostringstream::out);
 	
@@ -162,6 +162,9 @@ bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr cli
 	}
 	
 	client->start_http(200, o.str(), false);
+	
+	addListener(l);
+	
 	return true;
 }
 
