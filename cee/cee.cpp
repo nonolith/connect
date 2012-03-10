@@ -133,7 +133,7 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	}
 }
 
-void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool continuous, bool raw){
+void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool continuous, bool raw){
 	pause_capture();
 	
 	// Clean up previous configuration
@@ -144,7 +144,7 @@ void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool c
 	channel_b.streams.clear();
 	
 	// Store state
-	xmega_per = _sampleTime * (float) CEE_timer_clock; // floors to int
+	xmega_per = _sampleTime * (double) CEE_timer_clock; // floors to int
 	if (xmega_per < 80) xmega_per = 80;
 	sampleTime = xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
 	
@@ -269,6 +269,8 @@ void CEE_device::on_pause_capture(){
 			out_transfers[i] = 0;
 		}
 	}
+	
+	capture_o = capture_i;
 }
 
 void CEE_device::setGain(Channel *channel, Stream* stream, int gain){

@@ -103,7 +103,6 @@ struct RESTListener: public StreamListener{
 			BOOST_FOREACH(Stream* s, streams){
 				if (!first){
 					o << ", ";
-					std::cout << "Data from " << index+chunk*decimateFactor <<std::endl;
 				}else{
 					first = false;
 				}

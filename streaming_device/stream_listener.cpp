@@ -41,9 +41,7 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 	if (start < 0){ // Negative indexes are relative to latest sample
 		start = (dev->buffer_max()) + start + 1;
 	}
-	
-	std::cout << "Listener start " << start << std::endl;
-	
+
 	if (start < 0) listener->index = 0;
 	else listener->index = start;
 	
@@ -85,6 +83,7 @@ listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNo
 			listener->triggerHoldoff = -listener->triggerOffset;
 		}
 		listener->triggerForce = jsonIntProp(trigger, "force", 0);
+		listener->triggerForceIndex = listener->index + listener->triggerForce;
 	}
 		
 		
@@ -182,11 +181,9 @@ bool StreamListener::findTrigger(){
 			state = newState;
 		}
 	}else if (triggerType == OUTSOURCE){
-		float zero = triggerChannel->source->getPhaseZeroAfterSample(index);
-		std::cout << "oTrigger at " << index << " " << zero << " " << triggerForceIndex << std::endl;
-		if (zero <= triggerForceIndex){
+		double zero = triggerChannel->source->getPhaseZeroAfterSample(index);
+		if (!triggerForce || zero <= triggerForceIndex){
 			index = round(zero) + triggerOffset;
-			std::cout << "moved index "<< index<<std::endl;
 		}else if (triggerForceIndex > index){
 			index = triggerForceIndex;
 		}

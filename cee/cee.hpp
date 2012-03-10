@@ -77,7 +77,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	CEE_device(libusb_device *dev, libusb_device_descriptor &desc);
 	virtual ~CEE_device();
 	
-	virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw);
+	virtual void configure(int mode, double sampleTime, unsigned samples, bool continuous, bool raw);
 
 	virtual const string model(){return "com.nonolithlabs.cee";}
 	virtual const string hwVersion(){return _hwversion;}

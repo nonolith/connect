@@ -71,7 +71,7 @@ struct Stream{
 
 class StreamingDevice: public Device{
 	public: 
-		StreamingDevice(float _sampleTime):
+		StreamingDevice(double _sampleTime):
 			captureState(false),
 			captureDone(false),
 			captureLength(0),
@@ -102,7 +102,7 @@ class StreamingDevice: public Device{
 		/// If *continuous*, capture indefinitely, keeping the specified number
 		/// of samples of history. If *raw*, units will be device LSB rather
 		/// than converting to standard units.
-		virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw)=0;
+		virtual void configure(int mode, double sampleTime, unsigned samples, bool continuous, bool raw)=0;
 		
 		/// Set time = 0
 		void reset_capture();
@@ -139,7 +139,7 @@ class StreamingDevice: public Device{
 		bool captureContinuous;
 		
 		/// Time of a sample
-		float sampleTime;
+		double sampleTime;
 		
 		/// IN sample counter
 	    /// index of next-written element is capture_i%captureSamples
@@ -246,7 +246,7 @@ struct Channel{
 struct OutputSource{
 	virtual string displayName() = 0;
 	
-	virtual float getValue(unsigned sample, float sampleTime) = 0;
+	virtual float getValue(unsigned sample, double sampleTime) = 0;
 	
 	virtual void describeJSON(JSONNode &n);
 
@@ -260,7 +260,7 @@ struct OutputSource{
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){};
 	
-	virtual float getPhaseZeroAfterSample(unsigned sample){return INFINITY;}
+	virtual double getPhaseZeroAfterSample(unsigned sample){return INFINITY;}
 
 	protected:
 		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};
@@ -268,7 +268,7 @@ struct OutputSource{
 
 OutputSource *makeConstantSource(unsigned m, float value);
 OutputSource *makeSource(JSONNode& description);
-OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, float period, float phase, bool relPhase);
+OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase);
 OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase);
 
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);

@@ -25,7 +25,7 @@ inline void OutputSource::describeJSON(JSONNode &n){
 struct ConstantSource: public OutputSource{
 	ConstantSource(unsigned m, float val): OutputSource(m), value(val){}
 	virtual string displayName(){return "constant";}
-	virtual float getValue(unsigned sample, float sampleTime){ return value; }
+	virtual float getValue(unsigned sample, double sampleTime){ return value; }
 	
 	virtual void describeJSON(JSONNode &n){
 		OutputSource::describeJSON(n);
@@ -44,7 +44,7 @@ struct AdvSquareWaveSource: public OutputSource{
 		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples), phase(_phase){}
 	virtual string displayName(){return "adv_square";}
 	
-	virtual float getValue(unsigned sample, float sampleTime){
+	virtual float getValue(unsigned sample, double sampleTime){
 		unsigned s = (sample + phase) % (highSamples + lowSamples);
 		if (s < lowSamples) return low;
 		else                return high;
@@ -64,7 +64,7 @@ struct AdvSquareWaveSource: public OutputSource{
 };
 
 struct PeriodicSource: public OutputSource{
-	PeriodicSource(unsigned m, float _offset, float _amplitude, float _period, float _phase=0, bool relPhase=false):
+	PeriodicSource(unsigned m, float _offset, float _amplitude, double _period, double _phase=0, bool relPhase=false):
 		OutputSource(m), offset(_offset), amplitude(_amplitude), period(_period), phase(_phase), relativePhase(relPhase){}
 	
 	virtual void describeJSON(JSONNode &n){
@@ -82,44 +82,44 @@ struct PeriodicSource: public OutputSource{
 		}
 	}
 	
-	virtual float getPhaseZeroAfterSample(unsigned sample){
-		return sample + period - fmod((sample+phase-period/2),period)+period/2;
+	virtual double getPhaseZeroAfterSample(unsigned sample){
+		return (double) sample + period - fmod(sample-phase, period);
 	}
 	
-	float offset, amplitude, period, phase;
+	double offset, amplitude, period, phase;
 	bool relativePhase;
 };
 
 struct SineWaveSource: public PeriodicSource{
-	SineWaveSource(unsigned m, float _offset, float _amplitude, float _period, float _phase, bool relPhase):
+	SineWaveSource(unsigned m, float _offset, float _amplitude, double _period, double _phase, bool relPhase):
 		PeriodicSource(m, _offset, _amplitude, _period, _phase, relPhase) {}
 	virtual string displayName(){return "sine";}
-	virtual float getValue(unsigned sample, float SampleTime){
+	virtual float getValue(unsigned sample, double SampleTime){
 		return sin((sample + phase) * 2 * M_PI / period)*amplitude + offset;
 	}
 };
 
 struct TriangleWaveSource: public PeriodicSource{
-	TriangleWaveSource(unsigned m, float _offset, float _amplitude, float _period, float _phase, bool relPhase):
+	TriangleWaveSource(unsigned m, float _offset, float _amplitude, double _period, double _phase, bool relPhase):
 		PeriodicSource(m, _offset, _amplitude, _period, _phase, relPhase) {}
 	virtual string displayName(){return "triangle";}
-	virtual float getValue(unsigned sample, float SampleTime){
-		return  (fabs(fmod((sample+phase+period/4),period)/period*2-1)*2-1)*amplitude + offset;
+	virtual float getValue(unsigned sample, double SampleTime){
+		return  (fabs(fmod((sample+phase-period/4),period)/period*2-1)*2-1)*amplitude + offset;
 	}
 };
 
 struct SquareWaveSource: public PeriodicSource{
-	SquareWaveSource(unsigned m, float _offset, float _amplitude, float _period, float _phase, bool relPhase):
+	SquareWaveSource(unsigned m, float _offset, float _amplitude, double _period, double _phase, bool relPhase):
 		PeriodicSource(m, _offset, _amplitude, _period, _phase, relPhase) {}
 	virtual string displayName(){return "square";}
-	virtual float getValue(unsigned sample, float SampleTime){
+	virtual float getValue(unsigned sample, double SampleTime){
 		unsigned s = fmod(sample + phase, period);
 		if (s < period/2) return offset+amplitude;
 		else              return offset-amplitude;
 	}
 };
 
-OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, float period, float phase, bool relPhase){
+OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase){
 	if (source == "sine")
 			return new SineWaveSource(mode, offset, amplitude, period, phase, relPhase);
 	else if (source == "triangle")
@@ -149,8 +149,8 @@ OutputSource* makeSource(JSONNode& n){
 	}else if (source == "sine" || source == "triangle" || source == "square"){
 		float offset = jsonFloatProp(n, "offset");
 		float amplitude = jsonFloatProp(n, "amplitude");
-		float period = jsonFloatProp(n, "period");
-		float phase = jsonFloatProp(n, "phase", 0);
+		double period = jsonFloatProp(n, "period");
+		double phase = jsonFloatProp(n, "phase", 0);
 		bool relPhase = jsonBoolProp(n, "relPhase", true);
 		
 		return makeSource(mode, source, offset, amplitude, period, phase, relPhase);
