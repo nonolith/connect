@@ -12,7 +12,7 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 	}else if (cmd == "configure"){
 		int      mode =       jsonIntProp(n,   "mode");
 		unsigned samples =    jsonIntProp(n,   "samples");
-		float    sampleTime = jsonFloatProp(n, "sampleTime");
+		double    sampleTime = jsonFloatProp(n, "sampleTime");
 		bool     continuous = jsonBoolProp(n,  "continuous", false);
 		bool     raw =        jsonBoolProp(n,  "raw", false);
 		configure(mode, sampleTime, samples, continuous, raw);

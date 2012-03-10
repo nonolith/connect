@@ -144,7 +144,7 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	channel_b.streams.clear();
 	
 	// Store state
-	xmega_per = _sampleTime * (double) CEE_timer_clock; // floors to int
+	xmega_per = round(_sampleTime * (double) CEE_timer_clock);
 	if (xmega_per < 80) xmega_per = 80;
 	sampleTime = xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
 	

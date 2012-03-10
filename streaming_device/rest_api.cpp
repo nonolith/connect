@@ -50,10 +50,10 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				
 			}else{
 				float amplitude = map_get_num(map, "amplitude", 0.0);
-				float freq = map_get_num(map, "frequency", 1.0);
+				double freq = map_get_num(map, "frequency", 1.0);
 				if (freq <= 0){freq = 0.001;}
-				float period = 1/sampleTime/freq;
-				float phase = map_get_num(map, "phase", 1.0)/sampleTime;
+				double period = 1/sampleTime/freq;
+				double phase = map_get_num(map, "phase", 1.0)/sampleTime;
 				bool relPhase = (map_get(map, "relPhase", "1") == "1");
 		
 				sourceObj = makeSource(modeval, source, value, amplitude, period, phase, relPhase);
