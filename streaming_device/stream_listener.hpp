@@ -45,6 +45,7 @@ struct StreamListener{
 	int triggerOffset;
 	unsigned triggerForce;
 	unsigned triggerForceIndex;
+	double triggerSubsampleError;
 
 	inline void reset(){
 		index = 0;

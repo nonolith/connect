@@ -23,7 +23,8 @@ StreamListener::StreamListener():
 	triggerHoldoff(0),
 	triggerOffset(0),
 	triggerForce(0),
-	triggerForceIndex(0){}
+	triggerForceIndex(0),
+	triggerSubsampleError(0){}
 
 listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
 	std::auto_ptr<WSStreamListener> listener(new WSStreamListener());
@@ -122,6 +123,9 @@ bool WSStreamListener::handleNewData(){
 		if (triggerForce && index > triggerForceIndex){
 			n.push_back(JSONNode("triggerForced", true));
 		}
+		if (triggered){
+			n.push_back(JSONNode("subsample", triggerSubsampleError));
+		}
 		n.push_back(JSONNode("sampleIndex", index));
 	}
 	
@@ -167,6 +171,7 @@ bool WSStreamListener::handleNewData(){
 }
 
 bool StreamListener::findTrigger(){
+	triggerSubsampleError = 0;
 	if (triggerType == INSTREAM){
 		bool state = device->get(*triggerStream, index) > triggerLevel;
 		while (++index < device->capture_i){
@@ -184,6 +189,7 @@ bool StreamListener::findTrigger(){
 		double zero = triggerChannel->source->getPhaseZeroAfterSample(index);
 		if (!triggerForce || zero <= triggerForceIndex){
 			index = round(zero) + triggerOffset;
+			triggerSubsampleError = zero - round(zero);
 		}else if (triggerForceIndex > index){
 			index = triggerForceIndex;
 		}
