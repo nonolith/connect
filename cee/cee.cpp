@@ -378,7 +378,7 @@ void CEE_device::setOutput(Channel* channel, OutputSource* source){
 			delete channel->source;
 		}
 		channel->source=source;
-		channel->source->startSample = capture_o;
+		channel->source->startSample = capture_o + 1;
 	}
 	notifyOutputChanged(channel, source);
 }
