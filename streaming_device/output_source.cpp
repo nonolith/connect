@@ -83,7 +83,7 @@ struct PeriodicSource: public OutputSource{
 	}
 	
 	virtual double getPhaseZeroAfterSample(unsigned sample){
-		return (double) sample + period - fmod(sample-phase, period);
+		return (double) sample + period - fmod(sample+phase, period);
 	}
 	
 	double offset, amplitude, period, phase;
