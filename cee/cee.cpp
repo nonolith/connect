@@ -37,8 +37,8 @@ extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t);
 extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t);
 
 const int CEE_timer_clock = 4e6; // 4 MHz
-const float CEE_default_sample_time = 1/10000.0;
-const float CEE_I_gain = 45*.07;
+const double CEE_default_sample_time = 1/10000.0;
+const double CEE_I_gain = 45*.07;
 
 const float V_min = 0;
 const float V_max = 5.0;
@@ -145,8 +145,8 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	
 	// Store state
 	xmega_per = round(_sampleTime * (double) CEE_timer_clock);
-	if (xmega_per < 80) xmega_per = 80;
-	sampleTime = xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
+	if (xmega_per < 82) xmega_per = 82;
+	sampleTime = (double) xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
 	
 	captureSamples = samples;
 	captureContinuous = continuous;

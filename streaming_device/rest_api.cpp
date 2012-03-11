@@ -183,9 +183,9 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 			parse_query(postdata, map);
 			
 			string captureState = map_get(map, "capture");
-			if (captureState == "true" || captureState == "on"){
+			if (captureState == "true" || captureState == "on" || captureState == "1"){
 				start_capture();
-			}else if (captureState == "false" || captureState == "off"){
+			}else if (captureState == "false" || captureState == "off" || captureState == "0"){
 				pause_capture();
 			}
 
@@ -220,13 +220,15 @@ void StreamingDevice::handleRESTConfigurationCallback(websocketpp::session_ptr c
 			parse_query(postdata, map);
 			
 			unsigned samples =    map_get_num(map, "samples", captureSamples);
-			float    _sampleTime = map_get_num(map, "sampleTime", sampleTime);
-			if (_sampleTime <= 0 || _sampleTime > 0.01) _sampleTime = sampleTime;
+			
+			double _sampleTime = map_get_num(map, "sampleTime", sampleTime);
+			if (_sampleTime <= 0) _sampleTime = sampleTime;
+			if (_sampleTime > 0.001) _sampleTime = 0.001;
 			
 			configure(devMode, _sampleTime, samples, captureContinuous, rawMode);
 		
 		}
-		RESTDeviceRespond(client);
+		RESTConfigurationRespond(client);
 	}catch(std::exception e){
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
 		client->start_http(402);
