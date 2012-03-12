@@ -38,6 +38,9 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 		double gain = jsonFloatProp(n, "gain", 1);
 		
 		setGain(channel, stream, gain);
+	}else if (cmd == "setCurrentLimit"){
+		unsigned limit = jsonFloatProp(n, "currentLimit");
+		setCurrentLimit(limit);
 	}else{
 		return false;
 	}
