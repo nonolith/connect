@@ -20,7 +20,7 @@ extern boost::asio::io_service io;
 
 #include "libjson/libjson.h"
 #include "websocketpp.hpp"
-void respondJSON(websocketpp::session_ptr client, JSONNode &n);
+void respondJSON(websocketpp::session_ptr client, JSONNode &n, int status=200);
 
 #include "event.hpp"
 #include "device.hpp"

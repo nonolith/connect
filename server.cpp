@@ -96,7 +96,9 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 			client->start_http(404, "Not found");
 		}
 	}catch(std::exception& e){
+		JSONNode j;
+		j.push_back(JSONNode("error", e.what()));
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
-		client->start_http(500);
+		respondJSON(client, j, 500);
 	}
 }

@@ -5,6 +5,13 @@
 #include <sstream>
 #include <boost/foreach.hpp>
 
+void respondError(websocketpp::session_ptr client, std::exception& e){
+	JSONNode j;
+	j.push_back(JSONNode("error", e.what()));
+	std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+	respondJSON(client, j, 402);
+}
+
 //// device/channel/output resource
 
 void StreamingDevice::RESTOutputRespond(websocketpp::session_ptr client, Channel *channel){
@@ -63,8 +70,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 		}
 		RESTOutputRespond(client, channel);
 	}catch(std::exception& e){
-		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
-		client->start_http(402);
+		respondError(client, e);
 	}
 }
 
@@ -194,8 +200,7 @@ void StreamingDevice::handleRESTInputPOSTCallback(websocketpp::session_ptr clien
 		respondJSON(client, r);
 			
 	}catch(std::exception& e){
-		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
-		client->start_http(402);
+		respondError(client, e);
 	}
 }
 
@@ -224,8 +229,7 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 		}
 		RESTDeviceRespond(client);
 	}catch(std::exception& e){
-		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
-		client->start_http(402);
+		respondError(client, e);
 	}
 }
 
@@ -265,8 +269,7 @@ void StreamingDevice::handleRESTConfigurationCallback(websocketpp::session_ptr c
 		}
 		RESTConfigurationRespond(client);
 	}catch(std::exception& e){
-		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
-		client->start_http(402);
+		respondError(client, e);
 	}
 }
 

@@ -13,9 +13,9 @@
 #include "url.hpp"
 #include "json.hpp"
 
-void respondJSON(websocketpp::session_ptr client, JSONNode &n){
+void respondJSON(websocketpp::session_ptr client, JSONNode &n, int status){
 	string jc = (string) n.write_formatted();
-	client->start_http(200, jc);
+	client->start_http(status, jc);
 }
 
 void deviceListRequest(websocketpp::session_ptr client){
