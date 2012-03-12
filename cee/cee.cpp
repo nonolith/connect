@@ -49,10 +49,12 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	USB_device(dev, desc),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1, V_max/2048),
-	channel_a_i("i", "Current A", "mA", 0,     0,  2, 1), // I_max*2/4096, reduced for 9919 bug
-	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1, V_max/2048),
-	channel_b_i("i", "Current B", "mA", 0,     0,  2, 1)
+	
+	//          id   name         unit  min    max    omode uncert.  gain
+	channel_a_v("v", "Voltage A", "V",  V_min, V_max, 1,  V_max/2048, 1),
+	channel_a_i("i", "Current A", "mA", 0,     0,     2,  1,          2),
+	channel_b_v("v", "Voltage B", "V",  V_min, V_max, 1,  V_max/2048, 1),
+	channel_b_i("i", "Current B", "mA", 0,     0,     2,  1,          2)
 	{
 	cerr << "Found a CEE: "<< serial << endl;
 	
@@ -211,10 +213,9 @@ void CEE_device::setCurrentLimit(unsigned mode){
 		if (mode == 200){
 			ilimit_cal_a = cal.dac200_a;
 			ilimit_cal_b = cal.dac200_b;
-		}else if(mode == 400 || mode == 396){
+		}else if(mode == 400){
 			ilimit_cal_a = cal.dac400_a;
 			ilimit_cal_b = cal.dac400_b;
-			mode = 396;
 		}else{
 			std::cerr << "Invalid current limit " << mode << std::endl;
 			return;
@@ -288,24 +289,20 @@ void CEE_device::on_pause_capture(){
 	capture_o = capture_i;
 }
 
-void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
+void CEE_device::setInternalGain(Channel *channel, Stream* stream, int gain){
 	uint8_t streamval = 0, gainval=0;
-	
-	int effectiveGain = gain;
 	
 	if (stream == &channel_a_i){
 		streamval = 0;
-		effectiveGain *= 2;
 	}else if(stream == &channel_a_v){
 		streamval = 1;
 	}else if(stream == &channel_b_v){
 		streamval = 2;
 	}else if(stream == &channel_b_i){
-		effectiveGain *= 2;
 		streamval = 3;
 	}else return;
 	
-	switch(effectiveGain){
+	switch(gain){
 		case 1:
 			gainval = (0x00<<2);
 			break;
@@ -358,7 +355,7 @@ void CEE_device::handleInTransfer(unsigned char *buffer){
 	
 		for (int i=0; i<10; i++){
 			float v_factor = 5.0/2048.0;
-			float i_factor = 2.5/2048.0/CEE_I_gain*1000.0/2;
+			float i_factor = 2.5/2048.0/CEE_I_gain*1000.0;
 		
 			if (rawMode) v_factor = i_factor = 1;
 		
@@ -419,7 +416,7 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 		if (mode == SVMI){
 			val = constrain(val, V_min, V_max);
 			return 4095*val/5.0;
-		}else if (mode == SIMV){ 
+		}else if (mode == SIMV){
 			val = constrain(val, -currentLimit, currentLimit);
 			return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
 		}

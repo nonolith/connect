@@ -182,9 +182,9 @@ void StreamingDevice::handleRESTInputPOSTCallback(websocketpp::session_ptr clien
 		
 		JSONNode g;
 		BOOST_FOREACH(Stream* s, channel->streams){
-			unsigned gain = map_get_num(map, "gain_"+s->id, 0);
-			if (gain != 0) setGain(channel, s, gain);
-			g.push_back(JSONNode(s->id, s->gain));
+			double gain = map_get_num(map, "gain_"+s->id, 0.0);
+			if (gain != 0.0) setGain(channel, s, gain);
+			g.push_back(JSONNode(s->id, s->getGain()));
 		}
 		
 		JSONNode r;

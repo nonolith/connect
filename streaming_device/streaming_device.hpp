@@ -24,7 +24,7 @@ struct Stream;
 struct OutputSource;
 
 struct Stream{
-	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0, float _uncertainty=0):
+	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0, float _uncertainty=0, unsigned _gain=1):
 		id(_id),
 		displayName(_dn),
 		units(_units),
@@ -32,7 +32,8 @@ struct Stream{
 		max(_max),
 		
 		outputMode(_outputMode),
-		gain(1),
+		gain(_gain),
+		normalGain(_gain),
 		uncertainty(_uncertainty),
 		data(0){};
 
@@ -59,8 +60,13 @@ struct Stream{
 	/// 0 if outputting this variable is not supported.
 	unsigned outputMode;
 	
-	// Gain factor
+	// Internal device gain factor
 	unsigned gain;
+	
+	// Default gain factor
+	unsigned normalGain;
+	
+	double getGain(){return gain / (double) normalGain;}
 	
 	float uncertainty;
 
@@ -114,7 +120,11 @@ class StreamingDevice: public Device{
 		void pause_capture();
 
 		virtual void setOutput(Channel* channel, OutputSource* source);
-		virtual void setGain(Channel* channel, Stream* stream, int gain){}
+		virtual void setInternalGain(Channel* channel, Stream* stream, int gain){}
+		
+		virtual void setGain(Channel* c, Stream* s, double gain){
+			setInternalGain(c, s, round(gain * s->normalGain));
+		}
 
 		Channel* channelById(const std::string&);
 

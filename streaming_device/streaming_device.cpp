@@ -24,7 +24,7 @@ JSONNode Stream::toJSON(){
 	n.push_back(JSONNode("min", s->min));
 	n.push_back(JSONNode("max", s->max));
 	n.push_back(JSONNode("outputMode", s->outputMode));
-	n.push_back(JSONNode("gain", s->gain));
+	n.push_back(JSONNode("gain", s->getGain()));
 	n.push_back(JSONNode("uncertainty", s->uncertainty));
 	return n;
 }
@@ -225,7 +225,7 @@ void StreamingDevice::notifyGainChanged(Channel* channel, Stream* stream, int ga
 	n.push_back(JSONNode("_action", "gainChanged"));
 	n.push_back(JSONNode("channel", channel->id));
 	n.push_back(JSONNode("stream", stream->id));
-	n.push_back(JSONNode("gain", gain));
+	n.push_back(JSONNode("gain", stream->getGain()));
 	broadcastJSON(n);
 }
 

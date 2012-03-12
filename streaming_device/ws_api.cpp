@@ -35,7 +35,7 @@ bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& 
 				jsonStringProp(n, "channel"),
 				jsonStringProp(n, "stream"));
 
-		unsigned gain = jsonIntProp(n, "gain", 1);
+		double gain = jsonFloatProp(n, "gain", 1);
 		
 		setGain(channel, stream, gain);
 	}else{
