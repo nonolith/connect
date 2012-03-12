@@ -42,6 +42,8 @@ const double CEE_I_gain = 45*.07;
 
 const float V_min = 0;
 const float V_max = 5.0;
+const float I_min = -200;
+const float I_max = 200;
 const int defaultCurrentLimit = 200;
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
@@ -193,8 +195,8 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 			
 			channel_a_v.min = channel_b_v.min = V_min;
 			channel_a_v.max = channel_b_v.max = V_max;
-			channel_a_i.min = channel_b_i.min = -currentLimit;
-			channel_a_i.max = channel_b_i.max = currentLimit;
+			channel_a_i.min = channel_b_i.min = I_min;
+			channel_a_i.max = channel_b_i.max = I_max;
 		}
 		
 		channel_a_v.allocate(captureSamples);
@@ -216,6 +218,8 @@ void CEE_device::setCurrentLimit(unsigned mode){
 		}else if(mode == 400){
 			ilimit_cal_a = cal.dac400_a;
 			ilimit_cal_b = cal.dac400_b;
+		}else if (mode == 2000){
+			ilimit_cal_a = ilimit_cal_b = 0;
 		}else{
 			std::cerr << "Invalid current limit " << mode << std::endl;
 			return;
@@ -413,13 +417,17 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 	if (rawMode){
 		return constrain(val, 0, 4095);
 	}else{
+		int v = 0;
 		if (mode == SVMI){
 			val = constrain(val, V_min, V_max);
-			return 4095*val/5.0;
+			v = 4095*val/5.0;
 		}else if (mode == SIMV){
 			val = constrain(val, -currentLimit, currentLimit);
-			return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
+			v = 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
 		}
+		if (v > 4095) v=4095;
+		if (v < 0) v = 0;
+		return v;
 	}
 	return 0;
 }
