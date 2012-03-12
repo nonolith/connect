@@ -104,6 +104,8 @@ class CEE_device: public StreamingDevice, USB_device{
 	boost::mutex transfersMutex;
 	void fillOutTransfer(unsigned char*);
 	void handleInTransfer(unsigned char*);
+	
+	virtual void setCurrentLimit(unsigned limit);
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;

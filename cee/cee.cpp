@@ -42,9 +42,7 @@ const double CEE_I_gain = 45*.07;
 
 const float V_min = 0;
 const float V_max = 5.0;
-const float I_min = -200;
-const float I_max = 200;
-
+const int defaultCurrentLimit = 200;
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	StreamingDevice(CEE_default_sample_time),
@@ -52,9 +50,9 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_a("a", "A"),
 	channel_b("b", "B"),
 	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1, V_max/2048),
-	channel_a_i("i", "Current A", "mA", I_min, I_max,  2, 1), // I_max*2/4096, reduced for 9919 bug
+	channel_a_i("i", "Current A", "mA", 0,     0,  2, 1), // I_max*2/4096, reduced for 9919 bug
 	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1, V_max/2048),
-	channel_b_i("i", "Current B", "mA", I_min, I_max,  2, 1)
+	channel_b_i("i", "Current B", "mA", 0,     0,  2, 1)
 	{
 	cerr << "Found a CEE: "<< serial << endl;
 	
@@ -90,8 +88,10 @@ void CEE_device::readCalibration(){
 	if (!r || magic != EEPROM_VALID_MAGIC){
 		cerr << "Reading calibration data failed " << r << endl;
 		memset(&cal, 0, sizeof(cal));
+		currentLimit = defaultCurrentLimit;
 	}else{
 		memcpy((uint8_t*)&cal, buf, sizeof(cal));
+		setCurrentLimit(defaultCurrentLimit);
 	}
 }
 
@@ -163,7 +163,7 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	
 	capture_i = capture_o = 0;
 	
-	std::cerr << "CEE prepare "<< xmega_per << " " << ntransfers <<  " " << packets_per_transfer << " " << captureSamples<< std::endl;
+	std::cerr << "CEE prepare "<< xmega_per << " " << ntransfers <<  " " << packets_per_transfer << " " << captureSamples << " " << currentLimit << std::endl;
 	
 	// Configure
 	if (devMode == 0){
@@ -191,22 +191,38 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 			
 			channel_a_v.min = channel_b_v.min = V_min;
 			channel_a_v.max = channel_b_v.max = V_max;
-			channel_a_i.min = channel_b_i.min = I_min;
-			channel_a_i.max = channel_b_i.max = I_max;
+			channel_a_i.min = channel_b_i.min = -currentLimit;
+			channel_a_i.max = channel_b_i.max = currentLimit;
 		}
 		
 		channel_a_v.allocate(captureSamples);
 		channel_a_i.allocate(captureSamples);
 		channel_b_v.allocate(captureSamples);
 		channel_b_i.allocate(captureSamples);
-		
-		// Write current-limit DAC
-		if (cal.magic == EEPROM_VALID_MAGIC){
-			controlTransfer(0xC0, CMD_ISET_DAC, cal.dac200_a, cal.dac200_b, NULL, 0);
-		}
 	}
 	
 	notifyConfig();
+}
+
+void CEE_device::setCurrentLimit(unsigned mode){
+	if (cal.magic == EEPROM_VALID_MAGIC){
+		unsigned ilimit_cal_a, ilimit_cal_b;
+	
+		if (mode == 200){
+			ilimit_cal_a = cal.dac200_a;
+			ilimit_cal_b = cal.dac200_b;
+		}else if(mode == 400 || mode == 396){
+			ilimit_cal_a = cal.dac400_a;
+			ilimit_cal_b = cal.dac400_b;
+			mode = 396;
+		}else{
+			std::cerr << "Invalid current limit " << mode << std::endl;
+			return;
+		}
+		
+		currentLimit = mode;
+		controlTransfer(0xC0, CMD_ISET_DAC, ilimit_cal_a, ilimit_cal_b, NULL, 0);	
+	}
 }
 
 void CEE_device::on_reset_capture(){
@@ -403,8 +419,8 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 		if (mode == SVMI){
 			val = constrain(val, V_min, V_max);
 			return 4095*val/5.0;
-		}else if (mode == SIMV){
-			val = constrain(val, I_min, I_max);
+		}else if (mode == SIMV){ 
+			val = constrain(val, -currentLimit, currentLimit);
 			return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
 		}
 	}

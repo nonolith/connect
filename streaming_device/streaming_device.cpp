@@ -65,6 +65,7 @@ JSONNode StreamingDevice::stateToJSON(bool configOnly){
 	n.push_back(JSONNode("length", captureLength));
 	n.push_back(JSONNode("continuous", captureContinuous));
 	n.push_back(JSONNode("raw", rawMode));
+	n.push_back(JSONNode("currentLimit", currentLimit));
 	
 	if  (configOnly) return n;
 	

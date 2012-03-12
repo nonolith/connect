@@ -198,6 +198,10 @@ class StreamingDevice: public Device{
 			capture_i++;
 		}
 		
+		/// TODO: this doesn't really go here (cee-specific)
+		int currentLimit;
+		virtual void setCurrentLimit(unsigned limit){}
+		
 		void packetDone();
 		
 		/// Find a stream by its channel id and stream id

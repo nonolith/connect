@@ -223,14 +223,17 @@ void StreamingDevice::handleRESTConfigurationCallback(websocketpp::session_ptr c
 			std::map<string, string> map;
 			parse_query(postdata, map);
 			
-			unsigned samples =    map_get_num(map, "samples", captureSamples);
+			unsigned samples = map_get_num(map, "samples", captureSamples);
 			
 			double _sampleTime = map_get_num(map, "sampleTime", sampleTime);
 			if (_sampleTime <= 0) _sampleTime = sampleTime;
 			if (_sampleTime > 0.001) _sampleTime = 0.001;
 			
+			unsigned current = map_get_num(map, "currentLimit", 0);
+			setCurrentLimit(current);
+			
 			configure(devMode, _sampleTime, samples, captureContinuous, rawMode);
-		
+			
 		}
 		RESTConfigurationRespond(client);
 	}catch(std::exception e){
