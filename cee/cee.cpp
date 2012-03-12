@@ -146,13 +146,12 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	// Store state
 	xmega_per = round(_sampleTime * (double) CEE_timer_clock);
 	if (xmega_per < 82) xmega_per = 82;
-	sampleTime = (double) xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
+	sampleTime = xmega_per / (double) CEE_timer_clock; // convert back to get the actual sample time;
 	
 	captureSamples = samples;
 	captureContinuous = continuous;
 	devMode = mode;
 	rawMode = raw;
-	sampleTime = _sampleTime;
 	captureLength = captureSamples * sampleTime;
 	
 	packets_per_transfer = 0.020 / (sampleTime * 10);
