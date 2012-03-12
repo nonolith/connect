@@ -222,6 +222,7 @@ class StreamingDevice: public Device{
 		void handleRESTOutputCallback(websocketpp::session_ptr client, Channel* channel, string postdata);
 		bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
 		bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
+		void handleRESTInputPOSTCallback(websocketpp::session_ptr client, Channel* channel, string postdata);
 		void handleRESTDeviceCallback(websocketpp::session_ptr client, string postdata);
 		void RESTDeviceRespond(websocketpp::session_ptr client);
 		void handleRESTConfigurationCallback(websocketpp::session_ptr client, string postdata);

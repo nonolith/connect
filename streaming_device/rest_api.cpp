@@ -126,47 +126,77 @@ struct RESTListener: public StreamListener{
 };
 
 bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel){
+	if (client->get_method() == "POST"){
+		client->read_http_post_body(
+			boost::bind(
+				&StreamingDevice::handleRESTInputPOSTCallback,
+				boost::static_pointer_cast<StreamingDevice>(shared_from_this()),
+				client, channel, _1));
+	}else{
+		boost::shared_ptr<RESTListener> l = boost::shared_ptr<RESTListener>(new RESTListener());
 	
-	boost::shared_ptr<RESTListener> l = boost::shared_ptr<RESTListener>(new RESTListener());
+		l->client = client;
+		l->device = this;
+		l->streams = channel->streams;
 	
-	l->client = client;
-	l->device = this;
-	l->streams = channel->streams;
+		float resample_s = boost::lexical_cast<float>(path.param("resample", "0.01"));
+		l->decimateFactor = round(resample_s / sampleTime);
 	
-	float resample_s = boost::lexical_cast<float>(path.param("resample", "0.01"));
-	l->decimateFactor = round(resample_s / sampleTime);
-	
-	// Prevent divide by 0
-	if (l->decimateFactor == 0) l->decimateFactor = 1;
+		// Prevent divide by 0
+		if (l->decimateFactor == 0) l->decimateFactor = 1;
 
-	int start = boost::lexical_cast<int>(path.param("start", "-1"));
-	if (start < 0){ // Negative indexes are relative to latest sample
-		start = (buffer_max()) + start + 1;
-	}
-	if (start < 0) l->index = 0;
-	else l->index = start;
-	
-	l->count = boost::lexical_cast<unsigned>(path.param("count", "1"));
-	bool header = (path.param("header", "1") == "1");
-	
-	std::ostringstream o(std::ostringstream::out);
-	
-	if (header){
-		bool first = true;
-		BOOST_FOREACH(Stream* s, l->streams){
-			if (!first){
-				o << ",";
-			}else first = false;
-			o << s->displayName << " (" << s->units << ")" ;
+		int start = boost::lexical_cast<int>(path.param("start", "-1"));
+		if (start < 0){ // Negative indexes are relative to latest sample
+			start = (buffer_max()) + start + 1;
 		}
-		o<<"\n";
+		if (start < 0) l->index = 0;
+		else l->index = start;
+	
+		l->count = boost::lexical_cast<unsigned>(path.param("count", "1"));
+		bool header = (path.param("header", "1") == "1");
+	
+		std::ostringstream o(std::ostringstream::out);
+	
+		if (header){
+			bool first = true;
+			BOOST_FOREACH(Stream* s, l->streams){
+				if (!first){
+					o << ",";
+				}else first = false;
+				o << s->displayName << " (" << s->units << ")" ;
+			}
+			o<<"\n";
+		}
+	
+		client->start_http(200, o.str(), false);
+	
+		addListener(l);
 	}
-	
-	client->start_http(200, o.str(), false);
-	
-	addListener(l);
-	
 	return true;
+}
+
+void StreamingDevice::handleRESTInputPOSTCallback(websocketpp::session_ptr client, Channel* channel, string postdata){
+	try{
+		std::map<string, string> map;
+		parse_query(postdata, map);
+		
+		JSONNode g;
+		BOOST_FOREACH(Stream* s, channel->streams){
+			unsigned gain = map_get_num(map, "gain_"+s->id, 0);
+			if (gain != 0) setGain(channel, s, gain);
+			g.push_back(JSONNode(s->id, s->gain));
+		}
+		
+		JSONNode r;
+		g.set_name("gain");
+		r.push_back(g);
+		
+		respondJSON(client, r);
+			
+	}catch(std::exception e){
+		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+		client->start_http(402);
+	}
 }
 
 /// Device resource
@@ -205,8 +235,6 @@ void handleRESTChannel(websocketpp::session_ptr client, Channel* channel){
 	JSONNode n = channel->toJSON();
 	respondJSON(client, n);
 }
-
-
 
 /// Configuration resource
 
