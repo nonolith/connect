@@ -62,7 +62,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			setOutput(channel, sourceObj);
 		}
 		RESTOutputRespond(client, channel);
-	}catch(std::exception e){
+	}catch(std::exception& e){
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
 		client->start_http(402);
 	}
@@ -193,7 +193,7 @@ void StreamingDevice::handleRESTInputPOSTCallback(websocketpp::session_ptr clien
 		
 		respondJSON(client, r);
 			
-	}catch(std::exception e){
+	}catch(std::exception& e){
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
 		client->start_http(402);
 	}
@@ -223,7 +223,7 @@ void StreamingDevice::handleRESTDeviceCallback(websocketpp::session_ptr client, 
 
 		}
 		RESTDeviceRespond(client);
-	}catch(std::exception e){
+	}catch(std::exception& e){
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
 		client->start_http(402);
 	}
@@ -264,7 +264,7 @@ void StreamingDevice::handleRESTConfigurationCallback(websocketpp::session_ptr c
 			
 		}
 		RESTConfigurationRespond(client);
-	}catch(std::exception e){
+	}catch(std::exception& e){
 		std::cerr << "Exception while processing request: " << e.what() <<std::endl;
 		client->start_http(402);
 	}
