@@ -18,6 +18,7 @@ enum TriggerType {NONE=0, // No trigger
 
 struct StreamListener{
 	StreamListener();
+	virtual ~StreamListener(){};
 
 	unsigned id;
 	virtual bool isFromClient(ClientConn* c){return false;}

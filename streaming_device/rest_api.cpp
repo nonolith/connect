@@ -120,7 +120,9 @@ struct RESTListener: public StreamListener{
 		return !done;
 	}
 	
-	// TODO: close in destructor
+	virtual ~RESTListener(){
+		if (client && !client->is_closed()) client->http_write("", true);
+	}
 };
 
 bool StreamingDevice::handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel){
@@ -203,6 +205,8 @@ void handleRESTChannel(websocketpp::session_ptr client, Channel* channel){
 	JSONNode n = channel->toJSON();
 	respondJSON(client, n);
 }
+
+
 
 /// Configuration resource
 

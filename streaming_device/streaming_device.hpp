@@ -202,12 +202,13 @@ class StreamingDevice: public Device{
 		
 		/// Find a stream by its channel id and stream id
 		Stream* findStream(const string& channelId, const string& streamId);
+		
+		virtual void onDisconnect();
 
 	protected:
 		void notifyCaptureState();
 		void notifyConfig();
 		void notifyCaptureReset();
-		void notifyDisconnect();
 		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
 		void notifyGainChanged(Channel* channel, Stream* stream, int gain);
 		void done_capture();

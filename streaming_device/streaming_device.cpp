@@ -254,6 +254,11 @@ Stream* StreamingDevice::findStream(const string& channelId, const string& strea
 	return s;
 }
 
+void StreamingDevice::onDisconnect(){
+	Device::onDisconnect();
+	clearAllListeners();
+}
+
 bool Stream::allocate(unsigned size){
 	if (data){
 		free(data);
