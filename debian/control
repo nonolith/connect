@@ -8,5 +8,5 @@ Homepage: http://nonolithlabs.com/
 
 Package: nonolith-connect
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, curl
+Depends: ${misc:Depends}, adduser, curl
 Description: USB to web bridge daemon for Nonolith CEE
