@@ -37,24 +37,26 @@ extern "C" void LIBUSB_CALL in_transfer_callback(libusb_transfer *t);
 extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t);
 
 const int CEE_timer_clock = 4e6; // 4 MHz
-const float CEE_default_sample_time = 1/10000.0;
-const float CEE_I_gain = 45*.07;
+const double CEE_default_sample_time = 1/10000.0;
+const double CEE_I_gain = 45*.07;
 
 const float V_min = 0;
 const float V_max = 5.0;
 const float I_min = -200;
 const float I_max = 200;
-
+const int defaultCurrentLimit = 200;
 
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	StreamingDevice(CEE_default_sample_time),
 	USB_device(dev, desc),
 	channel_a("a", "A"),
 	channel_b("b", "B"),
-	channel_a_v("v", "Voltage A", "V",  V_min, V_max,  1, V_max/2048),
-	channel_a_i("i", "Current A", "mA", I_min, I_max,  2, 1), // I_max*2/4096, reduced for 9919 bug
-	channel_b_v("v", "Voltage B", "V",  V_min, V_max,  1, V_max/2048),
-	channel_b_i("i", "Current B", "mA", I_min, I_max,  2, 1)
+	
+	//          id   name         unit  min    max    omode uncert.  gain
+	channel_a_v("v", "Voltage A", "V",  V_min, V_max, 1,  V_max/2048, 1),
+	channel_a_i("i", "Current A", "mA", 0,     0,     2,  1,          2),
+	channel_b_v("v", "Voltage B", "V",  V_min, V_max, 1,  V_max/2048, 1),
+	channel_b_i("i", "Current B", "mA", 0,     0,     2,  1,          2)
 	{
 	cerr << "Found a CEE: "<< serial << endl;
 	
@@ -90,8 +92,10 @@ void CEE_device::readCalibration(){
 	if (!r || magic != EEPROM_VALID_MAGIC){
 		cerr << "Reading calibration data failed " << r << endl;
 		memset(&cal, 0, sizeof(cal));
+		currentLimit = defaultCurrentLimit;
 	}else{
 		memcpy((uint8_t*)&cal, buf, sizeof(cal));
+		setCurrentLimit(defaultCurrentLimit);
 	}
 }
 
@@ -133,7 +137,7 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	}
 }
 
-void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool continuous, bool raw){
+void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool continuous, bool raw){
 	pause_capture();
 	
 	// Clean up previous configuration
@@ -144,15 +148,14 @@ void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool c
 	channel_b.streams.clear();
 	
 	// Store state
-	xmega_per = _sampleTime * (float) CEE_timer_clock; // floors to int
-	if (xmega_per < 80) xmega_per = 80;
-	sampleTime = xmega_per / CEE_timer_clock; // convert back to get the actual sample time;
+	xmega_per = round(_sampleTime * (double) CEE_timer_clock);
+	if (xmega_per < 82) xmega_per = 82;
+	sampleTime = xmega_per / (double) CEE_timer_clock; // convert back to get the actual sample time;
 	
 	captureSamples = samples;
 	captureContinuous = continuous;
 	devMode = mode;
 	rawMode = raw;
-	sampleTime = _sampleTime;
 	captureLength = captureSamples * sampleTime;
 	
 	packets_per_transfer = 0.020 / (sampleTime * 10);
@@ -164,7 +167,7 @@ void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool c
 	
 	capture_i = capture_o = 0;
 	
-	std::cerr << "CEE prepare "<< xmega_per << " " << ntransfers <<  " " << packets_per_transfer << " " << captureSamples<< std::endl;
+	std::cerr << "CEE prepare "<< xmega_per << " " << ntransfers <<  " " << packets_per_transfer << " " << captureSamples << " " << currentLimit << std::endl;
 	
 	// Configure
 	if (devMode == 0){
@@ -200,14 +203,31 @@ void CEE_device::configure(int mode, float _sampleTime, unsigned samples, bool c
 		channel_a_i.allocate(captureSamples);
 		channel_b_v.allocate(captureSamples);
 		channel_b_i.allocate(captureSamples);
-		
-		// Write current-limit DAC
-		if (cal.magic == EEPROM_VALID_MAGIC){
-			controlTransfer(0xC0, CMD_ISET_DAC, cal.dac200_a, cal.dac200_b, NULL, 0);
-		}
 	}
 	
 	notifyConfig();
+}
+
+void CEE_device::setCurrentLimit(unsigned mode){
+	if (cal.magic == EEPROM_VALID_MAGIC){
+		unsigned ilimit_cal_a, ilimit_cal_b;
+	
+		if (mode == 200){
+			ilimit_cal_a = cal.dac200_a;
+			ilimit_cal_b = cal.dac200_b;
+		}else if(mode == 400){
+			ilimit_cal_a = cal.dac400_a;
+			ilimit_cal_b = cal.dac400_b;
+		}else if (mode == 2000){
+			ilimit_cal_a = ilimit_cal_b = 0;
+		}else{
+			std::cerr << "Invalid current limit " << mode << std::endl;
+			return;
+		}
+		
+		currentLimit = mode;
+		controlTransfer(0xC0, CMD_ISET_DAC, ilimit_cal_a, ilimit_cal_b, NULL, 0);	
+	}
 }
 
 void CEE_device::on_reset_capture(){
@@ -269,26 +289,24 @@ void CEE_device::on_pause_capture(){
 			out_transfers[i] = 0;
 		}
 	}
+	
+	capture_o = capture_i;
 }
 
-void CEE_device::setGain(Channel *channel, Stream* stream, int gain){
+void CEE_device::setInternalGain(Channel *channel, Stream* stream, int gain){
 	uint8_t streamval = 0, gainval=0;
-	
-	int effectiveGain = gain;
 	
 	if (stream == &channel_a_i){
 		streamval = 0;
-		effectiveGain *= 2;
 	}else if(stream == &channel_a_v){
 		streamval = 1;
 	}else if(stream == &channel_b_v){
 		streamval = 2;
 	}else if(stream == &channel_b_i){
-		effectiveGain *= 2;
 		streamval = 3;
 	}else return;
 	
-	switch(effectiveGain){
+	switch(gain){
 		case 1:
 			gainval = (0x00<<2);
 			break;
@@ -341,7 +359,7 @@ void CEE_device::handleInTransfer(unsigned char *buffer){
 	
 		for (int i=0; i<10; i++){
 			float v_factor = 5.0/2048.0;
-			float i_factor = 2.5/2048.0/CEE_I_gain*1000.0/2;
+			float i_factor = 2.5/2048.0/CEE_I_gain*1000.0;
 		
 			if (rawMode) v_factor = i_factor = 1;
 		
@@ -376,7 +394,7 @@ void CEE_device::setOutput(Channel* channel, OutputSource* source){
 			delete channel->source;
 		}
 		channel->source=source;
-		channel->source->startSample = capture_o;
+		channel->source->startSample = capture_o + 1;
 	}
 	notifyOutputChanged(channel, source);
 }
@@ -399,13 +417,17 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 	if (rawMode){
 		return constrain(val, 0, 4095);
 	}else{
+		int v = 0;
 		if (mode == SVMI){
 			val = constrain(val, V_min, V_max);
-			return 4095*val/5.0;
+			v = 4095*val/5.0;
 		}else if (mode == SIMV){
-			val = constrain(val, I_min, I_max);
-			return 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
+			val = constrain(val, -currentLimit, currentLimit);
+			v = 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
 		}
+		if (v > 4095) v=4095;
+		if (v < 0) v = 0;
+		return v;
 	}
 	return 0;
 }

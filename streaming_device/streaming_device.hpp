@@ -13,19 +13,18 @@
 #include <set>
 #include <map>
 
-#include "dataserver.hpp"
+#include "../dataserver.hpp"
 
-
-typedef std::pair<ClientConn*, unsigned> ListenerId;
 struct StreamListener;
-typedef std::map<ListenerId, StreamListener*> listener_map_t;
+typedef boost::shared_ptr<StreamListener> listener_ptr;
+typedef std::set<listener_ptr> listener_set_t;
 
 struct Channel;
 struct Stream;
 struct OutputSource;
 
 struct Stream{
-	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0, float _uncertainty=0):
+	Stream(const string _id, const string _dn, const string _units, float _min, float _max, unsigned _outputMode=0, float _uncertainty=0, unsigned _gain=1):
 		id(_id),
 		displayName(_dn),
 		units(_units),
@@ -33,7 +32,8 @@ struct Stream{
 		max(_max),
 		
 		outputMode(_outputMode),
-		gain(1),
+		gain(_gain),
+		normalGain(_gain),
 		uncertainty(_uncertainty),
 		data(0){};
 
@@ -60,8 +60,13 @@ struct Stream{
 	/// 0 if outputting this variable is not supported.
 	unsigned outputMode;
 	
-	// Gain factor
+	// Internal device gain factor
 	unsigned gain;
+	
+	// Default gain factor
+	unsigned normalGain;
+	
+	double getGain(){return gain / (double) normalGain;}
 	
 	float uncertainty;
 
@@ -72,7 +77,7 @@ struct Stream{
 
 class StreamingDevice: public Device{
 	public: 
-		StreamingDevice(float _sampleTime):
+		StreamingDevice(double _sampleTime):
 			captureState(false),
 			captureDone(false),
 			captureLength(0),
@@ -81,17 +86,18 @@ class StreamingDevice: public Device{
 			sampleTime(_sampleTime),
 			capture_i(0),
 			capture_o(0) {}
-		virtual ~StreamingDevice(){clearAllListeners();}
 		
-		virtual JSONNode stateToJSON();
+		virtual JSONNode stateToJSON(bool configOnly=false);
 		
 		virtual void onClientAttach(ClientConn *c);
 		virtual void onClientDetach(ClientConn *c);
 		virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
+		virtual bool handleREST(UrlPath path, websocketpp::session_ptr client);
 		
-		listener_map_t listeners;
-		virtual void addListener(StreamListener *l);
-		virtual void cancelListen(ListenerId lid);
+		listener_set_t listeners;
+		virtual void addListener(listener_ptr l);
+		virtual void cancelListen(listener_ptr l);
+		virtual listener_ptr findListener(ClientConn* c, unsigned id);
 		virtual void clearAllListeners();
 		virtual void resetAllListeners();
 		
@@ -102,7 +108,7 @@ class StreamingDevice: public Device{
 		/// If *continuous*, capture indefinitely, keeping the specified number
 		/// of samples of history. If *raw*, units will be device LSB rather
 		/// than converting to standard units.
-		virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw)=0;
+		virtual void configure(int mode, double sampleTime, unsigned samples, bool continuous, bool raw)=0;
 		
 		/// Set time = 0
 		void reset_capture();
@@ -114,7 +120,11 @@ class StreamingDevice: public Device{
 		void pause_capture();
 
 		virtual void setOutput(Channel* channel, OutputSource* source);
-		virtual void setGain(Channel* channel, Stream* stream, int gain){}
+		virtual void setInternalGain(Channel* channel, Stream* stream, int gain){}
+		
+		virtual void setGain(Channel* c, Stream* s, double gain){
+			setInternalGain(c, s, round(gain * s->normalGain));
+		}
 
 		Channel* channelById(const std::string&);
 
@@ -139,7 +149,7 @@ class StreamingDevice: public Device{
 		bool captureContinuous;
 		
 		/// Time of a sample
-		float sampleTime;
+		double sampleTime;
 		
 		/// IN sample counter
 	    /// index of next-written element is capture_i%captureSamples
@@ -167,6 +177,19 @@ class StreamingDevice: public Device{
 			else
 				return s.data[i%captureSamples];
 		}
+		
+		
+		inline float resample(Stream& s, unsigned start, unsigned count){
+			if (   !s.data || !captureSamples   // not prepared
+				|| start+count > capture_i             // not yet collected
+				|| (capture_i>captureSamples && start<=capture_i-captureSamples)) // overwritten
+				return NAN;
+			float total = 0;
+			for (unsigned i=0; i<count; i++){
+				total += s.data[(start+i)%captureSamples];
+			}
+			return total/count;
+		}
 
 		/// Returns the lowest buffer index currently available
 		inline unsigned buffer_min(){
@@ -185,21 +208,36 @@ class StreamingDevice: public Device{
 			capture_i++;
 		}
 		
+		/// TODO: this doesn't really go here (cee-specific)
+		int currentLimit;
+		virtual void setCurrentLimit(unsigned limit){}
+		
 		void packetDone();
 		
 		/// Find a stream by its channel id and stream id
 		Stream* findStream(const string& channelId, const string& streamId);
+		
+		virtual void onDisconnect();
 
 	protected:
 		void notifyCaptureState();
 		void notifyConfig();
 		void notifyCaptureReset();
-		void notifyDisconnect();
 		void notifyOutputChanged(Channel *channel, OutputSource *outputSource);
 		void notifyGainChanged(Channel* channel, Stream* stream, int gain);
 		void done_capture();
 		void handleNewData();
-
+		
+		void RESTOutputRespond(websocketpp::session_ptr client, Channel *channel);
+		void handleRESTOutputCallback(websocketpp::session_ptr client, Channel* channel, string postdata);
+		bool handleRESTOutput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
+		bool handleRESTInput(UrlPath path, websocketpp::session_ptr client, Channel* channel);
+		void handleRESTInputPOSTCallback(websocketpp::session_ptr client, Channel* channel, string postdata);
+		void handleRESTDeviceCallback(websocketpp::session_ptr client, string postdata);
+		void RESTDeviceRespond(websocketpp::session_ptr client);
+		void handleRESTConfigurationCallback(websocketpp::session_ptr client, string postdata);
+		void RESTConfigurationRespond(websocketpp::session_ptr client);
+		
 		virtual void on_reset_capture() = 0;
 		virtual void on_start_capture() = 0;
 		virtual void on_pause_capture() = 0;
@@ -224,7 +262,7 @@ struct Channel{
 struct OutputSource{
 	virtual string displayName() = 0;
 	
-	virtual float getValue(unsigned sample, float sampleTime) = 0;
+	virtual float getValue(unsigned sample, double sampleTime) = 0;
 	
 	virtual void describeJSON(JSONNode &n);
 
@@ -237,11 +275,16 @@ struct OutputSource{
 	bool effective;
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){};
+	
+	virtual double getPhaseZeroAfterSample(unsigned sample){return INFINITY;}
 
 	protected:
 		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};
 };
 
-OutputSource *makeConstantSource(unsigned m, int value);
+OutputSource *makeConstantSource(unsigned m, float value);
+OutputSource *makeSource(JSONNode& description);
+OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase);
+OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase);
 
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);

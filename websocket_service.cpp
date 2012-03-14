@@ -15,9 +15,6 @@
 #include "dataserver.hpp"
 #include "json.hpp"
 
-#define xstringify(s) stringify(s)
-#define stringify(s) #s
-
 struct WebsocketClientConn: public ClientConn{
 	WebsocketClientConn(websocketpp::session_ptr c): client(c){
 		l_device_list_changed.subscribe(
@@ -28,7 +25,7 @@ struct WebsocketClientConn: public ClientConn{
 		JSONNode n(JSON_NODE);
 		n.push_back(JSONNode("_action", "serverHello"));
 		n.push_back(JSONNode("server", "Nonolith Connect"));
-		n.push_back(JSONNode("version", xstringify(VERSION)));
+		n.push_back(JSONNode("version", server_version));
 		sendJSON(n);
 		
 		on_device_list_changed();

@@ -9,128 +9,118 @@
 #include <iostream>
 #include <boost/foreach.hpp>
 
-#include "dataserver.hpp"
 #include "streaming_device.hpp"
 #include "stream_listener.hpp"
 
-OutputSource *makeSource(JSONNode& description);
+//// Serialization functions
 
-bool StreamingDevice::processMessage(ClientConn& client, string& cmd, JSONNode& n){
-	if (cmd == "listen"){
-		addListener(makeStreamListener(this, &client, n));
-	
-	}else if (cmd == "cancelListen"){
-		ListenerId id(&client, jsonIntProp(n, "id"));
-		cancelListen(id);
-	
-	}else if (cmd == "configure"){
-		int      mode =       jsonIntProp(n,   "mode");
-		unsigned samples =    jsonIntProp(n,   "samples");
-		float    sampleTime = jsonFloatProp(n, "sampleTime");
-		bool     continuous = jsonBoolProp(n,  "continuous", false);
-		bool     raw =        jsonBoolProp(n,  "raw", false);
-		configure(mode, sampleTime, samples, continuous, raw);
-	
-	}else if (cmd == "startCapture"){
-		start_capture();
-	
-	}else if (cmd == "pauseCapture"){
-		pause_capture();
-	
-	}else if (cmd == "set"){
-		Channel *channel = channelById(jsonStringProp(n, "channel"));
-		if (!channel) throw ErrorStringException("Channel not found");
-		setOutput(channel, makeSource(n));
-		
-	}else if (cmd == "setGain"){
-		Channel *channel = channelById(jsonStringProp(n, "channel"));
-		if (!channel) throw ErrorStringException("Channel not found");
-		Stream *stream = findStream(
-				jsonStringProp(n, "channel"),
-				jsonStringProp(n, "stream"));
-
-		unsigned gain = jsonIntProp(n, "gain", 1);
-		
-		setGain(channel, stream, gain);
-	}else{
-		return false;
-	}
-	return true;
-}
-
-void StreamingDevice::onClientAttach(ClientConn* client){
-	Device::onClientAttach(client);
-	
+JSONNode Stream::toJSON(){
+	Stream *s = this;
 	JSONNode n(JSON_NODE);
-	n.push_back(JSONNode("_action", "deviceConfig"));
-
-	JSONNode jstate = stateToJSON();
-	jstate.set_name("device");
-	n.push_back(jstate);
-	
-	client->sendJSON(n);
+	n.set_name(s->id);
+	n.push_back(JSONNode("id", s->id));
+	n.push_back(JSONNode("displayName", s->displayName));
+	n.push_back(JSONNode("units", s->units));
+	n.push_back(JSONNode("min", s->min));
+	n.push_back(JSONNode("max", s->max));
+	n.push_back(JSONNode("outputMode", s->outputMode));
+	n.push_back(JSONNode("gain", s->getGain()));
+	n.push_back(JSONNode("uncertainty", s->uncertainty));
+	return n;
 }
 
-void StreamingDevice::onClientDetach(ClientConn* client){
-	Device::onClientDetach(client);
+JSONNode Channel::toJSON(){
+	Channel *channel = this;
+	JSONNode n(JSON_NODE);
+	n.set_name(channel->id);
+	n.push_back(JSONNode("id", channel->id));
+	n.push_back(JSONNode("displayName", channel->displayName));
 	
-	std::cout << "Client disconnected. " << listeners.size() << std::endl;
-	
-	listener_map_t::iterator it;
-	for (it=listeners.begin(); it!=listeners.end();){
-		// Increment before deleting as that invalidates the iterator
-		listener_map_t::iterator currentIt = it++;
-		StreamListener* w = currentIt->second;
-		
-		if (w->client == client){
-			delete w;
-			listeners.erase(currentIt);
-		}
+	if (source){
+		JSONNode output(JSON_NODE);
+		output.set_name("output");
+		source->describeJSON(output);
+		n.push_back(output);
+	}
+
+	JSONNode streams(JSON_NODE);
+	streams.set_name("streams");
+	BOOST_FOREACH (Stream* i, channel->streams){
+		streams.push_back(i->toJSON());
+	}
+	n.push_back(streams);
+
+	return n;
+}
+
+JSONNode StreamingDevice::stateToJSON(bool configOnly){
+	JSONNode n;
+	if (!configOnly){
+		n = toJSON();
 	}
 	
-	std::cout << "L " << listeners.size() << std::endl;
+	n.push_back(JSONNode("sampleTime", sampleTime));
+	n.push_back(JSONNode("mode", devMode));
+	n.push_back(JSONNode("samples", captureSamples));
+	n.push_back(JSONNode("length", captureLength));
+	n.push_back(JSONNode("continuous", captureContinuous));
+	n.push_back(JSONNode("raw", rawMode));
+	n.push_back(JSONNode("currentLimit", currentLimit));
+	
+	if  (configOnly) return n;
+	
+	n.push_back(JSONNode("captureState", captureState));
+	n.push_back(JSONNode("captureDone", captureDone));
+	
+	
+	JSONNode channels(JSON_NODE);
+	channels.set_name("channels");
+	BOOST_FOREACH (Channel* c, this->channels){
+		channels.push_back(c->toJSON());
+	}
+	n.push_back(channels);
+
+	return n;
 }
 
-void StreamingDevice::addListener(StreamListener *l){
-	cancelListen(l->id);
-	
+void StreamingDevice::addListener(listener_ptr l){
 	if (l->handleNewData()){
-		listeners.insert(listener_map_t::value_type(l->id, l));
-	}else{
-		delete l;
+		listeners.insert(l);
 	}
 }
 
-void StreamingDevice::cancelListen(ListenerId id){
-	listener_map_t::iterator it = listeners.find(id);
+listener_ptr StreamingDevice::findListener(ClientConn* c, unsigned id){
+	BOOST_FOREACH(listener_ptr w, listeners){
+		if (w->isFromClient(c) && w->id == id) return w;
+	}
+	return listener_ptr();
+}
+
+void StreamingDevice::cancelListen(listener_ptr c){
+	listener_set_t::iterator it = listeners.find(c);
 	if (it != listeners.end()){
-		delete it->second;
 		listeners.erase(it);
 	}
 }
 
 void StreamingDevice::clearAllListeners(){
-	BOOST_FOREACH(listener_map_t::value_type &p, listeners){
-		delete p.second;
-	}
 	listeners.clear();
 }
 
 void StreamingDevice::resetAllListeners(){
-	BOOST_FOREACH(listener_map_t::value_type &p, listeners){
-		p.second->reset();
+	BOOST_FOREACH(listener_ptr w, listeners){
+		w->reset();
 	}
 }
 
 void StreamingDevice::handleNewData(){
-	listener_map_t::iterator it;
+	listener_set_t::iterator it;
 	for (it=listeners.begin(); it!=listeners.end();){
 		// Increment before (potentially) deleting the watch, as that invalidates the iterator
-		listener_map_t::iterator currentIt = it++;
-		StreamListener* w = currentIt->second;
+		listener_set_t::iterator currentIt = it++;
+		listener_ptr w = *currentIt;
 		
 		if (!w->handleNewData()){
-			delete w;
 			listeners.erase(currentIt);
 		}
 	}
@@ -149,7 +139,7 @@ void StreamingDevice::start_capture(){
 	if (!captureState){
 		if (captureDone) reset_capture();
 		captureState = true;
-		std::cerr << "start capture" <<std::endl;
+		std::cerr << "Start capture" <<std::endl;
 		on_start_capture();
 		notifyCaptureState();
 	}
@@ -158,7 +148,7 @@ void StreamingDevice::start_capture(){
 void StreamingDevice::pause_capture(){
 	if (captureState){
 		captureState = false;
-		std::cerr << "pause capture" <<std::endl;
+		std::cerr << "Pause capture" <<std::endl;
 		on_pause_capture();
 		notifyCaptureState();
 	}
@@ -166,7 +156,7 @@ void StreamingDevice::pause_capture(){
 
 void StreamingDevice::done_capture(){
 	captureDone = true;
-	std::cerr << "done capture" <<std::endl;
+	std::cerr << "Done capture" <<std::endl;
 	if (captureState){
 		captureState = false;
 		on_pause_capture();
@@ -235,7 +225,7 @@ void StreamingDevice::notifyGainChanged(Channel* channel, Stream* stream, int ga
 	n.push_back(JSONNode("_action", "gainChanged"));
 	n.push_back(JSONNode("channel", channel->id));
 	n.push_back(JSONNode("stream", stream->id));
-	n.push_back(JSONNode("gain", gain));
+	n.push_back(JSONNode("gain", stream->getGain()));
 	broadcastJSON(n);
 }
 
@@ -263,6 +253,11 @@ Stream* StreamingDevice::findStream(const string& channelId, const string& strea
 		throw ErrorStringException("Stream not found");
 	}
 	return s;
+}
+
+void StreamingDevice::onDisconnect(){
+	Device::onDisconnect();
+	clearAllListeners();
 }
 
 bool Stream::allocate(unsigned size){

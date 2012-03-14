@@ -11,9 +11,18 @@
 
 #include "streaming_device.hpp"
 
+enum TriggerType {NONE=0, // No trigger
+                  INSTREAM, // Trigger on a level crossing of an input stream
+                  OUTSOURCE // Trigger relative to the phase of an output source
+};
+
 struct StreamListener{
-	ListenerId id;
-	ClientConn* client;
+	StreamListener();
+	virtual ~StreamListener(){};
+
+	unsigned id;
+	virtual bool isFromClient(ClientConn* c){return false;}
+	
 	StreamingDevice* device;
 	std::vector<Stream*> streams;
 
@@ -24,26 +33,39 @@ struct StreamListener{
 	unsigned outIndex;
 	int count;
 	
-	bool triggerMode;
+	TriggerType triggerType;
 	bool triggered;
 	bool triggerRepeat;
+	
+	Channel* triggerChannel;
+	
 	float triggerLevel;
 	Stream* triggerStream;
+	
 	int triggerHoldoff;
 	int triggerOffset;
 	unsigned triggerForce;
 	unsigned triggerForceIndex;
+	double triggerSubsampleError;
 
 	inline void reset(){
 		index = 0;
 		outIndex = 0;
 	}
 	
+	unsigned howManySamples();
+	
 	// return true if listener is to be kept, false if it is to be destroyed
-	bool handleNewData();
+	virtual bool handleNewData(){return false;}
 	
 	// return true if trigger was found
 	bool findTrigger();
 };
 
-StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);
+struct WSStreamListener: public StreamListener{
+	ClientConn* client;
+	virtual bool isFromClient(ClientConn* c){return c == client;}
+	virtual bool handleNewData();
+};
+
+listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n);

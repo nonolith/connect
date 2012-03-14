@@ -11,10 +11,25 @@
 #include <iostream>
 #include <memory>
 
-StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
-	std::auto_ptr<StreamListener> listener(new StreamListener());
+StreamListener::StreamListener():
+	id(0),
+	index(0),
+	outIndex(0),
+	triggerType(NONE),
+	triggered(false),
+	triggerRepeat(false),
+	triggerLevel(0),
+	triggerStream(0),
+	triggerHoldoff(0),
+	triggerOffset(0),
+	triggerForce(0),
+	triggerForceIndex(0),
+	triggerSubsampleError(0){}
 
-	listener->id = ListenerId(client, jsonIntProp(n, "id"));
+listener_ptr makeStreamListener(StreamingDevice* dev, ClientConn* client, JSONNode &n){
+	std::auto_ptr<WSStreamListener> listener(new WSStreamListener());
+
+	listener->id = jsonIntProp(n, "id");
 	listener->device = dev;
 	listener->client = client;
 	
@@ -27,11 +42,9 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	if (start < 0){ // Negative indexes are relative to latest sample
 		start = (dev->buffer_max()) + start + 1;
 	}
-	
+
 	if (start < 0) listener->index = 0;
 	else listener->index = start;
-	
-	listener->outIndex = 0;
 	
 	listener->count = jsonIntProp(n, "count");
 	
@@ -45,13 +58,24 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 	
 	JSONNode::iterator t = n.find("trigger");
 	if (t != n.end() && (t->type()) == JSON_NODE){
-		JSONNode &trigger = *t;	 
-		listener->triggerMode = 1;
+		JSONNode &trigger = *t;
+		
+		string type = jsonStringProp(trigger, "type", "in");
+		if (type == "in"){
+			listener->triggerType = INSTREAM;
+			listener->triggerLevel = jsonFloatProp(trigger, "level");
+			listener->triggerStream = dev->findStream(
+				jsonStringProp(trigger, "channel"),
+				jsonStringProp(trigger, "stream"));
+		}else if (type == "out"){
+			listener->triggerType = OUTSOURCE;
+			listener->triggerChannel = dev->channelById(jsonStringProp(trigger, "channel"));
+			if (!listener->triggerChannel) throw ErrorStringException("Trigger channel not found");
+		}else{
+			throw ErrorStringException("Invalid trigger type");
+		}
+			
 		listener->triggerRepeat = jsonBoolProp(trigger, "repeat", true);
-		listener->triggerLevel = jsonFloatProp(trigger, "level");
-		listener->triggerStream = dev->findStream(
-			jsonStringProp(trigger, "channel"),
-			jsonStringProp(trigger, "stream"));
 		listener->triggerHoldoff = jsonIntProp(trigger, "holdoff", 0);
 		listener->triggerOffset = jsonIntProp(trigger, "offset", 0);
 		
@@ -60,40 +84,47 @@ StreamListener *makeStreamListener(StreamingDevice* dev, ClientConn* client, JSO
 			listener->triggerHoldoff = -listener->triggerOffset;
 		}
 		listener->triggerForce = jsonIntProp(trigger, "force", 0);
-		
-	}else{
-		listener->triggerMode = 0;
-		listener->triggerRepeat = false;
-		listener->triggerLevel = 0;
-		listener->triggerStream = 0;
-		listener->triggerHoldoff = 0;
-		listener->triggerOffset = 0;
-		listener->triggerForce = 0;
+		listener->triggerForceIndex = listener->index + listener->triggerForce;
 	}
-	listener->triggered = false;
-	listener->triggerForceIndex = 0;
 		
-	return listener.release();
+		
+	return listener_ptr(listener.release());
 }
 
-
-bool StreamListener::handleNewData(){
-	if (triggerMode && !triggered && !findTrigger())
+unsigned StreamListener::howManySamples(){
+	if (triggerType != NONE && !triggered && !findTrigger())
 		// Waiting for a trigger and haven't found it yet
-		return true;
+		return 0;
 				
 	if (index + decimateFactor >= device->capture_i)
 		// The data for our next output sample hasn't been collected yet
-		return true;
+		return 0;
+
+	// Calulate number of decimateFactor-sized chunks are available
+	unsigned nchunks = (device->capture_i - index)/decimateFactor;
+	
+	// But if it's more than the remaining number of output samples, clamp it
+	if (count > 0 && (count - outIndex) < nchunks)
+		nchunks = count - outIndex;	
+
+	return nchunks;
+}
+
+bool WSStreamListener::handleNewData(){
+	unsigned nchunks = howManySamples();
+	if (!nchunks) return true;
 	
 	JSONNode n(JSON_NODE);
 
-	n.push_back(JSONNode("id", id.second));
+	n.push_back(JSONNode("id", id));
 	n.push_back(JSONNode("idx", outIndex));
 	
 	if (outIndex == 0){
 		if (triggerForce && index > triggerForceIndex){
 			n.push_back(JSONNode("triggerForced", true));
+		}
+		if (triggered){
+			n.push_back(JSONNode("subsample", triggerSubsampleError));
 		}
 		n.push_back(JSONNode("sampleIndex", index));
 	}
@@ -101,24 +132,13 @@ bool StreamListener::handleNewData(){
 	JSONNode streams_data(JSON_ARRAY);
 	streams_data.set_name("data");
 	
-	// Calulate number of decimateFactor-sized chunks are available
-	unsigned nchunks = (device->capture_i - index)/decimateFactor;
-	
-	// But if it's more than the remaining number of output samples, clamp it
-	if (count > 0 && (count - outIndex) < nchunks)
-		nchunks = count - outIndex;	
-	
 	BOOST_FOREACH(Stream* stream, streams){
 		JSONNode a(JSON_ARRAY);
 		
-		unsigned i = index;
-		
 		for (unsigned chunk = 0; chunk < nchunks; chunk++){
-			float total = 0;
-			for (unsigned chunk_i=0; chunk_i < decimateFactor; chunk_i++){
-				total += device->get(*stream, i++);
-			}
-			a.push_back(JSONNode("", total/decimateFactor));
+			a.push_back(JSONNode("", 
+				device->resample(*stream, index+chunk*decimateFactor, decimateFactor)
+			));
 		}
 		
 		streams_data.push_back(a);
@@ -151,17 +171,30 @@ bool StreamListener::handleNewData(){
 }
 
 bool StreamListener::findTrigger(){
-	bool state = device->get(*triggerStream, index) > triggerLevel;
-	while (++index < device->capture_i){
-		bool newState = device->get(*triggerStream, index) > triggerLevel;
+	triggerSubsampleError = 0;
+	if (triggerType == INSTREAM){
+		bool state = device->get(*triggerStream, index) > triggerLevel;
+		while (++index < device->capture_i){
+			bool newState = device->get(*triggerStream, index) > triggerLevel;
 		
-		if (newState == true && state == false){
-			//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
-			index += triggerOffset;
-			triggered = true;
-			return true;
+			if (newState == true && state == false){
+				//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
+				index += triggerOffset;
+				triggered = true;
+				return true;
+			}
+			state = newState;
 		}
-		state = newState;
+	}else if (triggerType == OUTSOURCE){
+		double zero = triggerChannel->source->getPhaseZeroAfterSample(index);
+		if (!triggerForce || zero <= triggerForceIndex){
+			index = round(zero) + triggerOffset;
+			triggerSubsampleError = zero - round(zero);
+		}else if (triggerForceIndex > index){
+			index = triggerForceIndex;
+		}
+		triggered = true;
+		return true;
 	}
 	
 	if (triggerForce && index > triggerForceIndex){

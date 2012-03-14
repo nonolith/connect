@@ -9,7 +9,7 @@
 #pragma once
 
 #include "../dataserver.hpp"
-#include "../streaming_device.hpp"
+#include "../streaming_device/streaming_device.hpp"
 #include "../usb_device.hpp"
 #include <boost/thread/mutex.hpp>
 
@@ -77,7 +77,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	CEE_device(libusb_device *dev, libusb_device_descriptor &desc);
 	virtual ~CEE_device();
 	
-	virtual void configure(int mode, float sampleTime, unsigned samples, bool continuous, bool raw);
+	virtual void configure(int mode, double sampleTime, unsigned samples, bool continuous, bool raw);
 
 	virtual const string model(){return "com.nonolithlabs.cee";}
 	virtual const string hwVersion(){return _hwversion;}
@@ -87,7 +87,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
 	
 	virtual void setOutput(Channel* channel, OutputSource* source);
-	virtual void setGain(Channel* channel, Stream* stream, int gain);
+	virtual void setInternalGain(Channel* channel, Stream* stream, int gain);
 
 	libusb_transfer* in_transfers[N_TRANSFERS];
 	libusb_transfer* out_transfers[N_TRANSFERS];
@@ -104,6 +104,8 @@ class CEE_device: public StreamingDevice, USB_device{
 	boost::mutex transfersMutex;
 	void fillOutTransfer(unsigned char*);
 	void handleInTransfer(unsigned char*);
+	
+	virtual void setCurrentLimit(unsigned limit);
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;

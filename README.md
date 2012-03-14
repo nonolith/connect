@@ -32,7 +32,7 @@ distributions. This version contains bugfixes to the async API.
 Build instructions
 ------------------
 
-    git clone --recursive git@github.com:nonolith/connect.git
+    git clone --recursive https://github.com/nonolith/connect.git
     cd connect
     scons -j5
 

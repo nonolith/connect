@@ -1,13 +1,10 @@
 import sys, os, shutil
 
-libs = ['usb_nonolith', 'websocketpp', 'json']
-boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
-
 env = Environment()
 
 opts = Variables()
 opts.Add(BoolVariable("mingwcross", "Cross-compile with mingw for Win32", 0))
-opts.Add(BoolVariable("boost_static", "Statically link against Boost", 1))
+opts.Add(BoolVariable("boost_static", "Statically link against Boost", 0))
 Help(opts.GenerateHelpText(env))
 opts.Update(env)
 
@@ -26,12 +23,13 @@ else:
 	print "Unknown platform"
 	exit()
 
-version = 'unknown'
-try:	
+
+if os.path.isdir(".git"):
 	version = os.popen("git describe --always --dirty='*'").read().strip()
-except:
-	pass
-	
+	f = open("version.cpp", 'wt')
+	f.write('const char* server_version="%s";\n'%version)
+	f.close()
+
 if env['mingwcross']:
 	target = 'windows'
 	env.Platform('cygwin')
@@ -40,25 +38,33 @@ if env['mingwcross']:
 	env['AR']  = 'i586-mingw32msvc-ar'
 	env['RANLIB'] = 'i586-mingw32msvc-ranlib'
 
+
+
+# Statically link in-tree libraries
+libs = ['usb_nonolith', 'websocketpp', 'json']
+libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
+
+boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
+
+	
+boost_static = env['boost_static']
+
 frameworks = []
 
-if target is 'linux':	
-	static = True
+if target is 'linux':
+	boostlibs = [i+'-mt' for i in boostlibs]
 	
-	if static:
+	if boost_static:
 		boost_lib = '/usr/lib/'
 		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in boostlibs]
-		libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
 		
 	libs += ['udev', 'pthread', 'rt']
 	
 elif target is 'osx':
 	boostlibs = [i+'-mt' for i in boostlibs]
-	static = True
-	if static:
+	if boost_static:
 		boost_lib = '/usr/local/lib/'
 		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in boostlibs]
-		libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
 
 	libs += ['objc']
 	frameworks = ['CoreFoundation', 'IOKit']
@@ -80,10 +86,9 @@ elif target is 'windows':
 		LINKFLAGS=['-Wl,-subsystem,windows', '-mwindows'],
 	)
 	
-	static = True
 	boostlibs.remove('boost_thread')
 	boostlibs.append('boost_thread_win32')
-	if static:
+	if boost_static:
 		boostlibs = [env.File(boost_lib+env['LIBPREFIX']+i+'-mt-s'+env['LIBSUFFIX']) for i in boostlibs]
 	else:
 		boostlibs = [i+'-mgw46-mt-1_48' for i in boostlibs]
@@ -92,7 +97,7 @@ elif target is 'windows':
     
 
 
-sources = Glob('*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
+sources = Glob('*.cpp') +  Glob('streaming_device/*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
 
 json = env.Library('json', 
 	Glob('libjson/Source/*.cpp'),
@@ -131,4 +136,4 @@ libusb = env.Library('libusb_nonolith', ['libusb/libusb/'+i for i in [
 
 libs += boostlibs
 
-env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared', "-DVERSION='%s'"%version], FRAMEWORKS=frameworks)
+env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)

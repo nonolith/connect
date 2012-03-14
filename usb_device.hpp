@@ -29,18 +29,19 @@ class USB_device{
 		int r = libusb_open(dev, &handle);
 		if (r != 0){
 			std::cerr << "Could not open device; error "<< r <<std::endl;
-			return;
+			throw ErrorStringException("Could not open device");
 		}
 	
 		r = libusb_claim_interface(handle, 0);
 		if (r != 0){
 			std::cerr << "Could not claim interface; error "<<r<<std::endl;
-			return;
+			throw ErrorStringException("Could claim interface");
 		}
 
 		r = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, (unsigned char*)&serial, 32);
 		if (r < 0){
 			std::cerr << "Could not read string descriptor; error " << r << std::endl;
+			throw ErrorStringException("Could not read serial number");
 		}
 	}
 	
