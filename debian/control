@@ -1,5 +1,5 @@
 Source: nonolith-connect
-Section: unknown
+Section: electronics
 Priority: extra
 Maintainer: Nonolith Labs <team@nonolithlabs.com>
 Build-Depends: debhelper (>= 7.0.50~), scons, libusb-1.0-0-dev, libudev-dev, libboost-all-dev, libasio-dev
