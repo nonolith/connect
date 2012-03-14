@@ -23,12 +23,7 @@ else:
 	print "Unknown platform"
 	exit()
 
-
-if os.path.isdir(".git"):
-	version = os.popen("git describe --always --dirty='*'").read().strip()
-	f = open("version.cpp", 'wt')
-	f.write('const char* server_version="%s";\n'%version)
-	f.close()
+os.system('bash genversion.sh')
 
 if env['mingwcross']:
 	target = 'windows'
