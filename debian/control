@@ -2,13 +2,11 @@ Source: nonolith-connect
 Section: unknown
 Priority: extra
 Maintainer: Nonolith Labs <team@nonolithlabs.com>
-Build-Depends: debhelper (>= 7.0.50~), scons
+Build-Depends: debhelper (>= 7.0.50~), scons, libusb-1.0-0-dev, libudev-dev, libboost-all-dev, libasio-dev
 Standards-Version: 3.8.4
-Homepage: http://nonolithlabs.com
-#Vcs-Git: git://github.com/nonolith/connect
-#Vcs-Browser: http://github.com/nonolith/connect
+Homepage: http://nonolithlabs.com/
 
 Package: nonolith-connect
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, curl
 Description: USB to web bridge daemon for Nonolith CEE
