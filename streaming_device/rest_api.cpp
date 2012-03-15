@@ -128,11 +128,9 @@ struct RESTListener: public StreamListener{
 	
 		index += nchunks * decimateFactor;
 		outIndex += nchunks;
-
-		bool done = (count>0 && (int) outIndex >= count);
 		
-		client->http_write(o.str(), done);
-		return !done;
+		client->http_write(o.str());
+		return !(count>0 && (int) outIndex >= count);
 	}
 	
 	virtual ~RESTListener(){
