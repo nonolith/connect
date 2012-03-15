@@ -62,6 +62,8 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
+const string redir_url = "http://www.nonolithlabs.com/connect/?utm_source=connect&utm_medium=app&utm_campaign=server-redir";
+
 void handleJSONRequest(UrlPath path, websocketpp::session_ptr client);
 
 void data_server_handler::on_client_connect(websocketpp::session_ptr client){
@@ -86,7 +88,7 @@ void data_server_handler::on_client_connect(websocketpp::session_ptr client){
 
 	try{
 		if (path.leaf()){ // "/"
-			client->set_header("Location", "http://www.nonolithlabs.com/connect/server");
+			client->set_header("Location", redir_url);
 			client->start_http(301);
 		}else if (path.matches("rest")){
 			handleJSONRequest(path.sub(), client);
