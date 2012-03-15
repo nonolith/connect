@@ -1,3 +1,11 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// URL parsing
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include "url.hpp"

@@ -1,3 +1,12 @@
+// Nonolith Connect
+// https://github.com/nonolith/connect
+// REST API
+// Documented at http://wiki.nonolithlabs.com/Simple_REST_API_V1
+// Released under the terms of the GNU GPLv3+
+// (C) 2012 Nonolith Labs, LLC
+// Authors:
+//   Kevin Mehall <km@kevinmehall.net>
+
 #include "streaming_device.hpp"
 #include "stream_listener.hpp"
 #include <boost/lexical_cast.hpp>
