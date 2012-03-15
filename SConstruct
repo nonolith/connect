@@ -39,7 +39,7 @@ if env['mingwcross']:
 libs = ['usb_nonolith', 'websocketpp', 'json']
 libs = [env.File(env['LIBPREFIX']+i+env['LIBSUFFIX']) for i in libs]
 
-boostlibs = ['boost_system','boost_date_time', 'boost_regex', 'boost_thread']
+boostlibs = ['boost_system','boost_regex', 'boost_thread']
 
 	
 boost_static = env['boost_static']
