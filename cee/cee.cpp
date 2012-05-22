@@ -38,7 +38,8 @@ extern "C" void LIBUSB_CALL out_transfer_callback(libusb_transfer *t);
 
 const int CEE_timer_clock = 4e6; // 4 MHz
 const double CEE_default_sample_time = 1/10000.0;
-const double CEE_I_gain = 45*.07;
+const double CEE_current_gain_scale = 100000;
+const uint32_t CEE_default_current_gain = 45*.07*CEE_current_gain_scale;
 
 const float V_min = 0;
 const float V_max = 5.0;
@@ -91,12 +92,25 @@ void CEE_device::readCalibration(){
 	int r = controlTransfer(0xC0, 0xE0, 0, 0, buf, 64);
 	if (!r || magic != EEPROM_VALID_MAGIC){
 		cerr << "Reading calibration data failed " << r << endl;
-		memset(&cal, 0, sizeof(cal));
-		currentLimit = defaultCurrentLimit;
+		memset(&cal, 0xff, sizeof(cal));
+		
+		cal.offset_a_v = cal.offset_a_i = cal.offset_b_v = cal.offset_b_i = 0;
+		
 	}else{
 		memcpy((uint8_t*)&cal, buf, sizeof(cal));
-		setCurrentLimit(defaultCurrentLimit);
 	}
+	
+	setCurrentLimit((cal.flags&EEPROM_FLAG_USB_POWER)?defaultCurrentLimit:2000);
+	
+	if (cal.current_gain_a == (uint32_t) -1){
+		cal.current_gain_a = CEE_default_current_gain;
+	}
+	
+	if (cal.current_gain_b == (uint32_t) -1){
+		cal.current_gain_b = CEE_default_current_gain;
+	}
+	
+	cerr << "Current gain " << cal.current_gain_a << " " << cal.current_gain_b << endl;
 }
 
 bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
@@ -109,6 +123,9 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 		cal.dac200_b = jsonIntProp(n, "dac200_b");
 		cal.dac400_a = jsonIntProp(n, "dac400_a");
 		cal.dac400_b = jsonIntProp(n, "dac400_b");
+		cal.current_gain_a = jsonIntProp(n, "current_gain_a", (uint32_t) -1);
+		cal.current_gain_b = jsonIntProp(n, "current_gain_b", (uint32_t) -1);
+		cal.flags = jsonIntProp(n, "flags", 0xff);
 		cal.magic = EEPROM_VALID_MAGIC;
 		
 		int r = controlTransfer(0x40, 0xE1, 0, 0, (uint8_t *)&cal, sizeof(cal));
@@ -351,6 +368,11 @@ void CEE_device::setInternalGain(Channel *channel, Stream* stream, int gain){
 }
 
 void CEE_device::handleInTransfer(unsigned char *buffer){
+	float v_factor = 5.0/2048.0;
+	float i_factor_a = 2.5/2048.0/(cal.current_gain_a/CEE_current_gain_scale)*1000.0;
+	float i_factor_b = 2.5/2048.0/(cal.current_gain_b/CEE_current_gain_scale)*1000.0;
+	if (rawMode) v_factor = i_factor_a = i_factor_b = 1;
+			
 	for (int p=0; p<packets_per_transfer; p++){
 		IN_packet *pkt = &((IN_packet*)buffer)[p];
 	
@@ -359,20 +381,15 @@ void CEE_device::handleInTransfer(unsigned char *buffer){
 		}
 	
 		for (int i=0; i<10; i++){
-			float v_factor = 5.0/2048.0;
-			float i_factor = 2.5/2048.0/CEE_I_gain*1000.0;
-		
-			if (rawMode) v_factor = i_factor = 1;
-		
 			put(channel_a_v, (cal.offset_a_v + pkt->data[i].av())*v_factor/channel_a_v.gain);
 			if ((pkt->mode_a & 0x3) != DISABLED){
-				put(channel_a_i, (cal.offset_a_i + pkt->data[i].ai())*i_factor/channel_a_i.gain);
+				put(channel_a_i, (cal.offset_a_i + pkt->data[i].ai())*i_factor_a/channel_a_i.gain);
 			}else{
 				put(channel_a_i, 0);
 			}
 			put(channel_b_v, (cal.offset_b_v + pkt->data[i].bv())*v_factor/channel_b_v.gain);
 			if ((pkt->mode_b & 0x3) != DISABLED){
-				put(channel_b_i, (cal.offset_b_i + pkt->data[i].bi())*i_factor/channel_b_i.gain);
+				put(channel_b_i, (cal.offset_b_i + pkt->data[i].bi())*i_factor_b/channel_b_i.gain);
 			}else{
 				put(channel_b_i, 0);
 			}
@@ -414,7 +431,7 @@ inline float constrain(float val, float lo, float hi){
 }
 
 
-uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
+uint16_t CEE_device::encode_out(CEE_chanmode mode, float val, uint32_t igain){
 	if (rawMode){
 		return constrain(val, 0, 4095);
 	}else{
@@ -424,7 +441,7 @@ uint16_t CEE_device::encode_out(CEE_chanmode mode, float val){
 			v = 4095*val/5.0;
 		}else if (mode == SIMV){
 			val = constrain(val, -currentLimit, currentLimit);
-			v = 4095*(1.25+CEE_I_gain*val/1000.0)/2.5;
+			v = 4095*(1.25+(igain/CEE_current_gain_scale)*val/1000.0)/2.5;
 		}
 		if (v > 4095) v=4095;
 		if (v < 0) v = 0;
@@ -448,8 +465,8 @@ void CEE_device::fillOutTransfer(unsigned char* buf){
 
 			for (int i=0; i<10; i++){
 				pkt->data[i].pack(
-					encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, sampleTime)),
-					encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, sampleTime))
+					encode_out((CEE_chanmode)mode_a, channel_a.source->getValue(capture_o, sampleTime), cal.current_gain_a),
+					encode_out((CEE_chanmode)mode_b, channel_b.source->getValue(capture_o, sampleTime), cal.current_gain_b)
 				);
 				capture_o++;
 			}	

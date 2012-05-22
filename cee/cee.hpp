@@ -68,7 +68,11 @@ struct EEPROM_cal{
 	uint32_t magic;
 	int8_t offset_a_v, offset_a_i, offset_b_v, offset_b_i;
 	int16_t dac200_a, dac200_b, dac400_a, dac400_b;
+	uint32_t current_gain_a, current_gain_b;
+	uint8_t flags; // bit 0: USB powered
 } __attribute__((packed));
+
+#define EEPROM_FLAG_USB_POWER (1<<0)
 
 #define N_TRANSFERS 64
 
@@ -117,7 +121,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	virtual void on_reset_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
-	uint16_t encode_out(CEE_chanmode mode, float val);
+	uint16_t encode_out(CEE_chanmode mode, float val, uint32_t igain);
 	void checkOutputEffective(Channel& channel);
 	
 	EEPROM_cal cal;
