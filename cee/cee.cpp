@@ -139,6 +139,26 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 		client.sendJSON(reply);
 		return true;
 		
+	}else if (cmd == "readCalibration"){
+		JSONNode reply(JSON_NODE);
+		reply.push_back(JSONNode("_action", "return"));
+		reply.push_back(JSONNode("id", jsonIntProp(n, "id", 0)));
+		
+		reply.push_back(JSONNode("offset_a_v", cal.offset_a_v));
+		reply.push_back(JSONNode("offset_a_i", cal.offset_a_i));
+		reply.push_back(JSONNode("offset_b_v", cal.offset_b_v));
+		reply.push_back(JSONNode("offset_b_i", cal.offset_b_i));
+		reply.push_back(JSONNode("dac200_a", cal.dac200_a));
+		reply.push_back(JSONNode("dac200_b", cal.dac200_b));
+		reply.push_back(JSONNode("dac400_a", cal.dac400_a));
+		reply.push_back(JSONNode("dac400_b", cal.dac400_b));
+		reply.push_back(JSONNode("current_gain_a", cal.current_gain_a));
+		reply.push_back(JSONNode("current_gain_b", cal.current_gain_b));
+		reply.push_back(JSONNode("flags", cal.flags));
+		
+		client.sendJSON(reply);	
+		return true;
+			
 	}else if (cmd == "tempCalibration"){
 		memset(&cal, 0, sizeof(cal));
 		cal.offset_a_v = jsonIntProp(n, "offset_a_v", 0);
