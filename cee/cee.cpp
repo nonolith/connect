@@ -238,6 +238,7 @@ void CEE_device::on_reset_capture(){
 }
 
 void CEE_device::on_start_capture(){
+	claimInterface();
 	boost::mutex::scoped_lock lock(transfersMutex);
 	
 	// Turn on the device

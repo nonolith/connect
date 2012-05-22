@@ -99,6 +99,7 @@ void Bootloader_device::erase(){
 }
 
 int Bootloader_device::write(string data){
+	claimInterface();
 	controlTransfer(0x40|0x80, REQ_START_WRITE, 0, 0, NULL, 0);
 	std::cout << "Starting bootloader write " << info.page_size << " " << data.size() << std::endl;
 	
