@@ -230,10 +230,10 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 			channel_a_v.units = channel_b_v.units = string("V");
 			channel_a_i.units = channel_b_i.units = string("mA");
 			
-			double effectiveLimitA = 2.5/(cal.current_gain_a/CEE_current_gain_scale)/channel_a_i.gain*1000;
+			double effectiveLimitA = 2.5/(cal.current_gain_a/CEE_current_gain_scale)/channel_a_i.normalGain*1000;
 			if (effectiveLimitA > currentLimit) effectiveLimitA = currentLimit;
 			
-			double effectiveLimitB = 2.5/(cal.current_gain_b/CEE_current_gain_scale)/channel_b_i.gain*1000;
+			double effectiveLimitB = 2.5/(cal.current_gain_b/CEE_current_gain_scale)/channel_b_i.normalGain*1000;
 			if (effectiveLimitB > currentLimit) effectiveLimitB = currentLimit;
 			
 			cerr << "Current axis " << effectiveLimitA << " " <<effectiveLimitB << endl;
