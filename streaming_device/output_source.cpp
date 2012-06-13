@@ -9,6 +9,11 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
+#include <vector>
+#include <utility>
+
+using std::vector;
+using std::pair;
 
 #include "../dataserver.hpp"
 #include "../json.hpp"
@@ -119,6 +124,77 @@ struct SquareWaveSource: public PeriodicSource{
 	}
 };
 
+struct ArbitraryWaveformSource: public OutputSource{
+	
+	struct Point{
+		unsigned t;
+		float v;
+		Point(unsigned t_, float v_): t(t_), v(v_){};
+	};
+	typedef vector<Point> Point_vec;
+
+	ArbitraryWaveformSource(unsigned m, int offset_, Point_vec& values_):
+		OutputSource(m), offset(offset_), values(values_), index(0){}
+	virtual string displayName(){return "arbitrary";}
+	
+	virtual float getValue(unsigned sample, double sampleTime){
+		unsigned length = values.size();
+		
+		// All times are relative to offset
+		sample -= offset;
+		
+		unsigned time1, time2;
+		float value1, value2;
+		
+		while(1){
+			time1  = values[index].t;
+			value1 = values[index].v;
+			
+			unsigned nextIndex = index+1;
+			
+			if (nextIndex >= length){
+				// If repeat is disabled, the last value remains forever
+				return value1;
+			}
+		
+			time2  = values[nextIndex].t;
+			value2 = values[nextIndex].v;
+			
+			if (sample >= time2){
+				// When we pass the next point, move forward in the list
+				index = nextIndex;
+				continue;
+			}else{
+				break;
+			}
+		}
+		
+		// For the first point
+		if (sample < time1) return value1;
+		
+		// Proportion of the time between the last point and the next point
+		double p = (((double)sample) - time1)/(((double)time2) - time1);
+		std::cout << sample << " time1=" << time1 << " time2=" << time2 << " val1=" << value1 << " val2="<<value2 << " p=" << p <<std::endl;
+		
+		// Trapezoidal interpolation
+		return (1-p) * value1 + p*value2;
+	}
+	
+	virtual void describeJSON(JSONNode &n){
+		OutputSource::describeJSON(n);
+	}
+	
+	virtual void initialize(unsigned sample, OutputSource* prevSrc){
+		if (offset == -1){
+			offset = sample;
+		}
+	}
+	
+	int offset;
+	Point_vec values;
+	unsigned index;
+};
+
 OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase){
 	if (source == "sine")
 			return new SineWaveSource(mode, offset, amplitude, period, phase, relPhase);
@@ -139,6 +215,7 @@ OutputSource* makeSource(JSONNode& n){
 	if (source == "constant"){
 		float val = jsonFloatProp(n, "value", 0);
 		return new ConstantSource(mode, val);
+		
 	}else if (source == "adv_square"){
 		float high = jsonFloatProp(n, "high");
 		float low = jsonFloatProp(n, "low");
@@ -146,14 +223,29 @@ OutputSource* makeSource(JSONNode& n){
 		int lowSamples = n.at("lowSamples").as_int();
 		int phase = jsonIntProp(n, "phase", 0);
 		return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
+		
 	}else if (source == "sine" || source == "triangle" || source == "square"){
 		float offset = jsonFloatProp(n, "offset");
 		float amplitude = jsonFloatProp(n, "amplitude");
 		double period = jsonFloatProp(n, "period");
 		double phase = jsonFloatProp(n, "phase", 0);
 		bool relPhase = jsonBoolProp(n, "relPhase", true);
-		
 		return makeSource(mode, source, offset, amplitude, period, phase, relPhase);
+		
+	}else if (source=="arb"){
+		unsigned offset = jsonIntProp(n, "offset", -1);
+		
+		ArbitraryWaveformSource::Point_vec values;
+		JSONNode j_values = n.at("values");
+		for(JSONNode::iterator i=j_values.begin(); i!=j_values.end(); i++){
+			values.push_back(ArbitraryWaveformSource::Point(
+					jsonIntProp(*i, "t"),
+					jsonFloatProp(*i, "v")));
+		}
+		
+		if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point");
+		
+		return new ArbitraryWaveformSource(mode, offset, values);
 	}
 	throw ErrorStringException("Invalid source");
 }
