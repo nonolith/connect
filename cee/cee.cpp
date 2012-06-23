@@ -95,7 +95,7 @@ void CEE_device::readCalibration(){
 		memset(&cal, 0xff, sizeof(cal));
 		
 		cal.offset_a_v = cal.offset_a_i = cal.offset_b_v = cal.offset_b_i = 0;
-		
+		cal.dac400_a = cal.dac400_b = cal.dac200_a = cal.dac200_b = 0x6B7;
 	}else{
 		memcpy((uint8_t*)&cal, buf, sizeof(cal));
 	}
@@ -256,25 +256,24 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 }
 
 void CEE_device::setCurrentLimit(unsigned mode){
-	if (cal.magic == EEPROM_VALID_MAGIC){
-		unsigned ilimit_cal_a, ilimit_cal_b;
-	
-		if (mode == 200){
-			ilimit_cal_a = cal.dac200_a;
-			ilimit_cal_b = cal.dac200_b;
-		}else if(mode == 400){
-			ilimit_cal_a = cal.dac400_a;
-			ilimit_cal_b = cal.dac400_b;
-		}else if (mode == 2000){
-			ilimit_cal_a = ilimit_cal_b = 0;
-		}else{
-			std::cerr << "Invalid current limit " << mode << std::endl;
-			return;
-		}
-		
-		currentLimit = mode;
-		controlTransfer(0xC0, CMD_ISET_DAC, ilimit_cal_a, ilimit_cal_b, NULL, 0);	
+	unsigned ilimit_cal_a, ilimit_cal_b;
+
+	if (mode == 200){
+		ilimit_cal_a = cal.dac200_a;
+		ilimit_cal_b = cal.dac200_b;
+	}else if(mode == 400){
+		ilimit_cal_a = cal.dac400_a;
+		ilimit_cal_b = cal.dac400_b;
+	}else if (mode == 2000){
+		ilimit_cal_a = ilimit_cal_b = 0;
+	}else{
+		std::cerr << "Invalid current limit " << mode << std::endl;
+		return;
 	}
+	
+	controlTransfer(0xC0, CMD_ISET_DAC, ilimit_cal_a, ilimit_cal_b, NULL, 0);	
+	
+	currentLimit = mode;
 }
 
 void CEE_device::on_reset_capture(){
