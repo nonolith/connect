@@ -186,7 +186,7 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	
 	// Store state
 	xmega_per = round(_sampleTime * (double) CEE_timer_clock);
-	if (xmega_per < 82) xmega_per = 82;
+	//if (xmega_per < 82) xmega_per = 82;
 	sampleTime = xmega_per / (double) CEE_timer_clock; // convert back to get the actual sample time;
 	
 	captureSamples = samples;

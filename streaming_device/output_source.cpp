@@ -135,7 +135,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 
 	ArbitraryWaveformSource(unsigned m, int offset_, Point_vec& values_):
 		OutputSource(m), offset(offset_), values(values_), index(0){}
-	virtual string displayName(){return "arbitrary";}
+	virtual string displayName(){return "arb";}
 	
 	virtual float getValue(unsigned sample, double sampleTime){
 		unsigned length = values.size();
