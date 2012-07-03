@@ -1,7 +1,7 @@
 #ifndef LIBJSON_H
 #define LIBJSON_H
 
-#include "Source/JSONDefs.h"  //for typedefs of functions, strings, and nodes
+#include "_internal/Source/JSONDefs.h"  //for typedefs of functions, strings, and nodes
 
 /*
     This is the C interface to libjson.
@@ -174,17 +174,20 @@
     #ifndef __cplusplus
 	   #error Turning off JSON_LIBRARY requires C++
     #endif
-    #include "Source/JSONNode.h"  //not used in this file, but libjson.h should be the only file required to use it embedded
-    #include "Source/JSONWorker.h"
-    #include "Source/JSONValidator.h"
-    #include "Source/JSONStream.h"
-    #include "Source/JSONPreparse.h"
+    #include "_internal/Source/JSONNode.h"  //not used in this file, but libjson.h should be the only file required to use it embedded
+    #include "_internal/Source/JSONWorker.h"
+    #include "_internal/Source/JSONValidator.h"
+    #include "_internal/Source/JSONStream.h"
+    #include "_internal/Source/JSONPreparse.h"
     #ifdef JSON_EXPOSE_BASE64
-	   #include "Source/JSON_Base64.h"
+	   #include "_internal/Source/JSON_Base64.h"
     #endif
     #ifndef JSON_NO_EXCEPTIONS
 	   #include <stdexcept>  //some methods throw exceptions
     #endif
+
+	#include <cwchar>  /* need wide characters */
+	#include <string>
 
     namespace libjson {	   
 	   #ifdef JSON_EXPOSE_BASE64
@@ -201,17 +204,45 @@
 	   inline static json_string strip_white_space(const json_string & json) json_nothrow {
 		  return JSONWorker::RemoveWhiteSpaceAndComments(json, false);
 	   }
+		
+		#ifndef JSON_STRING_HEADER
+			inline static std::string to_std_string(const json_string & str){
+				#if defined(JSON_UNICODE) ||defined(JSON_MEMORY_CALLBACKS) || defined(JSON_MEMORY_POOL)
+					return std::string(str.begin(), str.end());		
+				#else
+					return str;
+				#endif
+			}
+			inline static std::wstring to_std_wstring(const json_string & str){
+				#if (!defined(JSON_UNICODE)) || defined(JSON_MEMORY_CALLBACKS) || defined(JSON_MEMORY_POOL)
+					return std::wstring(str.begin(), str.end());		
+				#else
+					return str;
+				#endif
+			}
+			
+			inline static json_string to_json_string(const std::string & str){
+				#if defined(JSON_UNICODE) ||defined(JSON_MEMORY_CALLBACKS) || defined(JSON_MEMORY_POOL)
+					return json_string(str.begin(), str.end());		
+				#else
+					return str;
+				#endif
+			}
+			inline static json_string to_json_string(const std::wstring & str){
+				#if (!defined(JSON_UNICODE)) || defined(JSON_MEMORY_CALLBACKS) || defined(JSON_MEMORY_POOL)
+					return json_string(str.begin(), str.end());		
+				#else
+					return str;
+				#endif
+			}
+		#endif
 
 	   #ifdef JSON_READ_PRIORITY
 		  //if json is invalid, it throws a std::invalid_argument exception
 		  inline static JSONNode parse(const json_string & json) json_throws(std::invalid_argument) {
 			 #ifdef JSON_PREPARSE
-				#if defined JSON_DEBUG || defined JSON_SAFE
-					json_char temp;
-					json_auto<json_char> buffer(JSONWorker::RemoveWhiteSpace(json, temp, false));
-				#else
-					json_auto<json_char> buffer(JSONWorker::RemoveWhiteSpace(json, false));
-				#endif
+				size_t len;
+				json_auto<json_char> buffer(JSONWorker::RemoveWhiteSpace(json, len, false));
 				return JSONPreparse::isValidRoot(buffer.ptr);
 			 #else
 				return JSONWorker::parse(json);
@@ -234,7 +265,9 @@
 					   return false;
 				    }
 				#endif
-				return JSONValidator::isValidRoot(JSONWorker::RemoveWhiteSpaceAndComments(json, false).c_str());
+				json_auto<json_char> s;
+				s.set(JSONWorker::RemoveWhiteSpaceAndCommentsC(json, false));
+				return JSONValidator::isValidRoot(s.ptr);
 			 }
 
 			 inline static bool is_valid_unformatted(const json_string & json) json_nothrow {

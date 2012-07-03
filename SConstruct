@@ -95,7 +95,7 @@ elif target is 'windows':
 sources = Glob('*.cpp') +  Glob('streaming_device/*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
 
 json = env.Library('json', 
-	Glob('libjson/Source/*.cpp'),
+	Glob('libjson/_internal/Source/*.cpp'),
 	CCFLAGS = "-c -O3 -ffast-math -fexpensive-optimizations".split()
 )
 

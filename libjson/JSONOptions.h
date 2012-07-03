@@ -28,7 +28,7 @@
  *  it simply tells you about them, which is nice for debugging, but not preferable
  *  for release candidates
  */
-#define JSON_DEBUG
+//#define JSON_DEBUG
 
 
 /*
@@ -92,7 +92,7 @@
 
 /*
  *  JSON_BINARY is used to support binary, which is base64 encoded and decoded by libjson,
- *  if this option is not turned on, no base64 support is included
+ *  if this option is not turned off, no base64 support is included
  */
 #define JSON_BINARY
 
@@ -122,12 +122,12 @@
 
 /*
  *  JSON_MEMORY_CALLBACKS exposes functions to register callbacks for allocating, resizing,
- *  and freeing memory.  Because libjson is designed for costomizability, it is feasible
+ *  and freeing memory.  Because libjson is designed for customizability, it is feasible
  *  that some users would like to further add speed by having the library utilize a memory
  *  pool.  With this option turned on, the default behavior is still done internally unless
- *  a callback is registered.  So you can have this option on and mot use it.
+ *  a callback is registered.  So you can have this option on and not use it.
  */
-#define JSON_MEMORY_CALLBACKS
+//#define JSON_MEMORY_CALLBACKS
 
 
 /*
@@ -287,6 +287,13 @@
 
 
 /*
+ *  JSON_NUMBER_TYPE lets you change the number type for as_float as well as the internal storage for the
+ *	number.  If you omit this option, the default double will be used for most cases and float for JSON_LESS_MEMORY
+ */
+//#define JSON_NUMBER_TYPE double
+
+
+/*
  *  JSON_STRING_HEADER allows you to change the type of string that libjson uses both for the
  *  interface and internally.  It must implement most of the STL string interface, but not all
  *  of it.  Things like wxString or QString should wourk without much trouble
@@ -340,6 +347,14 @@
  *  strings of JSON.  32MB is the default value for this, this allows large images to be embedded
  */
 #define JSON_SECURITY_MAX_STRING_LENGTH 33554432
+
+
+/*
+ *	JSON_SECURITY_MAX_STREAM_OBJECTS is a security measure for streams.  It prevents DoS attacks with
+ *	large number of objects hitting the stream all at once.  128 is a lot of objects, but not out of
+ *	the question for high speed systems.
+ */
+#define JSON_SECURITY_MAX_STREAM_OBJECTS 128
 
 #endif
 
