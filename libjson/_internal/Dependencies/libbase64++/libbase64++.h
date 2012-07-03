@@ -22,7 +22,7 @@
 	template<typename T>
 	class libbase64_boundChecker {
 	public:
-		libbase64_boundChecker(const T * lbound, const T * ubound) : upperbound(ubound), lowerbound(lbound){};
+		libbase64_boundChecker(const T * lbound, const T * ubound) : lowerbound(lbound), upperbound(ubound){};
 		T getLocation(const T * loc){
 			LIBBASE64_ASSERT(loc < upperbound, "Array index above bounds");
 			LIBBASE64_ASSERT(loc >= lowerbound, "Array index below bounds");

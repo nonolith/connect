@@ -3,7 +3,7 @@
 
 #include "../../JSONOptions.h"
 
-#if defined(JSON_UNIT_TEST) || defined(JSON_DEBUG)
+#if 0 // defined(JSON_UNIT_TEST) || defined(JSON_DEBUG)
 	#define LIBJSON_OBJECT(name)\
 		static size_t & getCtorCounter(void){\
 			static size_t count = 0;\
