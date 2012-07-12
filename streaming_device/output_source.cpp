@@ -219,8 +219,8 @@ OutputSource* makeSource(JSONNode& n){
 	}else if (source == "adv_square"){
 		float high = jsonFloatProp(n, "high");
 		float low = jsonFloatProp(n, "low");
-		int highSamples = jsonIntProp(n, "high");
-		int lowSamples = n.at("lowSamples").as_int();
+		int highSamples = jsonIntProp(n, "highSamples");
+		int lowSamples = jsonIntProp(n, "lowSamples");
 		int phase = jsonIntProp(n, "phase", 0);
 		return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
 		
