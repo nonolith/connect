@@ -150,6 +150,9 @@ class StreamingDevice: public Device{
 		
 		/// Time of a sample
 		double sampleTime;
+
+		/// Minimum allowed sampleTime
+		double minSampleTime;
 		
 		/// IN sample counter
 	    /// index of next-written element is capture_i%captureSamples

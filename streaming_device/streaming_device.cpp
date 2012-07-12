@@ -62,6 +62,7 @@ JSONNode StreamingDevice::stateToJSON(bool configOnly){
 	std::cout << "sampleTime " << sampleTime << std::endl;
 	
 	n.push_back(JSONNode("sampleTime", sampleTime));
+	n.push_back(JSONNode("minSampleTime", minSampleTime));
 	n.push_back(JSONNode("mode", devMode));
 	n.push_back(JSONNode("samples", captureSamples));
 	n.push_back(JSONNode("length", captureLength));

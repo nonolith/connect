@@ -74,6 +74,14 @@ struct EEPROM_cal{
 
 #define EEPROM_FLAG_USB_POWER (1<<0)
 
+typedef struct CEE_version_descriptor{
+	uint8_t version_major;
+	uint8_t version_minor;
+	uint8_t flags;
+	uint8_t per_ns;
+	uint8_t min_per;
+} __attribute__((packed)) CEE_version_descriptor;
+
 #define N_TRANSFERS 64
 
 class CEE_device: public StreamingDevice, USB_device{
@@ -117,7 +125,7 @@ class CEE_device: public StreamingDevice, USB_device{
 	int ntransfers, packets_per_transfer;
 
 	protected:
-	string _hwversion, _fwversion;
+	string _hwversion, _fwversion, _gitversion;
 	virtual void on_reset_capture();
 	virtual void on_start_capture();
 	virtual void on_pause_capture();
@@ -125,6 +133,8 @@ class CEE_device: public StreamingDevice, USB_device{
 	void checkOutputEffective(Channel& channel);
 	
 	EEPROM_cal cal;
+
+	int min_per;
 	int xmega_per;
 	void readCalibration();
 };

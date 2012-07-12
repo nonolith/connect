@@ -59,7 +59,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_b_v("v", "Voltage B", "V",  V_min, V_max, 1,  V_max/2048, 1),
 	channel_b_i("i", "Current B", "mA", 0,     0,     2,  1,          2)
 	{
-	cerr << "Found a CEE: "<< serial << endl;
+	cerr << "Found a CEE: \n    Serial: "<< serial << endl;
 	
 	uint8_t buf[64];
 	int r;
@@ -67,12 +67,41 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	if (r >= 0){
 		_hwversion = string((char*)buf, r);
 	}
-	
+
 	r = controlTransfer(0xC0, 0x00, 0, 1, buf, 64);
 	if (r >= 0){
 		_fwversion = string((char*)buf, r);
 	}
-	
+
+	CEE_version_descriptor version_info;
+	bool have_version_info = 0;
+
+	if (_fwversion > "1.2"){
+		r = controlTransfer(0xC0, 0x00, 0, 0xff, (uint8_t*)&version_info, sizeof(version_info));
+		have_version_info = (r>=0);
+
+		r = controlTransfer(0xC0, 0x00, 0, 2, buf, 64);
+		if (r >= 0){
+			_gitversion = string((char*)buf, r);
+		}
+	}
+
+	if (have_version_info){
+		min_per = version_info.min_per;
+		if (version_info.per_ns != 250){
+			std::cerr << "    Error: alternate timer clock " << version_info.per_ns << " is not supported in this release." << std::endl;
+		}
+
+	}else{
+		min_per = 100;
+	}
+
+	minSampleTime = min_per / (double) CEE_timer_clock;
+
+	std::cout << "    Hardware: " << _hwversion << std::endl;
+	std::cout << "    Firmware version: " << _fwversion << " (" << _gitversion << ")" << std::endl;
+	std::cout << "    Supported sample rate: " << CEE_timer_clock / min_per / 1000.0 << "ksps" << std::endl;
+ 	
 	readCalibration();
 	
 	configure(0, CEE_default_sample_time, ceil(12.0/CEE_default_sample_time), true, false);
@@ -91,7 +120,7 @@ void CEE_device::readCalibration(){
 	};
 	int r = controlTransfer(0xC0, 0xE0, 0, 0, buf, 64);
 	if (!r || magic != EEPROM_VALID_MAGIC){
-		cerr << "Reading calibration data failed " << r << endl;
+		cerr << "    Reading calibration data failed " << r << endl;
 		memset(&cal, 0xff, sizeof(cal));
 		
 		cal.offset_a_v = cal.offset_a_i = cal.offset_b_v = cal.offset_b_i = 0;
@@ -110,7 +139,7 @@ void CEE_device::readCalibration(){
 		cal.current_gain_b = CEE_default_current_gain;
 	}
 	
-	cerr << "Current gain " << cal.current_gain_a << " " << cal.current_gain_b << endl;
+	cerr << "    Current gain " << cal.current_gain_a << " " << cal.current_gain_b << endl;
 }
 
 bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
@@ -186,7 +215,7 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	
 	// Store state
 	xmega_per = round(_sampleTime * (double) CEE_timer_clock);
-	//if (xmega_per < 82) xmega_per = 82;
+	if (xmega_per < min_per) xmega_per = min_per;
 	sampleTime = xmega_per / (double) CEE_timer_clock; // convert back to get the actual sample time;
 	
 	captureSamples = samples;
@@ -236,7 +265,7 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 			double effectiveLimitB = 2.5/(cal.current_gain_b/CEE_current_gain_scale)/channel_b_i.normalGain*1000;
 			if (effectiveLimitB > currentLimit) effectiveLimitB = currentLimit;
 			
-			cerr << "Current axis " << effectiveLimitA << " " <<effectiveLimitB << endl;
+			cerr << "    Current axis " << effectiveLimitA << " " <<effectiveLimitB << endl;
 			
 			channel_a_v.min = channel_b_v.min = V_min;
 			channel_a_v.max = channel_b_v.max = V_max;
