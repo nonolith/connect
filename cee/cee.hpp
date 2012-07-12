@@ -121,6 +121,8 @@ class CEE_device: public StreamingDevice, USB_device{
 
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;
+
+	bool firstPacket;
 	
 	int ntransfers, packets_per_transfer;
 

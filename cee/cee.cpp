@@ -320,7 +320,9 @@ void CEE_device::on_start_capture(){
 	controlTransfer(0x40, CMD_CONFIG_CAPTURE, xmega_per, DEVMODE_2SMU, 0, 0);
 	
 	// Ignore the effect of output samples we sent before pausing
-	capture_o = capture_i; 
+	capture_o = capture_i;
+	
+	firstPacket = true;
 	
 	for (int i=0; i<ntransfers; i++){
 		in_transfers[i] = libusb_alloc_transfer(0);
@@ -434,9 +436,11 @@ void CEE_device::handleInTransfer(unsigned char *buffer){
 	for (int p=0; p<packets_per_transfer; p++){
 		IN_packet *pkt = &((IN_packet*)buffer)[p];
 	
-		if (pkt->flags & FLAG_PACKET_DROPPED){
+		if ((pkt->flags & FLAG_PACKET_DROPPED) && !firstPacket){
 			std::cerr << "Warning: dropped packet" << std::endl;
 		}
+
+		firstPacket = false;
 	
 		for (int i=0; i<10; i++){
 			put(channel_a_v, (cal.offset_a_v + pkt->data[i].av())*v_factor/channel_a_v.gain);
