@@ -172,7 +172,9 @@ bool USB_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	
 		client.sendJSON(reply);
 	}else if(cmd == "enterBootloader"){
-		controlTransfer(0x40|0x80, 0xBB, 0, 0, NULL, 0);
+		std::cout << "enterBootloader: ";
+		int r = controlTransfer(0x40|0x80, 0xBB, 0, 0, NULL, 100);
+		std::cout << "return " <<  r << std::endl;
 	}else{
 		return false;
 	}
