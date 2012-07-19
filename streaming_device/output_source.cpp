@@ -133,8 +133,8 @@ struct ArbitraryWaveformSource: public OutputSource{
 	};
 	typedef vector<Point> Point_vec;
 
-	ArbitraryWaveformSource(unsigned m, int offset_, Point_vec& values_):
-		OutputSource(m), offset(offset_), values(values_), index(0){}
+	ArbitraryWaveformSource(unsigned m, int offset_, Point_vec& values_, int repeat_count_):
+		OutputSource(m), offset(offset_), values(values_), index(0), repeat_count(repeat_count_){}
 	virtual string displayName(){return "arb";}
 	
 	virtual float getValue(unsigned sample, double sampleTime){
@@ -153,8 +153,17 @@ struct ArbitraryWaveformSource: public OutputSource{
 			unsigned nextIndex = index+1;
 			
 			if (nextIndex >= length){
-				// If repeat is disabled, the last value remains forever
-				return value1;
+				// repeat == -1 means infinite
+				if (repeat_count>1 || repeat_count==-1){
+					if (repeat_count>0) repeat_count--;
+					index = 0;
+					offset += time1;
+					sample -= time1;
+					continue;
+				}else{
+					// If repeat is disabled, the last value remains forever
+					return value1;
+				}
 			}
 		
 			time2  = values[nextIndex].t;
@@ -174,7 +183,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 		
 		// Proportion of the time between the last point and the next point
 		double p = (((double)sample) - time1)/(((double)time2) - time1);
-		std::cout << sample << " time1=" << time1 << " time2=" << time2 << " val1=" << value1 << " val2="<<value2 << " p=" << p <<std::endl;
+		//std::cout << sample << " time1=" << time1 << " time2=" << time2 << " val1=" << value1 << " val2="<<value2 << " p=" << p <<std::endl;
 		
 		// Trapezoidal interpolation
 		return (1-p) * value1 + p*value2;
@@ -193,6 +202,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 	int offset;
 	Point_vec values;
 	unsigned index;
+	int repeat_count;
 };
 
 OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase){
@@ -234,6 +244,7 @@ OutputSource* makeSource(JSONNode& n){
 		
 	}else if (source=="arb"){
 		unsigned offset = jsonIntProp(n, "offset", -1);
+		unsigned repeat = jsonIntProp(n, "repeat", 0);
 		
 		ArbitraryWaveformSource::Point_vec values;
 		JSONNode j_values = n.at("values");
@@ -245,7 +256,7 @@ OutputSource* makeSource(JSONNode& n){
 		
 		if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point");
 		
-		return new ArbitraryWaveformSource(mode, offset, values);
+		return new ArbitraryWaveformSource(mode, offset, values, repeat);
 	}
 	throw ErrorStringException("Invalid source");
 }
