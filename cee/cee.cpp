@@ -61,16 +61,16 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	{
 	cerr << "Found a CEE: \n    Serial: "<< serial << endl;
 	
-	uint8_t buf[64];
+	char buf[64];
 	int r;
-	r = controlTransfer(0xC0, 0x00, 0, 0, buf, 64);
+	r = controlTransfer(0xC0, 0x00, 0, 0, (uint8_t*)buf, 64);
 	if (r >= 0){
-		_hwversion = string((char*)buf, r);
+		_hwversion = string(buf, strnlen(buf, r));
 	}
 
-	r = controlTransfer(0xC0, 0x00, 0, 1, buf, 64);
+	r = controlTransfer(0xC0, 0x00, 0, 1, (uint8_t*)buf, 64);
 	if (r >= 0){
-		_fwversion = string((char*)buf, r);
+		_fwversion = string(buf, strnlen(buf, r));
 	}
 
 	CEE_version_descriptor version_info;
@@ -80,9 +80,9 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 		r = controlTransfer(0xC0, 0x00, 0, 0xff, (uint8_t*)&version_info, sizeof(version_info));
 		have_version_info = (r>=0);
 
-		r = controlTransfer(0xC0, 0x00, 0, 2, buf, 64);
+		r = controlTransfer(0xC0, 0x00, 0, 2, (uint8_t*)buf, 64);
 		if (r >= 0){
-			_gitversion = string((char*)buf, r);
+			_gitversion = string(buf, strnlen(buf, r));
 		}
 	}
 

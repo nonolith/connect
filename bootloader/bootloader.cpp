@@ -84,9 +84,14 @@ void Bootloader_device::onClientAttach(ClientConn *c){
 	n.push_back(JSONNode("devid", toHex(ntohl(info.devid))));
 	n.push_back(JSONNode("page_size", info.page_size));
 	n.push_back(JSONNode("app_section_end", info.app_section_end));
-	n.push_back(JSONNode("hw_product", string(info.hw_product, 16)));
-	n.push_back(JSONNode("hw_version", string(info.hw_version, 16)));
+	n.push_back(JSONNode("hw_product", string(info.hw_product, strnlen(info.hw_product, 16))));
+	n.push_back(JSONNode("hw_version", string(info.hw_version, strnlen(info.hw_version, 16))));
 	c->sendJSON(n);
+}
+
+const string Bootloader_device::hwVersion(){
+	return string(info.hw_product, strnlen(info.hw_product, 16)) + " "
+	       + string(info.hw_version, strnlen(info.hw_version, 16));
 }
 
 void Bootloader_device::getInfo(){

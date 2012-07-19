@@ -34,8 +34,8 @@ class Bootloader_device: public Device, USB_device{
 	Bootloader_device(libusb_device *dev, libusb_device_descriptor &desc);
 	
 	virtual const string model(){return "com.nonolithlabs.bootloader";}
-	virtual const string hwversion(){return "unknown";}
-	virtual const string fwversion(){return "unknown";}
+	virtual const string hwVersion();
+	virtual const string fwVersion(){return "unknown";}
 	virtual const string serialno(){return serial;}
 	
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);

@@ -93,7 +93,11 @@ class CEE_device: public StreamingDevice, USB_device{
 
 	virtual const string model(){return "com.nonolithlabs.cee";}
 	virtual const string hwVersion(){return _hwversion;}
-	virtual const string fwVersion(){return _fwversion;}
+	virtual const string fwVersion(){
+		string r = _fwversion;
+		if (_gitversion.size()) r += "/" + _gitversion;
+		return r;
+	}
 	virtual const string serialno(){return serial;}
 	
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);

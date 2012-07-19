@@ -60,7 +60,12 @@ struct WebsocketClientConn: public ClientConn{
 
 			if (cmd == "selectDevice"){
 				string id = n.at("id").as_string();
-				selectDevice(getDeviceById(id));
+				device_ptr dev = getDeviceById(id);
+				if (dev){
+					selectDevice(dev);
+				}else{
+					std::cerr << "Error selecting device " << id << std::endl;
+				}
 				return;
 			}
 			
