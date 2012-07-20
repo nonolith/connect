@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include <utility>
+#include <boost/foreach.hpp>
 
 using std::vector;
 using std::pair;
@@ -183,6 +184,19 @@ struct ArbitraryWaveformSource: public OutputSource{
 	
 	virtual void describeJSON(JSONNode &n){
 		OutputSource::describeJSON(n);
+		n.push_back(JSONNode("startTime", startTime));
+		n.push_back(JSONNode("repeat", repeat_count));
+
+		JSONNode points = JSONNode(JSON_ARRAY);
+		BOOST_FOREACH(ArbWavePoint& point, values){
+			JSONNode o;
+			o.push_back(JSONNode("t", point.t));
+			o.push_back(JSONNode("v", point.v));
+			points.push_back(o);
+		}
+		points.set_name("values");
+		n.push_back(JSONNode(points));
+		n.push_back(JSONNode("period", values[values.size()-1].t));
 	}
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
