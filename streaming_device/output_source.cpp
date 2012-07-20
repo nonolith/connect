@@ -125,15 +125,7 @@ struct SquareWaveSource: public PeriodicSource{
 };
 
 struct ArbitraryWaveformSource: public OutputSource{
-	
-	struct Point{
-		unsigned t;
-		float v;
-		Point(unsigned t_, float v_): t(t_), v(v_){};
-	};
-	typedef vector<Point> Point_vec;
-
-	ArbitraryWaveformSource(unsigned m, int offset_, Point_vec& values_, int repeat_count_):
+	ArbitraryWaveformSource(unsigned m, int offset_, ArbWavePoint_vec& values_, int repeat_count_):
 		OutputSource(m), offset(offset_), values(values_), index(0), repeat_count(repeat_count_){}
 	virtual string displayName(){return "arb";}
 	
@@ -200,7 +192,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 	}
 	
 	int offset;
-	Point_vec values;
+	ArbWavePoint_vec values;
 	unsigned index;
 	int repeat_count;
 };
@@ -217,6 +209,10 @@ OutputSource* makeSource(unsigned mode, const string& source, float offset, floa
 
 OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase){
 	return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
+}
+
+OutputSource* makeArbitraryWaveform(unsigned mode, int offset, ArbWavePoint_vec& values, int repeat_count){
+	return new ArbitraryWaveformSource(mode, offset, values, repeat_count);
 }
 
 OutputSource* makeSource(JSONNode& n){
@@ -246,10 +242,10 @@ OutputSource* makeSource(JSONNode& n){
 		unsigned offset = jsonIntProp(n, "offset", -1);
 		unsigned repeat = jsonIntProp(n, "repeat", 0);
 		
-		ArbitraryWaveformSource::Point_vec values;
+		ArbWavePoint_vec values;
 		JSONNode j_values = n.at("values");
 		for(JSONNode::iterator i=j_values.begin(); i!=j_values.end(); i++){
-			values.push_back(ArbitraryWaveformSource::Point(
+			values.push_back(ArbWavePoint(
 					jsonIntProp(*i, "t"),
 					jsonFloatProp(*i, "v")));
 		}

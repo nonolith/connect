@@ -12,6 +12,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <set>
 #include <map>
+#include <vector>
 
 #include "../dataserver.hpp"
 
@@ -285,9 +286,17 @@ struct OutputSource{
 		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};
 };
 
+struct ArbWavePoint{
+	unsigned t;
+	float v;
+	ArbWavePoint(unsigned t_, float v_): t(t_), v(v_){};
+};
+typedef std::vector<ArbWavePoint> ArbWavePoint_vec;
+
 OutputSource *makeConstantSource(unsigned m, float value);
 OutputSource *makeSource(JSONNode& description);
 OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase);
 OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase);
+OutputSource* makeArbitraryWaveform(unsigned mode, int offset, ArbWavePoint_vec& values, int repeat_count);
 
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);

@@ -54,6 +54,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			
 			if (source == "constant"){
 				sourceObj = makeConstantSource(modeval, value);
+
 			}else if (source == "adv_square"){
 				float value1 = map_get_num(map, "value1", 0.0);
 				float value2 = map_get_num(map, "value2", 0.0);
@@ -63,6 +64,33 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				if (time2 <= 0) time2 = 1;
 				int phase = map_get_num(map, "phase", 0)/sampleTime;
 				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase);
+
+			}else if (source == "arb"){
+				int offset = map_get_num(map, "offset", -1)/sampleTime;
+				if (offset < 0) offset = -1;
+				int repeat = map_get_num(map, "repeat", 0);
+				string pointspec = map_get(map, "points", "");
+				ArbWavePoint_vec values;
+
+				std::vector<std::string> point_split;
+				boost::split(point_split, pointspec, boost::is_any_of(","));
+
+				BOOST_FOREACH(string& pair, point_split){
+					std::string::size_type sep = pair.find(":",0);	
+					
+					if (sep != std::string::npos) {
+						string ts = pair.substr(0, sep);
+						string vs = pair.substr(sep+1);
+
+						int t = round(boost::lexical_cast<double>(ts)/sampleTime);
+						double v = boost::lexical_cast<double>(vs);
+
+						values.push_back(ArbWavePoint(t,v));
+					}else{
+						throw ErrorStringException("Invalid arbitrary wave point spec");
+					}
+				}
+				sourceObj = makeArbitraryWaveform(modeval, offset, values, repeat);
 				
 			}else{
 				float amplitude = map_get_num(map, "amplitude", 0.0);
@@ -71,7 +99,6 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				double period = 1/sampleTime/freq;
 				double phase = map_get_num(map, "phase", 1.0)/sampleTime;
 				bool relPhase = (map_get(map, "relPhase", "1") == "1");
-		
 				sourceObj = makeSource(modeval, source, value, amplitude, period, phase, relPhase);
 			}
 			
