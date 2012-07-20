@@ -125,15 +125,15 @@ struct SquareWaveSource: public PeriodicSource{
 };
 
 struct ArbitraryWaveformSource: public OutputSource{
-	ArbitraryWaveformSource(unsigned m, int offset_, ArbWavePoint_vec& values_, int repeat_count_):
-		OutputSource(m), offset(offset_), values(values_), index(0), repeat_count(repeat_count_){}
+	ArbitraryWaveformSource(unsigned m, int startTime_, ArbWavePoint_vec& values_, int repeat_count_):
+		OutputSource(m), startTime(startTime_), values(values_), index(0), repeat_count(repeat_count_){}
 	virtual string displayName(){return "arb";}
 	
 	virtual float getValue(unsigned sample, double sampleTime){
 		unsigned length = values.size();
 		
-		// All times are relative to offset
-		sample -= offset;
+		// All times are relative to startTime
+		sample -= startTime;
 		
 		unsigned time1, time2;
 		float value1, value2;
@@ -149,7 +149,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 				if (repeat_count>1 || repeat_count==-1){
 					if (repeat_count>0) repeat_count--;
 					index = 0;
-					offset += time1;
+					startTime += time1;
 					sample -= time1;
 					continue;
 				}else{
@@ -186,12 +186,12 @@ struct ArbitraryWaveformSource: public OutputSource{
 	}
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
-		if (offset == -1){
-			offset = sample;
+		if (startTime == -1){
+			startTime = sample;
 		}
 	}
 	
-	int offset;
+	int startTime;
 	ArbWavePoint_vec values;
 	unsigned index;
 	int repeat_count;
@@ -239,7 +239,7 @@ OutputSource* makeSource(JSONNode& n){
 		return makeSource(mode, source, offset, amplitude, period, phase, relPhase);
 		
 	}else if (source=="arb"){
-		unsigned offset = jsonIntProp(n, "offset", -1);
+		unsigned startTime = jsonIntProp(n, "startTime", -1);
 		unsigned repeat = jsonIntProp(n, "repeat", 0);
 		
 		ArbWavePoint_vec values;
@@ -252,7 +252,7 @@ OutputSource* makeSource(JSONNode& n){
 		
 		if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point");
 		
-		return new ArbitraryWaveformSource(mode, offset, values, repeat);
+		return new ArbitraryWaveformSource(mode, startTime, values, repeat);
 	}
 	throw ErrorStringException("Invalid source");
 }
