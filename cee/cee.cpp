@@ -47,6 +47,12 @@ const float I_min = -200;
 const float I_max = 200;
 const int defaultCurrentLimit = 200;
 
+#ifdef _WIN32
+const double BUFFER_TIME = 0.050;
+#else
+const double BUFFER_TIME = 0.020;
+#endif
+
 CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	StreamingDevice(CEE_default_sample_time),
 	USB_device(dev, desc),
@@ -224,12 +230,8 @@ void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool 
 	rawMode = raw;
 	captureLength = captureSamples * sampleTime;
 	
-	packets_per_transfer = 0.020 / (sampleTime * 10);
-	if (packets_per_transfer > 5) packets_per_transfer = 5;
-	
-	ntransfers = 0.020 / (sampleTime * 10 * packets_per_transfer);
-	if (ntransfers > N_TRANSFERS) ntransfers = N_TRANSFERS;
-	if (ntransfers < 2) ntransfers = 2;
+	ntransfers = 4;
+	packets_per_transfer = ceil(BUFFER_TIME / (sampleTime * 10) / ntransfers);
 	
 	capture_i = capture_o = 0;
 	
