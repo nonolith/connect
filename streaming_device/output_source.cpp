@@ -204,6 +204,11 @@ struct ArbitraryWaveformSource: public OutputSource{
 			startTime = sample;
 		}
 	}
+
+	virtual double getPhaseZeroAfterSample(unsigned sample){
+		int period = values[values.size()-1].t;
+		return startTime + period;
+	}
 	
 	int startTime;
 	ArbWavePoint_vec values;
