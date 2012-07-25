@@ -13,6 +13,7 @@ OutFile "nonolith-connect-setup.exe" ; Installer file name
 InstallDir "$PROGRAMFILES\Nonolith Labs\Connect"
 InstallDirRegKey HKCU "Software\Nonolith Labs\Connect" ""
 
+!addplugindir ..\windows
 !include "nsProcess.nsh"
 
 !define chromepath "$LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
@@ -42,7 +43,8 @@ Section ;"Required"
 	; Copy all files
 	SetOutPath $INSTDIR
 	File ..\nonolith-connect.exe
-	File lib\win\wdi-simple.exe
+	File ..\..\lib\win\wdi-simple.exe
+	File nonolith.ico
 
 	; Generate uninstaller, see Uninstall section
 	WriteUninstaller $INSTDIR\uninstaller.exe
@@ -66,7 +68,7 @@ SectionEnd
 
 Section "Run Nonolith Connect on startup" SecStartup
 
-	CreateShortCut "$SMPROGRAMS\Startup\Nonolith Connect.lnk" "$INSTDIR\nonolith-connect.exe"
+	CreateShortCut "$SMPROGRAMS\Startup\Nonolith Connect.lnk" "$INSTDIR\nonolith-connect.exe" "" "$INSTDIR\nonolith.ico"
 
 SectionEnd
 
@@ -76,8 +78,8 @@ Section "Start Menu Entry" SecStartMenu
 	MessageBox MB_OK "Google Chrome is not installed or was not found. You need Google Chrome to use Pixelpulse."
 	
 	SetOutPath "$SMPROGRAMS\Nonolith Labs"
-	CreateShortCut "$SMPROGRAMS\Nonolith Labs\Nonolith Pixelpulse.lnk" "${chromepath}" "${chromeapp}"
-	CreateShortCut "$SMPROGRAMS\Nonolith Labs\Start Nonolith Connect.lnk" $INSTDIR\nonolith-connect.exe
+	CreateShortCut "$SMPROGRAMS\Nonolith Labs\Nonolith Pixelpulse.lnk" "${chromepath}" "${chromeapp}" "$INSTDIR\nonolith.ico"
+	CreateShortCut "$SMPROGRAMS\Nonolith Labs\Start Nonolith Connect.lnk" $INSTDIR\nonolith-connect.exe "" "$INSTDIR\nonolith.ico"
 	CreateShortCut "$SMPROGRAMS\Nonolith Labs\Uninstall Nonolith Connect.lnk" $INSTDIR\uninstaller.exe
 	
 SectionEnd
@@ -85,7 +87,7 @@ SectionEnd
 Section "Desktop Shortcut" SecDesktopShortcut
 
 	SetOutPath $DESKTOP
-	CreateShortCut "$DESKTOP\Nonolith Pixelpulse.lnk" "${chromepath}" "${chromeapp}"
+	CreateShortCut "$DESKTOP\Nonolith Pixelpulse.lnk" "${chromepath}" "${chromeapp}" "$INSTDIR\nonolith.ico"
 
 SectionEnd
 
