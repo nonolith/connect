@@ -108,6 +108,15 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	std::cout << "    Firmware version: " << _fwversion << " (" << _gitversion << ")" << std::endl;
 	std::cout << "    Supported sample rate: " << CEE_timer_clock / min_per / 1000.0 << "ksps" << std::endl;
  	
+	// Reset the state
+	controlTransfer(0x40, CMD_CONFIG_CAPTURE, 0, DEVMODE_OFF, 0, 0);
+
+	// Reset the gains
+	controlTransfer(0x40, CMD_CONFIG_GAIN, (0x01<<2), 0, 0, 0);
+	controlTransfer(0x40, CMD_CONFIG_GAIN, (0x00<<2), 1, 0, 0);
+	controlTransfer(0x40, CMD_CONFIG_GAIN, (0x00<<2), 2, 0, 0);
+	controlTransfer(0x40, CMD_CONFIG_GAIN, (0x01<<2), 3, 0, 0);
+
 	readCalibration();
 	
 	configure(0, CEE_default_sample_time, ceil(12.0/CEE_default_sample_time), true, false);
