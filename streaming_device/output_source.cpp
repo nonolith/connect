@@ -119,9 +119,15 @@ struct SquareWaveSource: public PeriodicSource{
 		PeriodicSource(m, _offset, _amplitude, _period, _phase, relPhase) {}
 	virtual string displayName(){return "square";}
 	virtual float getValue(unsigned sample, double SampleTime){
-		unsigned s = fmod(sample + phase, period);
+		double s = fmod(sample + phase, period);
 		if (s < period/2) return offset+amplitude;
 		else              return offset-amplitude;
+	}
+
+	virtual double getPhaseZeroAfterSample(unsigned sample){
+		// its own definition because it jumps instead of slides
+		double s = fmod(sample+phase, period);
+		return (double) sample + period - floor(s);
 	}
 };
 
