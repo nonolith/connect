@@ -107,6 +107,13 @@ unsigned StreamListener::howManySamples(){
 	if (count > 0 && (count - outIndex) < nchunks)
 		nchunks = count - outIndex;	
 
+	// Avoid websocketpp? bug by avoiding big packets - they were being partially sent,
+	// missing the beginning of the frame, resulting in Chrome dropping the connection.
+	if (nchunks > 1024){
+		//std::cout << "Forced shortened update frame " <<nchunks <<std::endl;
+		nchunks = 1024;
+	}
+
 	return nchunks;
 }
 
@@ -165,6 +172,9 @@ bool WSStreamListener::handleNewData(){
 		index += triggerHoldoff;
 		triggerForceIndex = index + triggerForce;
 		return handleNewData(); // In case there's another packet in waiting
+	}else if (howManySamples()){
+		// Run again if there's still data waiting
+		return handleNewData();
 	}
 	
 	return !done;
