@@ -26,6 +26,7 @@ struct WebsocketClientConn: public ClientConn{
 		n.push_back(JSONNode("_action", "serverHello"));
 		n.push_back(JSONNode("server", "Nonolith Connect"));
 		n.push_back(JSONNode("version", server_version));
+		n.push_back(JSONNode("gitVersion", server_git_version));
 		sendJSON(n);
 		
 		on_device_list_changed();

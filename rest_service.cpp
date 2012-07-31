@@ -43,6 +43,7 @@ void handleJSONRequest(UrlPath path, websocketpp::session_ptr client){
 			JSONNode n(JSON_NODE);
 			n.push_back(JSONNode("server", "Nonolith Connect"));
 			n.push_back(JSONNode("version", server_version));
+			n.push_back(JSONNode("gitVersion", server_git_version));
 			respondJSON(client, n);
 			return;
 		}else if (path1.matches("devices")){

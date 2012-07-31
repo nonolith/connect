@@ -1,4 +1,5 @@
 import sys, os, shutil
+from subprocess import Popen, PIPE
 
 env = Environment()
 
@@ -23,7 +24,16 @@ else:
 	print "Unknown platform"
 	exit()
 
-os.system('bash genversion.sh')
+def run(cmd):
+	process = Popen(cmd, stdout=PIPE, shell=True)
+	r = process.communicate()[0].strip()
+	process.wait()
+	return r
+
+gitversion = ''
+if os.path.isdir('.git'):
+	gitversion = run("git rev-parse --short=16 HEAD") \
+	           + run("git status --porcelain 2>/dev/null | grep -e '^ [MADRC]' > /dev/null && echo '*'")
 
 if env['mingwcross']:
 	target = 'windows'
@@ -90,10 +100,6 @@ elif target is 'windows':
 		
 	libs += ['ws2_32', 'mswsock']
     
-
-
-sources = Glob('*.cpp') +  Glob('streaming_device/*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
-
 json = env.Library('json', 
 	Glob('libjson/_internal/Source/*.cpp'),
 	CCFLAGS = "-c -O3 -ffast-math -fexpensive-optimizations".split()
@@ -131,4 +137,16 @@ libusb = env.Library('libusb_nonolith', ['libusb/libusb/'+i for i in [
 
 libs += boostlibs
 
-env.Program('nonolith-connect', sources, LIBS=libs, CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'], FRAMEWORKS=frameworks)
+t_env = env.Clone(CCFLAGS=['-Wall', '-g', '-O3', '-Ilibusb', '-Iwebsocketpp/src', '-shared'])
+
+sources = Glob('*.cpp') +  Glob('streaming_device/*.cpp') + ['cee/cee.cpp', 'bootloader/bootloader.cpp']
+
+# add GITVERSION define for version.cpp
+objs = []
+for s in sources:
+	if str(s) != 'version.cpp':
+		objs.append(t_env.Object(s))
+	else:
+		objs.append(t_env.Object(s, CPPDEFINES={'GITVERSION': gitversion}))
+
+env.Program('nonolith-connect', objs, LIBS=libs, FRAMEWORKS=frameworks)

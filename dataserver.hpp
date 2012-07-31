@@ -26,6 +26,7 @@ void respondJSON(websocketpp::session_ptr client, JSONNode &n, int status=200);
 #include "device.hpp"
 
 extern const char* const server_version;
+extern const char* const server_git_version;
 
 extern bool debugFlag;
 
