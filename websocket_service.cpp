@@ -54,9 +54,13 @@ struct WebsocketClientConn: public ClientConn{
 		if (debugFlag){
 			std::cout << "RXD: " << msg << std::endl;
 		}
+
+		int id=0;
+
 		try{
 			JSONNode n = libjson::parse(msg);
 			string cmd = n.at("_cmd").as_string();
+			id = jsonIntProp(n, "id", 0); // Collect the id to use in error message
 
 			if (cmd == "selectDevice"){
 				string id = n.at("id").as_string();
@@ -79,6 +83,13 @@ struct WebsocketClientConn: public ClientConn{
 			std::cerr << "Unknown command " << cmd << std::endl;
 		}catch(std::exception &e){ // TODO: more helpful error message by catching different types
 			std::cerr << "WS JSON error:" << e.what() << std::endl;
+
+			JSONNode j_error = JSONNode();
+			j_error.push_back(JSONNode("_action", "error"));
+			j_error.push_back(JSONNode("error", e.what()));
+			if (id != 0) j_error.push_back(JSONNode("id", id));
+			sendJSON(j_error);
+
 			return;
 		}		
 	}
