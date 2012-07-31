@@ -206,7 +206,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 	}
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
-		if (startTime == -1){
+		if (startTime == -1 || (startTime < sample && repeat_count != 1)){
 			startTime = sample;
 		}
 	}
