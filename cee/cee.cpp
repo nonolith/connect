@@ -450,6 +450,9 @@ void CEE_device::handleInTransfer(unsigned char *buffer){
 	
 		if ((pkt->flags & FLAG_PACKET_DROPPED) && !firstPacket){
 			std::cerr << "Warning: dropped packet" << std::endl;
+			JSONNode j;
+			j.push_back(JSONNode("_action", "packetDrop"));
+			broadcastJSON(j);
 		}
 
 		firstPacket = false;
