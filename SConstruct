@@ -76,7 +76,7 @@ elif target is 'windows':
 		
 	env.Append(
 		tools=['mingw'],
-		CPPFLAGS=["-D_WIN32_WINNT=0x0501", '-D BOOST_THREAD_USE_LIB'],
+		CPPFLAGS=["-D_WIN32_WINNT=0x0501", '-D BOOST_THREAD_USE_LIB', '-fno-strict-aliasing'],
 		LIBPATH=[boost_lib, '.'],
 		LINKFLAGS=['-Wl,-subsystem,windows', '-mwindows'],
 	)
