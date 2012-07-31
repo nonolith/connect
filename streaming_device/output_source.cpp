@@ -127,7 +127,7 @@ struct SquareWaveSource: public PeriodicSource{
 	virtual double getPhaseZeroAfterSample(unsigned sample){
 		// its own definition because it jumps instead of slides
 		double s = fmod(sample+phase, period);
-		return (double) sample + period - floor(s);
+		return (double) sample + ceil(period - s);
 	}
 };
 
