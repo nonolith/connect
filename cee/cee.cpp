@@ -379,6 +379,8 @@ void CEE_device::on_pause_capture(){
 	}
 	
 	capture_o = capture_i;
+
+	releaseInterface();
 }
 
 void CEE_device::setInternalGain(Channel *channel, Stream* stream, int gain){

@@ -139,9 +139,9 @@ void StreamingDevice::reset_capture(){
 void StreamingDevice::start_capture(){
 	if (!captureState){
 		if (captureDone) reset_capture();
-		captureState = true;
 		std::cerr << "Start capture" <<std::endl;
 		on_start_capture();
+		captureState = true;
 		notifyCaptureState();
 	}
 }
