@@ -159,9 +159,13 @@ struct ArbitraryWaveformSource: public OutputSource{
 	
 	virtual float getValue(unsigned sample, double sampleTime){
 		unsigned length = values.size();
-		
-		// All times are relative to startTime
-		sample -= startTime;
+
+		if (sample < startTime){
+			sample = 0;
+		}else{
+			// All times are relative to startTime
+			sample -= startTime;
+		}
 		
 		unsigned time1, time2;
 		float value1, value2;
@@ -244,7 +248,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 	}
 	
 	int phase;
-	int startTime;
+	unsigned startTime;
 	ArbWavePoint_vec values;
 	unsigned index;
 	int repeat_count;
