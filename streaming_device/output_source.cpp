@@ -133,7 +133,7 @@ struct SquareWaveSource: public PeriodicSource{
 
 struct ArbitraryWaveformSource: public OutputSource{
 	ArbitraryWaveformSource(unsigned m, int startTime_, ArbWavePoint_vec& values_, int repeat_count_):
-		OutputSource(m), startTime(startTime_), values(values_), index(0), repeat_count(repeat_count_){
+		OutputSource(m), phase(startTime_), values(values_), index(0), repeat_count(repeat_count_){
 			if (repeat_count == 0) repeat_count = 1;
 
 			if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point.");
@@ -211,7 +211,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 	
 	virtual void describeJSON(JSONNode &n){
 		OutputSource::describeJSON(n);
-		n.push_back(JSONNode("startTime", startTime));
+		n.push_back(JSONNode("startTime", phase));
 		n.push_back(JSONNode("repeat", repeat_count));
 
 		JSONNode points = JSONNode(JSON_ARRAY);
@@ -227,18 +227,23 @@ struct ArbitraryWaveformSource: public OutputSource{
 	}
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
-		if (startTime < 0){
+		if (phase < 0){
 			startTime = sample;
-		}else if (repeat_count > 1){
+			phase = sample;
+		}else if (repeat_count != 1){
 			unsigned per = period();
-			startTime = sample - sample % per + startTime % per;
+			startTime = sample - sample % per + phase % per;
+		}else{
+			startTime = phase;
 		}
 	}
 
 	virtual double getPhaseZeroAfterSample(unsigned sample){
-		return startTime + period();
+		unsigned per = period();
+		return sample + per - sample % per + phase % per;
 	}
 	
+	int phase;
 	int startTime;
 	ArbWavePoint_vec values;
 	unsigned index;
