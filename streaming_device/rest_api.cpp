@@ -70,6 +70,8 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				if (startTime < 0) startTime = -1;
 				int repeat = map_get_num(map, "repeat", 0);
 				string pointspec = map_get(map, "points", "");
+				boost::replace_all(pointspec, "%3A", ":");
+				boost::replace_all(pointspec, "%2C", ",");
 				ArbWavePoint_vec values;
 
 				std::vector<std::string> point_split;
