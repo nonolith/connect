@@ -84,8 +84,8 @@ struct PeriodicSource: public OutputSource{
 		PeriodicSource* s = dynamic_cast<PeriodicSource*>(prevSrc);
 		if (s && relativePhase){
 			phase += fmod(sample + s->phase, s->period)/s->period * period - sample;
-			phase = fmod(phase, period);
 		}
+		phase = fmod(phase, period);
 	}
 	
 	virtual double getPhaseZeroAfterSample(unsigned sample){
@@ -133,8 +133,29 @@ struct SquareWaveSource: public PeriodicSource{
 
 struct ArbitraryWaveformSource: public OutputSource{
 	ArbitraryWaveformSource(unsigned m, int startTime_, ArbWavePoint_vec& values_, int repeat_count_):
-		OutputSource(m), startTime(startTime_), values(values_), index(0), repeat_count(repeat_count_){}
+		OutputSource(m), startTime(startTime_), values(values_), index(0), repeat_count(repeat_count_){
+			if (repeat_count == 0) repeat_count = 1;
+
+			if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point.");
+			if (values[0].t != 0) throw ErrorStringException("Arb wave first point must have t=0.");
+
+			unsigned last_t = 0;
+
+			BOOST_FOREACH(ArbWavePoint& point, values){
+				if (point.t < last_t)
+					throw ErrorStringException("Arb wave points must be in time order.");
+				last_t = point.t;
+			}
+
+			if (period() == 0 && repeat_count != 1)
+				throw ErrorStringException("Arb wave with repeat must have nonzero period.");
+	}
+
 	virtual string displayName(){return "arb";}
+
+	unsigned period(){
+		return values[values.size()-1].t;
+	}
 	
 	virtual float getValue(unsigned sample, double sampleTime){
 		unsigned length = values.size();
@@ -202,18 +223,20 @@ struct ArbitraryWaveformSource: public OutputSource{
 		}
 		points.set_name("values");
 		n.push_back(JSONNode(points));
-		n.push_back(JSONNode("period", values[values.size()-1].t));
+		n.push_back(JSONNode("period", period()));
 	}
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
-		if (startTime < 0 || ((unsigned)startTime < sample && repeat_count != 1)){
+		if (startTime < 0){
 			startTime = sample;
+		}else if (repeat_count > 1){
+			unsigned per = period();
+			startTime = sample - sample % per + startTime % per;
 		}
 	}
 
 	virtual double getPhaseZeroAfterSample(unsigned sample){
-		int period = values[values.size()-1].t;
-		return startTime + period;
+		return startTime + period();
 	}
 	
 	int startTime;
@@ -274,8 +297,6 @@ OutputSource* makeSource(JSONNode& n){
 					jsonIntProp(*i, "t"),
 					jsonFloatProp(*i, "v")));
 		}
-		
-		if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point");
 		
 		return new ArbitraryWaveformSource(mode, startTime, values, repeat);
 	}

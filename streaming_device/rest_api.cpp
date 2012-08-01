@@ -58,15 +58,15 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			}else if (source == "adv_square"){
 				float value1 = map_get_num(map, "value1", 0.0);
 				float value2 = map_get_num(map, "value2", 0.0);
-				int time1 = map_get_num(map, "time1", 0.5)/sampleTime;
+				int time1 = map_get_num<double>(map, "time1", 0.5)/sampleTime;
 				if (time1 <= 0) time1 = 1;
-				int time2 = map_get_num(map, "time2", 0.5)/sampleTime;
+				int time2 = map_get_num<double>(map, "time2", 0.5)/sampleTime;
 				if (time2 <= 0) time2 = 1;
-				int phase = map_get_num(map, "phase", 0)/sampleTime;
+				int phase = map_get_num<double>(map, "phase", 0)/sampleTime;
 				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase);
 
 			}else if (source == "arb"){
-				int startTime = map_get_num(map, "startTime", -1)/sampleTime;
+				int startTime = map_get_num<double>(map, "startTime", -1)/sampleTime;
 				if (startTime < 0) startTime = -1;
 				int repeat = map_get_num(map, "repeat", 0);
 				string pointspec = map_get(map, "points", "");
@@ -97,7 +97,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				double freq = map_get_num(map, "frequency", 1.0);
 				if (freq <= 0){freq = 0.001;}
 				double period = 1/sampleTime/freq;
-				double phase = map_get_num(map, "phase", 1.0)/sampleTime;
+				double phase = map_get_num<double>(map, "phase", 1.0)/sampleTime;
 				bool relPhase = (map_get(map, "relPhase", "1") == "1");
 				sourceObj = makeSource(modeval, source, value, amplitude, period, phase, relPhase);
 			}
