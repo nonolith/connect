@@ -78,6 +78,7 @@ struct PeriodicSource: public OutputSource{
 		n.push_back(JSONNode("offset", offset));
 		n.push_back(JSONNode("amplitude", amplitude));
 		n.push_back(JSONNode("period", period));
+		n.push_back(JSONNode("phase", phase));
 	}
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
@@ -132,8 +133,8 @@ struct SquareWaveSource: public PeriodicSource{
 };
 
 struct ArbitraryWaveformSource: public OutputSource{
-	ArbitraryWaveformSource(unsigned m, int startTime_, ArbWavePoint_vec& values_, int repeat_count_):
-		OutputSource(m), phase(startTime_), values(values_), index(0), repeat_count(repeat_count_){
+	ArbitraryWaveformSource(unsigned m, int phase_, ArbWavePoint_vec& values_, int repeat_count_):
+		OutputSource(m), phase(phase_), values(values_), index(0), repeat_count(repeat_count_){
 			if (repeat_count == 0) repeat_count = 1;
 
 			if (values.size() < 1) throw ErrorStringException("Arb wave must have at least one point.");
@@ -215,7 +216,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 	
 	virtual void describeJSON(JSONNode &n){
 		OutputSource::describeJSON(n);
-		n.push_back(JSONNode("startTime", phase));
+		n.push_back(JSONNode("phase", phase));
 		n.push_back(JSONNode("repeat", repeat_count));
 
 		JSONNode points = JSONNode(JSON_ARRAY);
@@ -268,8 +269,8 @@ OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highS
 	return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
 }
 
-OutputSource* makeArbitraryWaveform(unsigned mode, int offset, ArbWavePoint_vec& values, int repeat_count){
-	return new ArbitraryWaveformSource(mode, offset, values, repeat_count);
+OutputSource* makeArbitraryWaveform(unsigned mode, int phase, ArbWavePoint_vec& values, int repeat_count){
+	return new ArbitraryWaveformSource(mode, phase, values, repeat_count);
 }
 
 OutputSource* makeSource(JSONNode& n){
@@ -296,7 +297,7 @@ OutputSource* makeSource(JSONNode& n){
 		return makeSource(mode, source, offset, amplitude, period, phase, relPhase);
 		
 	}else if (source=="arb"){
-		unsigned startTime = jsonIntProp(n, "startTime", -1);
+		unsigned phase = jsonIntProp(n, "phase", -1);
 		unsigned repeat = jsonIntProp(n, "repeat", 0);
 		
 		ArbWavePoint_vec values;
@@ -307,7 +308,7 @@ OutputSource* makeSource(JSONNode& n){
 					jsonFloatProp(*i, "v")));
 		}
 		
-		return new ArbitraryWaveformSource(mode, startTime, values, repeat);
+		return new ArbitraryWaveformSource(mode, phase, values, repeat);
 	}
 	throw ErrorStringException("Invalid source");
 }

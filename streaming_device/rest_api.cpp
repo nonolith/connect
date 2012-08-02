@@ -66,8 +66,8 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase);
 
 			}else if (source == "arb"){
-				int startTime = map_get_num<double>(map, "startTime", -1)/sampleTime;
-				if (startTime < 0) startTime = -1;
+				int phase = map_get_num<double>(map, "phase", -1)/sampleTime;
+				if (phase < 0) phase = -1;
 				int repeat = map_get_num(map, "repeat", 0);
 				string pointspec = map_get(map, "points", "");
 				boost::replace_all(pointspec, "%3A", ":");
@@ -92,7 +92,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 						throw ErrorStringException("Invalid arbitrary wave point spec");
 					}
 				}
-				sourceObj = makeArbitraryWaveform(modeval, startTime, values, repeat);
+				sourceObj = makeArbitraryWaveform(modeval, phase, values, repeat);
 				
 			}else{
 				float amplitude = map_get_num(map, "amplitude", 0.0);
