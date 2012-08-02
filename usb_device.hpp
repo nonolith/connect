@@ -50,7 +50,7 @@ class USB_device{
 	void releaseInterface(){
 		if (!handle) return;
 		int r = libusb_release_interface(handle, 0);
-		if (r != 0){
+		if (r != 0 && r != -4){ // Ignore "device disconnected" errors
 			std::cerr << "Could not release interface; error "<<r<<std::endl;
 			throw ErrorStringException("Could not release interface");
 		}
