@@ -9,6 +9,8 @@ opts.Add(BoolVariable("boost_static", "Statically link against Boost", 0))
 Help(opts.GenerateHelpText(env))
 opts.Update(env)
 
+env.Append(CPPFLAGS=['-g', '-O3', '-fstack-protector-all', '-D_FORTIFY_SOURCE=2'])
+
 platform = None
 target = None
 
