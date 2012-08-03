@@ -104,7 +104,7 @@ elif target is 'windows':
     
 json = env.Library('json', 
 	Glob('libjson/_internal/Source/*.cpp'),
-	CCFLAGS = "-c -O3 -ffast-math -fexpensive-optimizations".split()
+	CCFLAGS = "-c -O3 -fexpensive-optimizations".split()
 )
 
 websocketpp = env.Library('websocketpp', ['websocketpp/src/'+i for i in [

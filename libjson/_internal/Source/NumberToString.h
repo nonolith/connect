@@ -117,6 +117,9 @@ public:
     #endif
 
     static json_string _ftoa(json_number value) json_nothrow {
+       	if (json_unlikely(value!=value)) return json_string("null"); // detect NaN
+
+
 	   #ifndef JSON_LIBRARY
 			//ScopeCoverage(_ftoa_coverage, 6);
 		  if (json_unlikely(value >= 0.0 && _floatsAreEqual(value, (json_number)((unsigned EXTRA_LONG long)value)))){
