@@ -82,7 +82,7 @@ CEE_device::CEE_device(libusb_device *dev, libusb_device_descriptor &desc):
 	CEE_version_descriptor version_info;
 	bool have_version_info = 0;
 
-	if (_fwversion > "1.2"){
+	if (_fwversion >= "1.2"){
 		r = controlTransfer(0xC0, 0x00, 0, 0xff, (uint8_t*)&version_info, sizeof(version_info));
 		have_version_info = (r>=0);
 
