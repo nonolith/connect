@@ -9,8 +9,7 @@ opts.Add(BoolVariable("boost_static", "Statically link against Boost", 0))
 Help(opts.GenerateHelpText(env))
 opts.Update(env)
 
-env.Append(CPPFLAGS=['-g', '-O3', '-fstack-protector-all', '-D_FORTIFY_SOURCE=2'])
-
+env.Append(CPPFLAGS=['-g', '-O3'])
 platform = None
 target = None
 
@@ -59,6 +58,7 @@ boost_static = env['boost_static']
 frameworks = []
 
 if target is 'linux':
+	env.Append(CPPFLAGS=['-fstack-protector-all', '-D_FORTIFY_SOURCE=2'], LINKFLAGS=['-fstack-protector-all'])
 	boostlibs = [i+'-mt' for i in boostlibs]
 	
 	if boost_static:
@@ -68,6 +68,7 @@ if target is 'linux':
 	libs += ['udev', 'pthread', 'rt']
 	
 elif target is 'osx':
+	env.Append(CPPFLAGS=['-fstack-protector-all', '-D_FORTIFY_SOURCE=2'], LINKFLAGS=['-fstack-protector-all'])
 	boostlibs = [i+'-mt' for i in boostlibs]
 	if boost_static:
 		boost_lib = '/usr/local/lib/'
