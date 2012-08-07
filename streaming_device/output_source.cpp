@@ -26,6 +26,7 @@ inline void OutputSource::describeJSON(JSONNode &n){
 	n.push_back(JSONNode("startSample", startSample));
 	n.push_back(JSONNode("effective", effective));
 	n.push_back(JSONNode("source", displayName()));
+	n.push_back(JSONNode("hint", hint));
 }
 
 struct ConstantSource: public OutputSource{
@@ -281,9 +282,13 @@ OutputSource* makeArbitraryWaveform(unsigned mode, int phase, ArbWavePoint_vec& 
 OutputSource* makeSource(JSONNode& n){
 	string source = jsonStringProp(n, "source", "constant");
 	unsigned mode = jsonFloatProp(n, "mode", 0); //TODO: validate
+	string hint = jsonStringProp(n, "hint", "");
+
+	OutputSource *r = 0;
+
 	if (source == "constant"){
 		float val = jsonFloatProp(n, "value", 0);
-		return new ConstantSource(mode, val);
+		r = makeConstantSource(mode, val);
 		
 	}else if (source == "adv_square"){
 		float high = jsonFloatProp(n, "high");
@@ -291,7 +296,7 @@ OutputSource* makeSource(JSONNode& n){
 		int highSamples = jsonIntProp(n, "highSamples");
 		int lowSamples = jsonIntProp(n, "lowSamples");
 		int phase = jsonIntProp(n, "phase", 0);
-		return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
+		r = makeAdvSquare(mode, high, low, highSamples, lowSamples, phase);
 		
 	}else if (source == "sine" || source == "triangle" || source == "square"){
 		float offset = jsonFloatProp(n, "offset");
@@ -299,7 +304,7 @@ OutputSource* makeSource(JSONNode& n){
 		double period = jsonFloatProp(n, "period");
 		double phase = jsonFloatProp(n, "phase", 0);
 		bool relPhase = jsonBoolProp(n, "relPhase", true);
-		return makeSource(mode, source, offset, amplitude, period, phase, relPhase);
+		r = makeSource(mode, source, offset, amplitude, period, phase, relPhase);
 		
 	}else if (source=="arb"){
 		unsigned phase = jsonIntProp(n, "phase", -1);
@@ -313,7 +318,11 @@ OutputSource* makeSource(JSONNode& n){
 					jsonFloatProp(*i, "v")));
 		}
 		
-		return new ArbitraryWaveformSource(mode, phase, values, repeat);
+		r = makeArbitraryWaveform(mode, phase, values, repeat);
+	}else{
+		throw ErrorStringException("Invalid source");
 	}
-	throw ErrorStringException("Invalid source");
+
+	r->hint = hint;
+	return r;
 }

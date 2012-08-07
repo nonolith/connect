@@ -50,7 +50,9 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 			}
 			
 			string source = map_get(map, "wave", "constant");
-			OutputSource* sourceObj;
+			string hint = map_get(map, "hint", "");
+
+			OutputSource* sourceObj = 0;
 			
 			if (source == "constant"){
 				sourceObj = makeConstantSource(modeval, value);
@@ -104,6 +106,7 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				sourceObj = makeSource(modeval, source, value, amplitude, period, phase, relPhase);
 			}
 			
+			sourceObj->hint = hint;
 			setOutput(channel, sourceObj);
 		}
 		RESTOutputRespond(client, channel);

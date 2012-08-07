@@ -277,6 +277,9 @@ struct OutputSource{
 	
 	/// true if this source's effect has come back as input
 	bool effective;
+
+	/// hint passed by the client, not used but repeated back
+	string hint;
 	
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){};
 	
