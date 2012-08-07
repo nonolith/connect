@@ -67,7 +67,7 @@ struct AdvSquareWaveSource: public OutputSource{
 
 	virtual double getPhaseZeroAfterSample(unsigned sample){
 		unsigned per = highSamples+lowSamples;
-		return sample + per - sample % per + phase % per;
+		return sample + per + lowSamples - (sample + phase) % per;
 	}
 	
 	float high, low;
