@@ -63,6 +63,11 @@ struct AdvSquareWaveSource: public OutputSource{
 		n.push_back(JSONNode("highSamples", highSamples));
 		n.push_back(JSONNode("lowSamples", lowSamples));
 	}
+
+	virtual double getPhaseZeroAfterSample(unsigned sample){
+		unsigned per = highSamples+lowSamples;
+		return sample + per - sample % per + phase % per;
+	}
 	
 	float high, low;
 	unsigned highSamples, lowSamples;
