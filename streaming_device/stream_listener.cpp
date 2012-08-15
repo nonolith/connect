@@ -187,14 +187,17 @@ bool StreamListener::findTrigger(){
 		}
 	}else if (triggerType == OUTSOURCE){
 		double zero = triggerChannel->source->getPhaseZeroAfterSample(index);
+		unsigned tIndex = triggerForceIndex;
 		if (!triggerForce || zero <= triggerForceIndex){
-			index = round(zero) + triggerOffset;
+			tIndex = round(zero) + triggerOffset;
 			triggerSubsampleError = zero - round(zero);
-		}else if (triggerForceIndex > index){
-			index = triggerForceIndex;
 		}
-		triggered = true;
-		return true;
+
+		if (device->capture_i >= tIndex){
+			index = tIndex;
+			triggered = true;
+			return true;
+		}
 	}
 	
 	if (triggerForce && index > triggerForceIndex){
