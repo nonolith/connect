@@ -180,30 +180,27 @@ bool StreamListener::findTrigger(){
 			if (newState == true && state == false){
 				//std::cout << "Trigger at " << index << " " <<device->get(*triggerStream, index-1) << " " << device->get(*triggerStream, index) << std::endl;
 				index += triggerOffset;
-				triggered = true;
-				return true;
+				return (triggered = true);
 			}
 			state = newState;
 		}
-	}else if (triggerType == OUTSOURCE){
-		double zero = triggerChannel->source->getPhaseZeroAfterSample(index);
-		unsigned tIndex = triggerForceIndex;
-		if (!triggerForce || zero <= triggerForceIndex){
-			tIndex = round(zero) + triggerOffset;
-			triggerSubsampleError = zero - round(zero);
+
+		if (triggerForce && index > triggerForceIndex){
+			//std::cout << "Forced trigger at " << index << std::endl;
+			return (triggered = true);
 		}
 
-		if (device->capture_i >= tIndex){
-			index = tIndex;
-			triggered = true;
-			return true;
+	}else if (triggerType == OUTSOURCE){
+		double zero = triggerChannel->source->getPhaseZeroAfterSample(index);
+		
+		if (std::isfinite(zero) && device->capture_o >= round(zero)){
+			index = round(zero) + triggerOffset;
+			triggerSubsampleError = zero - round(zero);
+			return (triggered = true);
+		}else if (triggerForce && device->capture_i >= triggerForceIndex){
+			index = triggerForceIndex;
+			return (triggered = true);
 		}
-	}
-	
-	if (triggerForce && index > triggerForceIndex){
-		//std::cout << "Forced trigger at " << index << std::endl;
-		triggered = true;
-		return true;
 	}
 	
 	return false;
