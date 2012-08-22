@@ -299,7 +299,7 @@ typedef std::vector<ArbWavePoint> ArbWavePoint_vec;
 OutputSource *makeConstantSource(unsigned m, float value);
 OutputSource *makeSource(JSONNode& description);
 OutputSource* makeSource(unsigned mode, const string& source, float offset, float amplitude, double period, double phase, bool relPhase);
-OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase);
+OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase, bool relPhase);
 OutputSource* makeArbitraryWaveform(unsigned mode, int offset, ArbWavePoint_vec& values, int repeat_count);
 
 Stream* findStream(const string& deviceId, const string& channelId, const string& streamId);

@@ -65,7 +65,8 @@ void StreamingDevice::handleRESTOutputCallback(websocketpp::session_ptr client, 
 				int time2 = map_get_num<double>(map, "time2", 0.5)/sampleTime;
 				if (time2 <= 0) time2 = 1;
 				int phase = map_get_num<double>(map, "phase", 0)/sampleTime;
-				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase);
+				bool relPhase = (map_get(map, "relPhase", "1") == "1");
+				sourceObj = makeAdvSquare(modeval, value1, value2, time1, time2, phase, relPhase);
 
 			}else if (source == "arb"){
 				int phase = map_get_num<double>(map, "phase", -1)/sampleTime;

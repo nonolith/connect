@@ -47,8 +47,11 @@ OutputSource *makeConstantSource(unsigned m, float value){
 }
 
 struct AdvSquareWaveSource: public OutputSource{
-	AdvSquareWaveSource(unsigned m, float _high, float _low, unsigned _highSamples, unsigned _lowSamples, int _phase):
-		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples), phase(_phase){}
+	AdvSquareWaveSource(unsigned m, float _high, float _low, unsigned _highSamples, unsigned _lowSamples, int _phase, bool _relPhase):
+		OutputSource(m), high(_high), low(_low), highSamples(_highSamples), lowSamples(_lowSamples), phase(_phase), relPhase(_relPhase){
+			if (highSamples + lowSamples == 0)
+				throw ErrorStringException("Square wave must have nonzero period.");
+		}
 	virtual string displayName(){return "adv_square";}
 	
 	virtual float getValue(unsigned sample, double sampleTime){
@@ -69,10 +72,21 @@ struct AdvSquareWaveSource: public OutputSource{
 		unsigned per = highSamples+lowSamples;
 		return sample + per + lowSamples - (sample + phase) % per;
 	}
+
+	virtual void initialize(unsigned sample, OutputSource* prevSrc){
+		AdvSquareWaveSource* s = dynamic_cast<AdvSquareWaveSource*>(prevSrc);
+		if (s && relPhase){
+			unsigned period = highSamples + lowSamples;
+			unsigned oldPeriod = s->highSamples + s->lowSamples;
+			phase += round(float((sample + s->phase)%oldPeriod)/oldPeriod * period) - sample%period;
+		}
+		phase = fmod(phase, highSamples+lowSamples);
+	}
 	
 	float high, low;
 	unsigned highSamples, lowSamples;
 	int phase;
+	bool relPhase;
 };
 
 struct PeriodicSource: public OutputSource{
@@ -271,8 +285,8 @@ OutputSource* makeSource(unsigned mode, const string& source, float offset, floa
 	throw ErrorStringException("Invalid source");
 }
 
-OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase){
-	return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase);
+OutputSource* makeAdvSquare(unsigned mode, float high, float low, unsigned highSamples, unsigned lowSamples, unsigned phase, bool relPhase){
+	return new AdvSquareWaveSource(mode, high, low, highSamples, lowSamples, phase, relPhase);
 }
 
 OutputSource* makeArbitraryWaveform(unsigned mode, int phase, ArbWavePoint_vec& values, int repeat_count){
@@ -296,7 +310,8 @@ OutputSource* makeSource(JSONNode& n){
 		int highSamples = jsonIntProp(n, "highSamples");
 		int lowSamples = jsonIntProp(n, "lowSamples");
 		int phase = jsonIntProp(n, "phase", 0);
-		r = makeAdvSquare(mode, high, low, highSamples, lowSamples, phase);
+		bool relPhase = jsonBoolProp(n, "relPhase", true);
+		r = makeAdvSquare(mode, high, low, highSamples, lowSamples, phase, relPhase);
 		
 	}else if (source == "sine" || source == "triangle" || source == "square"){
 		float offset = jsonFloatProp(n, "offset");
