@@ -70,7 +70,7 @@ struct AdvSquareWaveSource: public OutputSource{
 
 	virtual double getPhaseZeroAfterSample(unsigned sample){
 		unsigned per = highSamples+lowSamples;
-		return sample + per + lowSamples - (sample + phase) % per;
+		return sample + (per + lowSamples - (sample + phase) % per) % per;
 	}
 
 	virtual void initialize(unsigned sample, OutputSource* prevSrc){
@@ -110,7 +110,7 @@ struct PeriodicSource: public OutputSource{
 	}
 	
 	virtual double getPhaseZeroAfterSample(unsigned sample){
-		return (double) sample + period - fmod(sample+phase, period);
+		return (double) sample + fmod(period - fmod(sample+phase, period), period);
 	}
 	
 	double offset, amplitude, period, phase;
@@ -265,7 +265,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 
 	virtual double getPhaseZeroAfterSample(unsigned sample){
 		unsigned per = period();
-		return sample + per - sample % per + phase % per;
+		return sample + (per - (sample - phase) % per) % per;
 	}
 	
 	int phase;
