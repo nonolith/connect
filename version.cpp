@@ -1,4 +1,4 @@
-const char* server_version="1.2";
+const char* server_version="1.3";
 
 #ifdef GITVERSION
 
