@@ -38,6 +38,10 @@ struct ConstantSource: public OutputSource{
 		OutputSource::describeJSON(n);
 		n.push_back(JSONNode("value", value));
 	}
+
+	virtual double getPhaseZeroAfterSample(unsigned sample){
+		return sample;
+	}
 	
 	float value;
 };
