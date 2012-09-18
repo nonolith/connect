@@ -21,6 +21,7 @@ extern boost::asio::io_service io;
 #include "libjson/libjson.h"
 #include "websocketpp.hpp"
 void respondJSON(websocketpp::session_ptr client, JSONNode &n, int status=200);
+void respondError(websocketpp::session_ptr client, std::exception& e);
 
 #include "event.hpp"
 #include "device.hpp"

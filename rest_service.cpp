@@ -18,6 +18,14 @@ void respondJSON(websocketpp::session_ptr client, JSONNode &n, int status){
 	client->start_http(status, jc);
 }
 
+
+void respondError(websocketpp::session_ptr client, std::exception& e){
+	JSONNode j;
+	j.push_back(JSONNode("error", e.what()));
+	std::cerr << "Exception while processing request: " << e.what() <<std::endl;
+	respondJSON(client, j, 402);
+}
+
 void deviceListRequest(websocketpp::session_ptr client){
 	JSONNode n = jsonDevicesArray(true);
 	respondJSON(client, n);

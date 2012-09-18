@@ -217,6 +217,48 @@ bool CEE_device::processMessage(ClientConn& client, string& cmd, JSONNode& n){
 	}
 }
 
+JSONNode CEE_device::gpio(bool set, uint8_t dir, uint8_t out){
+	uint8_t buf[4];
+	JSONNode j;
+	int r = controlTransfer(0xC0, set?0x21:0x20, out, dir, buf, 4);
+	j.push_back(JSONNode("status", r));
+	j.push_back(JSONNode("in", buf[0]));
+	j.push_back(JSONNode("dir", buf[1]));
+	j.push_back(JSONNode("out", buf[2]));
+	return j;
+}
+
+void CEE_device::handleRESTGPIOCallback(websocketpp::session_ptr client, string postdata){
+	try{
+		std::map<string, string> map;
+		parse_query(postdata, map);
+		uint8_t dir = map_get_num(map, "dir", 0) & 0xFF;
+		uint8_t out = map_get_num(map, "out", 0) & 0xFF;
+		JSONNode j = gpio(true, dir, out);
+		respondJSON(client, j);
+	}catch(std::exception& e){
+		respondError(client, e);
+	}
+}
+
+bool CEE_device::handleREST(UrlPath path, websocketpp::session_ptr client){
+	if (!path.leaf() && path.matches("gpio")){
+		if (client->get_method() == "POST"){
+			client->read_http_post_body(
+				boost::bind(
+					&CEE_device::handleRESTGPIOCallback,
+					boost::static_pointer_cast<CEE_device>(shared_from_this()),
+					client,  _1));
+		}else{
+			JSONNode j = gpio(false);
+			respondJSON(client, j);
+		}
+		return true;
+	}else{
+		return StreamingDevice::handleREST(path, client);
+	}
+}
+
 void CEE_device::configure(int mode, double _sampleTime, unsigned samples, bool continuous, bool raw){
 	pause_capture();
 	

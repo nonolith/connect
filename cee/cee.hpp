@@ -101,7 +101,10 @@ class CEE_device: public StreamingDevice, USB_device{
 	virtual const string serialno(){return serial;}
 	
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
+	virtual bool handleREST(UrlPath path, websocketpp::session_ptr client);
+	virtual void handleRESTGPIOCallback(websocketpp::session_ptr client, string postdata);
 	
+	JSONNode gpio(bool set, uint8_t dir=0, uint8_t out=0);
 	virtual void setOutput(Channel* channel, OutputSource* source);
 	virtual void setInternalGain(Channel* channel, Stream* stream, int gain);
 

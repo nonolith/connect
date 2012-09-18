@@ -14,13 +14,6 @@
 #include <sstream>
 #include <boost/foreach.hpp>
 
-void respondError(websocketpp::session_ptr client, std::exception& e){
-	JSONNode j;
-	j.push_back(JSONNode("error", e.what()));
-	std::cerr << "Exception while processing request: " << e.what() <<std::endl;
-	respondJSON(client, j, 402);
-}
-
 //// device/channel/output resource
 
 void StreamingDevice::RESTOutputRespond(websocketpp::session_ptr client, Channel *channel){
