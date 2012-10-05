@@ -285,6 +285,8 @@ struct OutputSource{
 	
 	virtual double getPhaseZeroAfterSample(unsigned sample){return INFINITY;}
 
+	virtual ~OutputSource(){};
+
 	protected:
 		OutputSource(unsigned m): mode(m), startSample(0), effective(false){};
 };
