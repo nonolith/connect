@@ -232,7 +232,7 @@ struct ArbitraryWaveformSource: public OutputSource{
 		
 		// Proportion of the time between the last point and the next point
 		double p = (((double)sample) - time1)/(((double)time2) - time1);
-		std::cout << sample << " time1=" << time1 << " time2=" << time2 << " val1=" << value1 << " val2="<<value2 << " p=" <<p<<" val="<<(1-p) * value1 + p*value2<<std::endl;
+		//std::cout << sample << " time1=" << time1 << " time2=" << time2 << " val1=" << value1 << " val2="<<value2 << " p=" <<p<<" val="<<(1-p) * value1 + p*value2<<std::endl;
 		
 		// Trapezoidal interpolation
 		return (1-p) * value1 + p*value2;
