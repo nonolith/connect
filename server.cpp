@@ -62,6 +62,15 @@ int server_main(int argc, char* argv[]){
 	return 0;
 }
 
+void do_shutdown() {
+	usb_fini();
+	io.stop();
+}
+
+void server_shutdown() {
+	io.post(do_shutdown);
+}
+
 const string redir_url = "http://www.nonolithlabs.com/connect/?utm_source=connect&utm_medium=app&utm_campaign=server-redir";
 
 void handleJSONRequest(UrlPath path, websocketpp::session_ptr client);

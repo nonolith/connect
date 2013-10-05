@@ -41,18 +41,20 @@ void usb_init(){
 	usb_thread = new boost::thread(usb_thread_main);
 }
 
+static volatile bool keep_running = true;
+
 // Dedicated thread for handling soft-real-time USB events
 void usb_thread_main(){
-	while(1) libusb_handle_events(NULL);
+	while(keep_running) libusb_handle_events(NULL);
 }
 
 void usb_fini(){
-	// TODO: kill the USB thread somehow
-	usb_thread->join(); //currently blocks forever
-
+	keep_running = false;
 	devices.empty();
-	
-	libusb_exit(NULL);
+
+	// Might block forever if there aren't events
+	// usb_thread->join();
+	// libusb_exit(NULL);
 }
 
 void deviceAdded(libusb_device *dev){

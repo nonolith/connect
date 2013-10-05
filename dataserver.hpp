@@ -36,6 +36,7 @@ extern std::set<device_ptr> devices;
 extern Event device_list_changed;
 
 void usb_init();
+void usb_fini();
 void usb_scan_devices();
 void usb_thread_main();
 
