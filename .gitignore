@@ -1,7 +1,7 @@
 *.o
 *.a
-.sconsign.dblite
 nonolith-connect
 nonolith-connect.exe
 debian/changelog
 dch.sh
+/build/
