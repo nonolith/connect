@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.9)
 project (nonolith-connect)
 
 include(ExternalProject)
@@ -36,12 +36,23 @@ set_property(TARGET websocketpp PROPERTY IMPORTED_LOCATION
  )
 add_dependencies(usb_nonolith websocketpp_external)
 
-# Nonolith Connect
+# Qt
 
+# Find includes in corresponding build directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+# Instruct CMake to run moc automatically when needed.
+set(CMAKE_AUTOMOC ON)
+
+find_package(Qt5Widgets)
+find_package(Qt5WebKitWidgets)
+
+
+# Nonolith Connect
 include_directories ("${PROJECT_SOURCE_DIR}/libusb")
 include_directories ("${PROJECT_SOURCE_DIR}/websocketpp/src")
 
 SET (SRCS 
+	main.cpp
 	bootloader/bootloader.cpp
 	cee/cee.cpp
 	device.cpp
@@ -57,6 +68,8 @@ SET (SRCS
 	usb.cpp
 	version.cpp
 	websocket_service.cpp
+	appshell/ui.cpp
+	appshell/html5applicationviewer/html5applicationviewer.cpp
 )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -98,3 +111,5 @@ target_link_libraries(nonolith-connect
 	usb_nonolith
 	websocketpp
 )
+
+qt5_use_modules(nonolith-connect Widgets WebKitWidgets)

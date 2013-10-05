@@ -29,7 +29,7 @@ bool allowAnyOrigin = false;
 Event device_list_changed;
 Event capture_state_changed;
 
-int main(int argc, char* argv[]){	
+int server_main(int argc, char* argv[]){
 	data_server_handler_ptr handler(new data_server_handler());
 	
 	try {

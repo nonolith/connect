@@ -16,7 +16,7 @@ Nonolith Connect is licensed under the terms of the [GNU GPLv3+][gpl].
 Dependencies
 ------------
 
-`nonolith-connect` is written in C++ and builds with `scons`. It needs several
+`nonolith-connect` is written in C++ and builds with `cmake`. It needs several
 boost libraries: `asio`, `system`, `date_time`, `regex`, `thread`. It also uses 
 [libjson][], [websocketpp][] [(modified branch)][websocketpp-nl], and [libusb][],
 which are included as subdirectories or submodules of this git repository.
@@ -28,13 +28,17 @@ distributions. This version contains bugfixes to the async API.
 [websocketpp-nl]: https://github.com/nonolith/websocketpp
 [libusb]: http://libusb.sourceforge.net/api-1.0/index.html
 [libusb-nl]: https://github.com/nonolith/libusb
+[Qt5]: https://qt-project.org/
 
 Build instructions
 ------------------
 
     git clone --recursive https://github.com/nonolith/connect.git
     cd connect
-    scons -j5
+    mkdir -p build
+    cd build
+    CMAKE_PREFIX_PATH=/opt/Qt5.1.1/5.1.1/gcc/ cmake ..
+    make
 
 to build the nonolith-connect executable
 
