@@ -69,6 +69,7 @@ SET (SRCS
 	version.cpp
 	websocket_service.cpp
 	appshell/ui.cpp
+	appshell/bridge_client.cpp
 	appshell/html5applicationviewer/html5applicationviewer.cpp
 )
 

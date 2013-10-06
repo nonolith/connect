@@ -35,25 +35,31 @@ int server_main(int argc, char* argv[]){
 	try {
 		usb_init();
 		
+		bool net = false;
 		for (int i=1; i<argc; i++){
 			string arg(argv[i]);
 			if (arg=="debug") debugFlag = true;
 			if (arg=="allow-remote") allowRemote = true;
 			if (arg=="allow-any-origin") allowAnyOrigin = true;
+			if (arg=="net") net = true;
 		}
 		
-		boost::asio::ip::address_v4 bind_addr;
-		if (!allowRemote) bind_addr = boost::asio::ip::address_v4::loopback();
-		
-		tcp::endpoint endpoint(bind_addr, port);
-		websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
-		
-		server->set_max_message_size(0xFFFFF); // 1024KiB
-		//server->set_elog_level(0);
-		server->start_accept();
+		if (net) {
+			boost::asio::ip::address_v4 bind_addr;
+			if (!allowRemote) bind_addr = boost::asio::ip::address_v4::loopback();
+			
+			tcp::endpoint endpoint(bind_addr, port);
+			websocketpp::server_ptr server(new websocketpp::server(io, endpoint, handler));
+			
+			server->set_max_message_size(0xFFFFF); // 1024KiB
+			server->set_elog_level(0);
+			server->start_accept();
+		}
 
 		usb_scan_devices();
 		
+		boost::asio::io_service::work work(io);
+
 		io.run();
 	} catch (std::exception& e) {
 		std::cerr << "Exception: " << e.what() << std::endl;
