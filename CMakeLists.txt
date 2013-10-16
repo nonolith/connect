@@ -3,8 +3,15 @@ project (nonolith-connect)
 
 include(ExternalProject)
 
+# Static
+IF (STATIC OR (${CMAKE_SYSTEM_NAME} MATCHES "Windows"))
+	set(Boost_USE_STATIC_LIBS   TRUE)
+	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+	set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
+ENDIF()
+
 # Boost
-find_package(Boost COMPONENTS system regex thread REQUIRED)
+find_package(Boost COMPONENTS system regex thread chrono date_time REQUIRED)
 
 # LibJSON
 file(GLOB JSON_SRC libjson/_internal/Source/*.cpp)
@@ -13,7 +20,7 @@ add_library(json STATIC ${JSON_SRC})
 # Libusb
 ExternalProject_Add ( usb_nonolith_external
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/libusb
-	CONFIGURE_COMMAND ${CMAKE_SOURCE_DIR}/libusb/configure --prefix=${CMAKE_BINARY_DIR}/libusb
+	CONFIGURE_COMMAND ${CMAKE_SOURCE_DIR}/libusb/configure --host=${CROSS} --prefix=${CMAKE_BINARY_DIR}/libusb
 	BUILD_COMMAND make
 )
 add_library(usb_nonolith UNKNOWN IMPORTED) 
@@ -23,18 +30,16 @@ set_property(TARGET usb_nonolith PROPERTY IMPORTED_LOCATION
 add_dependencies(usb_nonolith usb_nonolith_external)
 
 # Websocketpp
-ExternalProject_Add ( websocketpp_external
-	SOURCE_DIR ${CMAKE_SOURCE_DIR}/websocketpp
-	CONFIGURE_COMMAND ""
-	BUILD_IN_SOURCE 1
-	BUILD_COMMAND make
-	INSTALL_COMMAND make install prefix=${CMAKE_BINARY_DIR}/websocketpp
+set(WEBSOCKETPP_SRC
+	websocketpp/src/websocket_server_session.cpp
+	websocketpp/src/websocket_session.cpp
+	websocketpp/src/websocket_server.cpp
+	websocketpp/src/websocket_frame.cpp
+    websocketpp/src/network_utilities.cpp
+    websocketpp/src/sha1/sha1.cpp
+    websocketpp/src/base64/base64.cpp
 )
-add_library(websocketpp UNKNOWN IMPORTED) 
-set_property(TARGET websocketpp PROPERTY IMPORTED_LOCATION 
-	${CMAKE_BINARY_DIR}/websocketpp/lib
- )
-add_dependencies(usb_nonolith websocketpp_external)
+add_library(websocketpp STATIC ${WEBSOCKETPP_SRC})
 
 # Nonolith Connect
 
@@ -79,22 +84,32 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	SET (PLATFORM_LIBRARIES
-		-l ws2_32
-		-l mswsock
-	)
-	add_definitions (
+		-static
+		-static-libgcc
+		-static-libstdc++
+		-lws2_32
+		-lmswsock
 		-Wl,-subsystem,windows
 		-mwindows
+	)
+	add_definitions (
+		-D WIN32_LEAN_AND_MEAN
+		-DBOOST_THREAD_USE_LIB
+	)
+	SET (CMAKE_EXE_LINKER_FLAGS
+		-Wl,--allow-multiple-definition
 	)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 add_executable(nonolith-connect ${SRCS})
 target_link_libraries(nonolith-connect 
-	${PLATFORM_LIBRARIES}
 	${Boost_SYSTEM_LIBRARY}
 	${Boost_REGEX_LIBRARY}
 	${Boost_THREAD_LIBRARY}
+	${Boost_CHRONO_LIBRARY}
+	${Boost_DATE_TIME_LIBRARY}
 	json
 	usb_nonolith
 	websocketpp
+	${PLATFORM_LIBRARIES}
 )

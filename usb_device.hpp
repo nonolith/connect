@@ -66,10 +66,3 @@ class USB_device{
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
 };
 
-#ifdef __MINGW32__
-// Function is not defined in mingw
-static inline size_t strnlen (const char *string, size_t maxlen){
-  const char *end = (const char*) memchr(string, '\0', maxlen);
-  return end ? (size_t) (end - string) : maxlen;
-}
-#endif
