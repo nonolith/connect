@@ -11,12 +11,12 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include <libusb/libusb.h>
 #include <sys/timeb.h>
 #include <boost/bind.hpp>
 using namespace std;
 
 #include "cee.hpp"
+#include <libusb/libusb.h>
 
 #define EP_BULK_IN 0x81
 #define EP_BULK_OUT 0x02

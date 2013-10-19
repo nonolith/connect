@@ -14,12 +14,11 @@
 #include <iostream>
 #include <ios>
 #include <iomanip>
-#include <libusb/libusb.h>
 #include <sys/timeb.h>
 #include <boost/bind.hpp>
 using namespace std;
-
 #include "bootloader.hpp"
+#include <libusb/libusb.h>
 
 Bootloader_device::Bootloader_device(libusb_device *dev, libusb_device_descriptor &desc):
 	USB_device(dev, desc){

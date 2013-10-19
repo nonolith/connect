@@ -7,7 +7,6 @@
 //   Kevin Mehall <km@kevinmehall.net>
 
 #include <iostream>
-#include <libusb/libusb.h>
 #include <vector>
 #include <map>
 #include <boost/thread.hpp>
@@ -15,6 +14,7 @@
 #include "dataserver.hpp"
 #include "cee/cee.hpp"
 #include "bootloader/bootloader.hpp"
+#include <libusb/libusb.h>
 
 using namespace std;
 
@@ -26,8 +26,10 @@ boost::thread* usb_thread;
 #define CEE_PID 0xCEE1
 #define BOOTLOADER_PID 0xBBBB
 
-extern "C" void LIBUSB_CALL device_added_usbthread(libusb_device *dev, void *user_data);
-extern "C" void LIBUSB_CALL device_removed_usbthread(libusb_device *dev, void *user_data);
+libusb_hotplug_callback_handle hotplug_handle;
+extern "C" int LIBUSB_CALL hotplug_callback_usbthread(
+	libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data);
+
 
 void usb_init(){
 	int r = libusb_init(NULL);
@@ -35,8 +37,22 @@ void usb_init(){
 		cerr << "Could not init libusb" << endl;
 		abort();
 	}
-	
-	libusb_register_hotplug_listeners(NULL, device_added_usbthread, device_removed_usbthread, 0);
+
+	if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+		cerr << "Using libusb hotplug" << endl;
+		libusb_hotplug_register_callback(NULL, 
+			(libusb_hotplug_event)(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
+			(libusb_hotplug_flag) 0,
+			LIBUSB_HOTPLUG_MATCH_ANY,
+			LIBUSB_HOTPLUG_MATCH_ANY,
+			LIBUSB_HOTPLUG_MATCH_ANY,
+			hotplug_callback_usbthread,
+			NULL,
+			&hotplug_handle
+		);
+	} else {
+		cerr << "Libusb hotplug not supported. Only devices already attached will be used." << endl;
+	}
 
 	usb_thread = new boost::thread(usb_thread_main);
 }
@@ -47,8 +63,8 @@ void usb_thread_main(){
 }
 
 void usb_fini(){
-	// TODO: kill the USB thread somehow
-	usb_thread->join(); //currently blocks forever
+	libusb_hotplug_deregister_callback(NULL, hotplug_handle);
+	usb_thread->join();
 
 	devices.empty();
 	
@@ -98,13 +114,15 @@ void deviceRemoved(libusb_device *dev){
 	ds_dev->onDisconnect();
 }
 
-extern "C" void LIBUSB_CALL device_added_usbthread(libusb_device *dev, void *user_data){
-	libusb_ref_device(dev);
-	io.post(boost::bind(deviceAdded, dev));
-}
-
-extern "C" void LIBUSB_CALL device_removed_usbthread(libusb_device *dev, void *user_data){
-	io.post(boost::bind(deviceRemoved, dev));
+extern "C" int LIBUSB_CALL hotplug_callback_usbthread(
+	libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data) {
+	if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
+		libusb_ref_device(device);
+		io.post(boost::bind(deviceAdded, device));
+	} else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
+		io.post(boost::bind(deviceRemoved, device));
+	}
+	return 0;
 }
 
 void usb_scan_devices(){
