@@ -49,6 +49,7 @@ include_directories ("${PROJECT_SOURCE_DIR}/websocketpp/src")
 SET (SRCS 
 	bootloader/bootloader.cpp
 	cee/cee.cpp
+	m1000/m1000.cpp
 	device.cpp
 	event.cpp
 	rest_service.cpp

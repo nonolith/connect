@@ -13,11 +13,7 @@
 #include "../usb_device.hpp"
 #include <boost/thread/mutex.hpp>
 
-enum CEE_chanmode{
-	DISABLED = 0,
-	SVMI = 1,
-	SIMV = 2,
-};
+#define CEE_chanmode Chanmode
 
 inline int16_t signextend12(uint16_t v){
 	return (v>((1<<11)-1))?(v - (1<<12)):v;

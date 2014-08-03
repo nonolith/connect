@@ -16,6 +16,12 @@
 
 #include "../dataserver.hpp"
 
+enum Chanmode{
+	DISABLED = 0,
+	SVMI = 1,
+	SIMV = 2,
+};
+
 struct StreamListener;
 typedef boost::shared_ptr<StreamListener> listener_ptr;
 typedef std::set<listener_ptr> listener_set_t;

@@ -13,6 +13,7 @@
 
 #include "dataserver.hpp"
 #include "cee/cee.hpp"
+#include "m1000/m1000.hpp"
 #include "bootloader/bootloader.hpp"
 #include <libusb/libusb.h>
 
@@ -25,6 +26,8 @@ boost::thread* usb_thread;
 #define NONOLITH_VID 0x59e3
 #define CEE_PID 0xCEE1
 #define BOOTLOADER_PID 0xBBBB
+#define ADI_VID 0x0456
+#define M1000_PID 0xCEE2
 
 libusb_hotplug_callback_handle hotplug_handle;
 extern "C" int LIBUSB_CALL hotplug_callback_usbthread(
@@ -88,6 +91,10 @@ void deviceAdded(libusb_device *dev){
 				newDevice = device_ptr(new CEE_device(dev, desc));
 			}else if (desc.idProduct == BOOTLOADER_PID || desc.idProduct == 0xb003){
 				newDevice = device_ptr(new Bootloader_device(dev, desc));
+			}
+		} else if (desc.idVendor == ADI_VID) {
+			if (desc.idProduct == M1000_PID) {
+				newDevice = device_ptr(new M1000_device(dev, desc));
 			}
 		}
 	}catch(std::exception e){
