@@ -103,6 +103,7 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 add_executable(nonolith-connect ${SRCS})
 target_link_libraries(nonolith-connect 
+	websocketpp
 	${Boost_SYSTEM_LIBRARY}
 	${Boost_REGEX_LIBRARY}
 	${Boost_THREAD_LIBRARY}
@@ -110,6 +111,5 @@ target_link_libraries(nonolith-connect
 	${Boost_DATE_TIME_LIBRARY}
 	json
 	usb_nonolith
-	websocketpp
 	${PLATFORM_LIBRARIES}
 )
