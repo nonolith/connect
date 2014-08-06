@@ -17,10 +17,10 @@
 #define N_TRANSFERS 64
 
 class M1000_device: public StreamingDevice, USB_device{
-	public: 
+	public:
 	M1000_device(libusb_device *dev, libusb_device_descriptor &desc);
 	virtual ~M1000_device();
-	
+
 	virtual void configure(int mode, double sampleTime, unsigned samples, bool continuous, bool raw);
 
 	virtual const string model(){return "com.nonolithlabs.cee";}
@@ -29,7 +29,7 @@ class M1000_device: public StreamingDevice, USB_device{
 		return "9999";
 	}
 	virtual const string serialno(){return serial;}
-	
+
 	virtual bool processMessage(ClientConn& session, string& cmd, JSONNode& n);
 	JSONNode gpio(bool set, uint8_t dir=0, uint8_t out=0);
 	virtual void setOutput(Channel* channel, OutputSource* source);
@@ -49,12 +49,12 @@ class M1000_device: public StreamingDevice, USB_device{
 	boost::mutex transfersMutex;
 	void fillOutTransfer(unsigned char*);
 	void handleInTransfer(unsigned char*);
-	
+
 	/// count of IN and OUT packets, owned by USB thread
 	unsigned incount, outcount;
 
 	bool firstPacket;
-	
+
 	int ntransfers, packets_per_transfer;
 
 	protected:
@@ -64,6 +64,6 @@ class M1000_device: public StreamingDevice, USB_device{
 	virtual void on_pause_capture();
 	uint16_t encode_out(Chanmode mode, float val, uint32_t igain);
 	void checkOutputEffective(Channel& channel);
-	
+
 	void readCalibration();
 };

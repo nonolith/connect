@@ -238,7 +238,7 @@ void M1000_device::handleInTransfer(unsigned char *buffer){
 			put(channel_a_v,  be16toh(buf[i+chunk_size*0]) / 65535.0 * 5.0);
 			put(channel_a_i, (be16toh(buf[i+chunk_size*1]) / 65535.0 - 0.5) * 400.0 );
 			put(channel_b_v,  be16toh(buf[i+chunk_size*2]) / 65535.0 * 5.0);
-			put(channel_b_v, (be16toh(buf[i+chunk_size*3]) / 65535.0 - 0.5) * 400.0 );
+			put(channel_b_i, (be16toh(buf[i+chunk_size*3]) / 65535.0 - 0.5) * 400.0 );
 			
 			sampleDone();
 		}
