@@ -50,8 +50,8 @@ typedef struct IN_packet{
 } IN_packet;
 
 typedef struct OUT_packet{
-	uint32_t data_a[256];
-	uint32_t data_b[256];
+	uint16_t data_a[256];
+	uint16_t data_b[256];
 } OUT_packet;
 
 M1000_device::M1000_device(libusb_device *dev, libusb_device_descriptor &desc):
@@ -165,8 +165,9 @@ void M1000_device::on_start_capture(){
 	// set adcs for bipolar sequenced mode
 	controlTransfer(0x40|0x80, 0xCA, 0xF1C0, 0xF5C0, buf, 1, 100);
 	controlTransfer(0x40|0x80, 0xCB, 0xF1C0, 0xF5C0, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xCD, 0x0000, 0x0001, buf, 1, 100);
 	// set timer for 1us keepoff, 20us period
-	controlTransfer(0x40|0x80, 0xC5, 0x0004, 0x003E, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xC5, 0x0004, 0x001E, buf, 1, 100);
 
 	// Ignore the effect of output samples we sent before pausing
 	capture_o = capture_i;
@@ -308,8 +309,8 @@ void M1000_device::fillOutTransfer(unsigned char* buf){
 			OUT_packet *pkt = &((OUT_packet *)buf)[p];
 
 			for (int i=0; i<chunk_size; i++){
-				pkt->data_a[i] = htobe16(encode_out((Chanmode)mode_a, channel_a.source->getValue(capture_o, sampleTime), 1)) << 8;
-				pkt->data_b[i] = htobe16(encode_out((Chanmode)mode_b, channel_b.source->getValue(capture_o, sampleTime), 1)) << 8;
+				pkt->data_a[i] = htobe16(encode_out((Chanmode)mode_a, channel_a.source->getValue(capture_o, sampleTime), 1));
+				pkt->data_b[i] = htobe16(encode_out((Chanmode)mode_b, channel_b.source->getValue(capture_o, sampleTime), 1));
 				capture_o++;
 			}	
 		}
