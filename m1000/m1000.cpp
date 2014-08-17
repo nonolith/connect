@@ -31,7 +31,7 @@ extern "C" void LIBUSB_CALL m1000_out_transfer_callback(libusb_transfer *t);
 const double m1000_default_sample_time = 1/48000.0;
 
 const float V_min = 0;
-const float V_max = 5.0;
+const float V_max = 4.0096;
 const float I_min = -200;
 const float I_max = 200;
 const int defaultCurrentLimit = 200;
@@ -61,9 +61,9 @@ M1000_device::M1000_device(libusb_device *dev, libusb_device_descriptor &desc):
 	channel_b("b", "B"),
 	
 	//          id   name         unit  min    max    omode uncert.  gain
-	channel_a_v("v", "Voltage A", "V",  V_min, V_max, 1,  V_max/2048, 1),
+	channel_a_v("v", "Voltage A", "V",  V_min, V_max, 1,  V_max/65536, 1),
 	channel_a_i("i", "Current A", "mA", 0,     0,     2,  1,          1),
-	channel_b_v("v", "Voltage B", "V",  V_min, V_max, 1,  V_max/2048, 1),
+	channel_b_v("v", "Voltage B", "V",  V_min, V_max, 1,  V_max/65536, 1),
 	channel_b_i("i", "Current B", "mA", 0,     0,     2,  1,          1)
 	{
 	cerr << "Found M1000: \n    Serial: "<< serial << endl;
@@ -160,14 +160,16 @@ void M1000_device::on_start_capture(){
 	libusb_set_interface_alt_setting(handle, 0, 1);
 	
 	uint8_t buf[4];
+	// stop on off chance it's still running
+	controlTransfer(0x40|0x80, 0xC5, 0x0000, 0x0000, buf, 1, 100);
 	// set pots for sane simv
 	controlTransfer(0x40|0x80, 0x1B, 0x0707, 'a', buf, 4, 100);
 	// set adcs for bipolar sequenced mode
-	controlTransfer(0x40|0x80, 0xCA, 0xF1C0, 0xF5C0, buf, 1, 100);
-	controlTransfer(0x40|0x80, 0xCB, 0xF1C0, 0xF5C0, buf, 1, 100);
-	controlTransfer(0x40|0x80, 0xCD, 0x0000, 0x0100, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xCA, 0xF120, 0xF520, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xCB, 0xF120, 0xF520, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xCD, 0x0000, 0x0001, buf, 1, 100);
 	// set timer for 1us keepoff, 20us period
-	controlTransfer(0x40|0x80, 0xC5, 0x0004, 0x001E, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xC5, 0x0001, 0x003E, buf, 1, 100);
 
 	// Ignore the effect of output samples we sent before pausing
 	capture_o = capture_i;
@@ -236,10 +238,10 @@ void M1000_device::handleInTransfer(unsigned char *buffer){
 		firstPacket = false;
 	
 		for (int i=0; i<chunk_size; i++){
-			put(channel_a_v,  be16toh(buf[i+chunk_size*0]) / 65535.0 * 5.0);
-			put(channel_a_i, (be16toh(buf[i+chunk_size*1]) / 65535.0 - 0.5) * 400.0 );
-			put(channel_b_v,  be16toh(buf[i+chunk_size*2]) / 65535.0 * 5.0);
-			put(channel_b_i, (be16toh(buf[i+chunk_size*3]) / 65535.0 - 0.5) * 400.0 );
+			put(channel_a_v,  be16toh(buf[i+chunk_size*0]) / 65535.0 * 4.096);
+			put(channel_a_i, (be16toh(buf[i+chunk_size*1]) / 65535.0 - 0.61) * 400.0 );
+			put(channel_b_v,  be16toh(buf[i+chunk_size*2]) / 65535.0 * 4.096);
+			put(channel_b_i, (be16toh(buf[i+chunk_size*3]) / 65535.0 - 0.61) * 400.0 );
 			
 			sampleDone();
 		}
@@ -289,7 +291,7 @@ uint16_t M1000_device::encode_out(Chanmode mode, float val, uint32_t igain){
 			v = 65535*val/5.0;
 		}else if (mode == SIMV){
 			val = constrain(val, -currentLimit, currentLimit);
-			v = 65535*((val + 200.0)/400.0);
+			v = 65535*((val+200)/400.0);
 		}
 		if (v > 65535) v=65535;
 		if (v < 0) v = 0;
