@@ -2,10 +2,11 @@
 // https://github.com/nonolith/connect
 // USB Data streaming for CEE
 // Released under the terms of the GNU GPLv3+
-// (C) 2012 Nonolith Labs, LLC
+// (C) 2012-2014 Nonolith Labs, LLC
+// (C) 2014 Analog Devices Inc.
 // Authors:
 //   Kevin Mehall <kevin@nonolithlabs.com>
-//   Ian Daniher <ian@nonolithlabs.com>
+//   Ian Daniher <ian@nonolithlabs.com> <ian.daniher@analog.com>
 
 #include <stdlib.h>
 #include <iostream>
@@ -34,7 +35,7 @@ const float V_min = 0;
 const float V_max = 4.0096;
 const float I_min = -200;
 const float I_max = 200;
-const int defaultCurrentLimit = 200;
+const float defaultCurrentLimit = 200;
 
 #ifdef _WIN32
 const double BUFFER_TIME = 0.050;
@@ -62,9 +63,9 @@ M1000_device::M1000_device(libusb_device *dev, libusb_device_descriptor &desc):
 	
 	//          id   name         unit  min    max    omode uncert.  gain
 	channel_a_v("v", "Voltage A", "V",  V_min, V_max, 1,  V_max/65536, 1),
-	channel_a_i("i", "Current A", "mA", 0,     0,     2,  1,          1),
+	channel_a_i("i", "Current A", "mA", 0,     0,     2,  defaultCurrentLimit/32768, 1),
 	channel_b_v("v", "Voltage B", "V",  V_min, V_max, 1,  V_max/65536, 1),
-	channel_b_i("i", "Current B", "mA", 0,     0,     2,  1,          1)
+	channel_b_i("i", "Current B", "mA", 0,     0,     2,  defaultCurrentLimit/32768, 1)
 	{
 	cerr << "Found M1000: \n    Serial: "<< serial << endl;
 	
@@ -290,8 +291,8 @@ uint16_t M1000_device::encode_out(Chanmode mode, float val, uint32_t igain){
 			val = constrain(val, V_min, V_max);
 			v = 65535*val/5.0;
 		}else if (mode == SIMV){
-			val = constrain(val, -currentLimit, currentLimit);
-			v = 65535*((val+200)/400.0);
+			val = constrain(val, -defaultCurrentLimit, defaultCurrentLimit);
+			v = 65536*((val+200.0)/400.0);
 		}
 		if (v > 65535) v=65535;
 		if (v < 0) v = 0;
