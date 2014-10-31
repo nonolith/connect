@@ -29,10 +29,10 @@ const unsigned chunk_size = 256;
 extern "C" void LIBUSB_CALL m1000_in_transfer_callback(libusb_transfer *t);
 extern "C" void LIBUSB_CALL m1000_out_transfer_callback(libusb_transfer *t);
 
-const double m1000_default_sample_time = 1/48000.0;
+const double m1000_default_sample_time = 1/50000.0;
 
 const float V_min = 0;
-const float V_max = 4.0096;
+const float V_max = 5.000;
 const float I_min = -200;
 const float I_max = 200;
 const float defaultCurrentLimit = 200;
@@ -164,13 +164,14 @@ void M1000_device::on_start_capture(){
 	// stop on off chance it's still running
 	controlTransfer(0x40|0x80, 0xC5, 0x0000, 0x0000, buf, 1, 100);
 	// set pots for sane simv
-	controlTransfer(0x40|0x80, 0x1B, 0x0707, 'a', buf, 4, 100);
+	controlTransfer(0x40|0x80, 0x1B, 0x3040, 'a', buf, 4, 100);
+	controlTransfer(0x40|0x80, 0x1B, 0x3040, 'b', buf, 4, 100);
 	// set adcs for bipolar sequenced mode
 	controlTransfer(0x40|0x80, 0xCA, 0xF120, 0xF520, buf, 1, 100);
 	controlTransfer(0x40|0x80, 0xCB, 0xF120, 0xF520, buf, 1, 100);
 	controlTransfer(0x40|0x80, 0xCD, 0x0000, 0x0001, buf, 1, 100);
-	// set timer for 1us keepoff, 20us period
-	controlTransfer(0x40|0x80, 0xC5, 0x0001, 0x003E, buf, 1, 100);
+	// set timer for <1us keepoff, 10us period
+	controlTransfer(0x40|0x80, 0xC5, 0x0001, 0x0014, buf, 1, 100);
 
 	// Ignore the effect of output samples we sent before pausing
 	capture_o = capture_i;
@@ -239,10 +240,10 @@ void M1000_device::handleInTransfer(unsigned char *buffer){
 		firstPacket = false;
 	
 		for (int i=0; i<chunk_size; i++){
-			put(channel_a_v,  be16toh(buf[i+chunk_size*0]) / 65535.0 * 4.096);
-			put(channel_a_i, (be16toh(buf[i+chunk_size*1]) / 65535.0 - 0.61) * 400.0 );
-			put(channel_b_v,  be16toh(buf[i+chunk_size*2]) / 65535.0 * 4.096);
-			put(channel_b_i, (be16toh(buf[i+chunk_size*3]) / 65535.0 - 0.61) * 400.0 );
+			put(channel_a_v,  be16toh(buf[i+chunk_size*0]) / 65535.0 * 5.000);
+			put(channel_a_i, (be16toh(buf[i+chunk_size*1]) / 65535.0 - 0.61) * 400.0 + 48);
+			put(channel_b_v,  be16toh(buf[i+chunk_size*2]) / 65535.0 * 5.001);
+			put(channel_b_i, (be16toh(buf[i+chunk_size*3]) / 65535.0 - 0.61) * 400.0 + 48);
 			
 			sampleDone();
 		}
@@ -292,7 +293,7 @@ uint16_t M1000_device::encode_out(Chanmode mode, float val, uint32_t igain){
 			v = 65535*val/5.0;
 		}else if (mode == SIMV){
 			val = constrain(val, -defaultCurrentLimit, defaultCurrentLimit);
-			v = 65536*((val+200.0)/400.0);
+			v = 65536*((val+800)/2000.0);
 		}
 		if (v > 65535) v=65535;
 		if (v < 0) v = 0;
