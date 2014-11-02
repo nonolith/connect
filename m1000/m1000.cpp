@@ -171,7 +171,7 @@ void M1000_device::on_start_capture(){
 	controlTransfer(0x40|0x80, 0xCB, 0xF120, 0xF520, buf, 1, 100);
 	controlTransfer(0x40|0x80, 0xCD, 0x0000, 0x0001, buf, 1, 100);
 	// set timer for <1us keepoff, 10us period
-	controlTransfer(0x40|0x80, 0xC5, 0x0001, 0x0014, buf, 1, 100);
+	controlTransfer(0x40|0x80, 0xC5, 0x0001, 0x0028, buf, 1, 100);
 
 	// Ignore the effect of output samples we sent before pausing
 	capture_o = capture_i;
