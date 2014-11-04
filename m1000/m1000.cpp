@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <endian.h>
 #include <sys/timeb.h>
 #include <boost/bind.hpp>
 using namespace std;
