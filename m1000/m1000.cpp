@@ -22,7 +22,8 @@ using namespace std;
 
 #define EP_BULK_IN 0x81
 #define EP_BULK_OUT 0x02
-
+#define A 0
+#define B 1
 const unsigned chunk_size = 256;
 #define OUT_SAMPLES_PER_PACKET chunk_size
 #define IN_SAMPLES_PER_PACKET chunk_size
@@ -161,18 +162,17 @@ void M1000_device::on_start_capture(){
 	
 	libusb_set_interface_alt_setting(handle, 0, 1);
 	
-	uint8_t buf[4];
 	// stop on off chance it's still running
-	controlTransfer(0x40|0x80, 0xC5, 0x0000, 0x0000, buf, 1, 100);
+	controlTransfer(0x40, 0xC5, 0x0000, 0x0000, 0, 0, 100);
 	// set pots for sane simv
-	controlTransfer(0x40|0x80, 0x1B, 0x3040, 'a', buf, 4, 100);
-	controlTransfer(0x40|0x80, 0x1B, 0x3040, 'b', buf, 4, 100);
+	controlTransfer(0x40, 0x1B, 0x3040, A, 0, 0, 100);
+	controlTransfer(0x40, 0x1B, 0x3040, B, 0, 0, 100);
 	// set adcs for bipolar sequenced mode
-	controlTransfer(0x40|0x80, 0xCA, 0xF120, 0xF520, buf, 1, 100);
-	controlTransfer(0x40|0x80, 0xCB, 0xF120, 0xF520, buf, 1, 100);
-	controlTransfer(0x40|0x80, 0xCD, 0x0000, 0x0001, buf, 1, 100);
+	controlTransfer(0x40, 0xCA, 0xF120, 0xF520, 0, 0, 100);
+	controlTransfer(0x40, 0xCB, 0xF120, 0xF520, 0, 0, 100);
+	controlTransfer(0x40, 0xCD, 0x0000, 0x0001, 0, 0, 100);
 	// set timer for <1us keepoff, 10us period
-	controlTransfer(0x40|0x80, 0xC5, 0x0001, 0x001F, buf, 1, 100);
+	controlTransfer(0x40, 0xC5, 0x0001, 0x001F, 0, 0, 100);
 
 	// Ignore the effect of output samples we sent before pausing
 	capture_o = capture_i;
@@ -207,8 +207,7 @@ void M1000_device::on_pause_capture(){
 
 	//std::cerr << "on_pause_capture " << capture_i << " " << capture_o <<std::endl;
 	
-	uint8_t buf[4];
-	controlTransfer(0x40|0x80, 0xC5, 0x0000, 0x0000, buf, 1, 100);
+	controlTransfer(0x40, 0xC5, 0x0000, 0x0000, 0, 0, 100);
 	
 	for (int i=0; i<ntransfers; i++){
 		if (in_transfers[i]){
